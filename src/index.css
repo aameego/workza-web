@@ -1,7 +1,29 @@
+@import url("https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
+@import "./design-system/tokens.css";
 
-*{
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background: var(--wz-surface);
+    color: var(--wz-text);
+    font-family: var(--wz-font);
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
 }

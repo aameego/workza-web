@@ -1,0 +1,160 @@
+/**
+ * Workza CSS custom properties + Tailwind v4 @theme bridge.
+ * Keep in sync with tokens.ts + Figma "Tokens & Typography" (node 1:13816).
+ * Prefer Tailwind utilities (bg-wz-primary, text-wz-text, rounded-wz-md, …)
+ * over new component .css files.
+ */
+
+:root {
+  /* Brand */
+  --wz-kp-blue: #245ee4;
+  --wz-kp-green: #08926f;
+  --wz-workza-blue: #1950a3;
+  --wz-workza-teal: #1fa3a5;
+
+  /* Neutral ramp */
+  --wz-neutral-50: #f8f9fa;
+  --wz-neutral-100: #f1f3f5;
+  --wz-neutral-200: #e9ecef;
+  --wz-neutral-300: #dee2e6;
+  --wz-neutral-400: #adb5bd;
+  --wz-neutral-500: #868e96;
+  --wz-neutral-600: #495057;
+  --wz-neutral-700: #343a40;
+  --wz-neutral-800: #212529;
+  --wz-neutral-900: #181818;
+
+  /* Semantic */
+  --wz-primary: var(--wz-workza-blue);
+  --wz-primary-hover: #154388;
+  --wz-primary-active: #001529;
+  --wz-accent: var(--wz-workza-teal);
+  --wz-surface: var(--wz-neutral-50);
+  --wz-border: var(--wz-neutral-300);
+  --wz-text: var(--wz-neutral-900);
+  --wz-text-primary: var(--wz-neutral-900);
+  --wz-text-secondary: var(--wz-neutral-600);
+  --wz-state-hover: #e8eefb;
+  --wz-state-selected: #d1dffa;
+  --wz-state-pressed: #b8cef5;
+  --wz-state-disabled: var(--wz-neutral-200);
+  --wz-success: #12b76a;
+  --wz-warning: #f79009;
+  --wz-error: #f04438;
+
+  /* Shell */
+  --wz-sidebar-bg: #001529;
+  --wz-sidebar-width: 232px;
+  --wz-sidebar-collapsed-width: 72px;
+  --wz-topbar-height: 60px;
+
+  /* Radius / space */
+  --wz-radius-sm: 6px;
+  --wz-radius-md: 8px;
+  --wz-radius-lg: 10px;
+  --wz-radius-xl: 12px;
+  --wz-radius-full: 9999px;
+  --wz-space-1: 4px;
+  --wz-space-2: 8px;
+  --wz-space-3: 12px;
+  --wz-space-4: 16px;
+  --wz-space-5: 20px;
+  --wz-space-6: 24px;
+  --wz-space-8: 32px;
+
+  /* Typography */
+  --wz-font: "Sora", system-ui, sans-serif;
+  --wz-font-display: 700 48px/56px var(--wz-font);
+  --wz-font-h1: 700 36px/44px var(--wz-font);
+  --wz-font-h2: 600 28px/36px var(--wz-font);
+  --wz-font-h3: 600 22px/28px var(--wz-font);
+  --wz-font-h4: 600 18px/24px var(--wz-font);
+  --wz-font-body-lg: 400 16px/24px var(--wz-font);
+  --wz-font-body: 400 14px/20px var(--wz-font);
+  --wz-font-body-md: 600 14px/20px var(--wz-font);
+  --wz-font-caption: 400 12px/16px var(--wz-font);
+  --wz-font-overline: 600 12px/16px var(--wz-font);
+  --wz-font-button: 600 14px/20px var(--wz-font);
+
+  /* Badge soft fills */
+  --wz-badge-success-bg: #e8f8ef;
+  --wz-badge-success-fg: #0e9f5a;
+  --wz-badge-warning-bg: #fef4e6;
+  --wz-badge-warning-fg: #c46d07;
+  --wz-badge-error-bg: #fdeceb;
+  --wz-badge-error-fg: #d92d20;
+  --wz-badge-info-bg: #eef1f6;
+  --wz-badge-info-fg: #3e4c59;
+  --wz-badge-neutral-bg: #f1f3f5;
+  --wz-badge-neutral-fg: #495057;
+  --wz-badge-extra-bg: #f3e8ff;
+  --wz-badge-extra-fg: #7c3aed;
+  --wz-badge-blue-bg: #e8f1fb;
+  --wz-badge-blue-fg: #1a73e8;
+}
+
+@theme {
+  --font-sans: var(--wz-font);
+
+  --color-wz-primary: var(--wz-primary);
+  --color-wz-primary-hover: var(--wz-primary-hover);
+  --color-wz-primary-active: var(--wz-primary-active);
+  --color-wz-accent: var(--wz-accent);
+  --color-wz-surface: var(--wz-surface);
+  --color-wz-border: var(--wz-border);
+  --color-wz-text: var(--wz-text);
+  --color-wz-text-primary: var(--wz-text-primary);
+  --color-wz-text-secondary: var(--wz-text-secondary);
+  --color-wz-success: var(--wz-success);
+  --color-wz-warning: var(--wz-warning);
+  --color-wz-error: var(--wz-error);
+  --color-wz-sidebar: var(--wz-sidebar-bg);
+  --color-wz-hover: var(--wz-state-hover);
+  --color-wz-selected: var(--wz-state-selected);
+  --color-wz-pressed: var(--wz-state-pressed);
+  --color-wz-disabled: var(--wz-state-disabled);
+
+  --color-wz-neutral-50: var(--wz-neutral-50);
+  --color-wz-neutral-100: var(--wz-neutral-100);
+  --color-wz-neutral-200: var(--wz-neutral-200);
+  --color-wz-neutral-300: var(--wz-neutral-300);
+  --color-wz-neutral-400: var(--wz-neutral-400);
+  --color-wz-neutral-500: var(--wz-neutral-500);
+  --color-wz-neutral-600: var(--wz-neutral-600);
+  --color-wz-neutral-700: var(--wz-neutral-700);
+  --color-wz-neutral-800: var(--wz-neutral-800);
+  --color-wz-neutral-900: var(--wz-neutral-900);
+
+  --color-wz-badge-success-bg: var(--wz-badge-success-bg);
+  --color-wz-badge-success-fg: var(--wz-badge-success-fg);
+  --color-wz-badge-warning-bg: var(--wz-badge-warning-bg);
+  --color-wz-badge-warning-fg: var(--wz-badge-warning-fg);
+  --color-wz-badge-error-bg: var(--wz-badge-error-bg);
+  --color-wz-badge-error-fg: var(--wz-badge-error-fg);
+  --color-wz-badge-info-bg: var(--wz-badge-info-bg);
+  --color-wz-badge-info-fg: var(--wz-badge-info-fg);
+  --color-wz-badge-neutral-bg: var(--wz-badge-neutral-bg);
+  --color-wz-badge-neutral-fg: var(--wz-badge-neutral-fg);
+  --color-wz-badge-extra-bg: var(--wz-badge-extra-bg);
+  --color-wz-badge-extra-fg: var(--wz-badge-extra-fg);
+  --color-wz-badge-blue-bg: var(--wz-badge-blue-bg);
+  --color-wz-badge-blue-fg: var(--wz-badge-blue-fg);
+
+  --radius-wz-sm: var(--wz-radius-sm);
+  --radius-wz-md: var(--wz-radius-md);
+  --radius-wz-lg: var(--wz-radius-lg);
+  --radius-wz-xl: var(--wz-radius-xl);
+  --radius-wz-full: var(--wz-radius-full);
+
+  --spacing-wz-1: var(--wz-space-1);
+  --spacing-wz-2: var(--wz-space-2);
+  --spacing-wz-3: var(--wz-space-3);
+  --spacing-wz-4: var(--wz-space-4);
+  --spacing-wz-5: var(--wz-space-5);
+  --spacing-wz-6: var(--wz-space-6);
+  --spacing-wz-8: var(--wz-space-8);
+
+  --spacing-wz-sidebar: var(--wz-sidebar-width);
+  --spacing-wz-sidebar-collapsed: var(--wz-sidebar-collapsed-width);
+  --spacing-wz-topbar: var(--wz-topbar-height);
+}

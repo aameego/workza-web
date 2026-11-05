@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local agent / IDE tooling (keep out of the product repo)
+.cursor/
+AGENTS.md
+.env
+.env.*
+!.env.example
