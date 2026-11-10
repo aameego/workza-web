@@ -28,7 +28,6 @@ export type LeaveSelfPageProps = {
 };
 
 export default function LeaveSelfPage({
-  user,
   embedded = false,
 }: LeaveSelfPageProps) {
   const navigate = useNavigate();

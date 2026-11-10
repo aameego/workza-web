@@ -6,7 +6,7 @@ import {
   fileNameFromContentDisposition,
   saveDownload,
 } from "../../lib/saveDownload";
-import { MONTH_NAMES } from "./attendanceMonthOptions";
+import { MONTH_NAMES, type MonthName } from "./attendanceMonthOptions";
 
 export type AttendanceMonthlyReportModalProps = {
   open: boolean;
@@ -119,7 +119,7 @@ export default function AttendanceMonthlyReportModal({
           <Field label="Month">
             <Select
               value={reportMonth}
-              onChange={(e) => setReportMonth(e.target.value)}
+              onChange={(e) => setReportMonth(e.target.value as MonthName)}
               disabled={mutation.isPending}
             >
               {availableMonths.map((m) => (
