@@ -5,7 +5,7 @@ import {
   type ChangeEvent,
   type FormEvent,
 } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Trash2, X } from "lucide-react";
 import {
   Button,
@@ -193,7 +193,9 @@ export default function EmployeeFormEditor({
     e.preventDefault();
     if (saving) return;
 
-    const formErrors = collectEmployeeFormErrors(form);
+    const formErrors = collectEmployeeFormErrors(form, {
+      hasExistingAppLogin: isEdit && hasAppLogin,
+    });
     if (Object.keys(formErrors).length) {
       setErrors(formErrors);
       setFormError(null);
@@ -312,11 +314,6 @@ export default function EmployeeFormEditor({
     }
   };
 
-  const title = isEdit
-    ? "Edit Employee Details"
-    : form.isConsultancy
-      ? "Add New Consultant"
-      : "Add New Employee";
   const submitLabel = isEdit
     ? "Save Changes"
     : form.isConsultancy
@@ -334,8 +331,7 @@ export default function EmployeeFormEditor({
       }
     >
       {isEdit ? (
-        <header className="flex shrink-0 items-center justify-between border-b border-wz-border px-wz-6 py-wz-4">
-          <h1 className="m-0 text-xl font-bold text-wz-text-primary">{title}</h1>
+        <header className="flex shrink-0 items-center justify-end border-b border-wz-border px-wz-6 py-wz-3">
           <button
             type="button"
             className="inline-flex size-6 items-center justify-center rounded-wz-md border border-wz-border bg-wz-surface-muted text-wz-text-secondary hover:text-wz-text-primary"
@@ -346,16 +342,7 @@ export default function EmployeeFormEditor({
             <X className="size-3" aria-hidden />
           </button>
         </header>
-      ) : (
-        <nav
-          className="flex items-center gap-2 text-xs text-wz-text-secondary [&_a]:text-wz-primary [&_a]:no-underline hover:[&_a]:underline"
-          aria-label="Breadcrumb"
-        >
-          <Link to={listPath}>Employees</Link>
-          <span aria-hidden>/</span>
-          <span>{title}</span>
-        </nav>
-      )}
+      ) : null}
 
       <form
         className={

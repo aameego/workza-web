@@ -1,12 +1,11 @@
 import { useMemo, useState } from "react";
 import { Camera, Clock, LogIn, LogOut, MapPin, X } from "lucide-react";
 import { Badge, Button, cn } from "../../design-system";
-import { getApiUrl } from "../../config/api";
-import { getAuthToken } from "../../lib/authStorage";
 import type {
   AttendanceDayEntry,
   AttendanceSession,
 } from "../../services/attendanceService";
+import { resolveAttendanceSelfieUrl } from "./attendanceSelfieUrl";
 
 export type AttendanceDayDetailProps = {
   day: number;
@@ -27,16 +26,6 @@ const statusBadge = (
   if (s === "Half Day") return "blue";
   if (s === "Leave" || s === "WFH") return "info";
   return "neutral";
-};
-
-const resolveSelfieUrl = (path?: string | null): string | null => {
-  if (!path) return null;
-  const token = getAuthToken();
-  const base = path.startsWith("http")
-    ? path
-    : getApiUrl(path.startsWith("/") ? path : `/${path}`);
-  if (!token) return base;
-  return `${base}${base.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`;
 };
 
 function LocationLink({
@@ -133,7 +122,9 @@ function SessionTimeline({
                 type="button"
                 className="inline-flex cursor-pointer items-center gap-1.5 rounded-wz-md border border-wz-border bg-white px-2.5 py-1.5 text-xs font-semibold text-wz-text-primary hover:bg-wz-neutral-50"
                 onClick={() => {
-                  const url = resolveSelfieUrl(session.checkInSelfieUrl);
+                  const url = resolveAttendanceSelfieUrl(
+                    session.checkInSelfieUrl,
+                  );
                   if (url) {
                     onViewSelfie(
                       url,
@@ -152,7 +143,9 @@ function SessionTimeline({
                 type="button"
                 className="inline-flex cursor-pointer items-center gap-1.5 rounded-wz-md border border-wz-border bg-white px-2.5 py-1.5 text-xs font-semibold text-wz-text-primary hover:bg-wz-neutral-50"
                 onClick={() => {
-                  const url = resolveSelfieUrl(session.checkOutSelfieUrl);
+                  const url = resolveAttendanceSelfieUrl(
+                    session.checkOutSelfieUrl,
+                  );
                   if (url) {
                     onViewSelfie(
                       url,

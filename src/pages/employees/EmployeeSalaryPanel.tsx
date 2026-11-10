@@ -134,6 +134,21 @@ export default function EmployeeSalaryPanel({
           ))}
         </div>
 
+        {model.wageType === "CALENDAR_DAILY" ? (
+          <p className="m-0 text-center text-[11px] text-wz-text-secondary">
+            Payroll uses Horticulture sheet formulas: earned pay = rate × working
+            days; ESIC eligibility on rate × 26; HRA = earned net − earned basic.
+          </p>
+        ) : null}
+
+        {model.wageType === "DAILY" ? (
+          <p className="m-0 text-center text-[11px] text-wz-text-secondary">
+            Monthly estimate: 28 days = {formatInr(model.netSalary * 28)} • 30
+            days = {formatInr(model.netSalary * 30)} • 31 days ={" "}
+            {formatInr(model.netSalary * 31)}
+          </p>
+        ) : null}
+
         {activeEarnings.length > 0 && model.ctcTarget > 0 ? (
           <div className="flex flex-col gap-2">
             <p className="m-0 text-sm font-semibold text-[#0a1f4a]">

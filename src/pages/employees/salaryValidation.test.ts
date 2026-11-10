@@ -94,4 +94,51 @@ describe("salaryValidation", () => {
       }),
     ).toEqual([]);
   });
+
+  it("calendar daily draft requires BASIC and does not duplicate wage errors", () => {
+    const missingBasic = validateStructureDraft({
+      wageType: "CALENDAR_DAILY",
+      dailyWage: 500,
+      components: [
+        {
+          code: "HRA",
+          category: "Earning",
+          monthlyAmount: 1000,
+          enabled: true,
+        },
+      ],
+    });
+    expect(missingBasic).toHaveLength(1);
+    expect(missingBasic[0]).toMatch(/BASIC/i);
+
+    const ok = validateStructureDraft({
+      wageType: "CALENDAR_DAILY",
+      dailyWage: 500,
+      components: [
+        {
+          code: "BASIC",
+          category: "Earning",
+          monthlyAmount: 10994,
+          enabled: true,
+        },
+      ],
+    });
+    expect(ok).toEqual([]);
+  });
+
+  it("daily draft flags mismatch without treating employer contrib as wage", () => {
+    const errors = validateStructureDraft({
+      wageType: "DAILY",
+      dailyWage: 500,
+      components: [
+        {
+          code: "BASIC",
+          category: "Earning",
+          dailyAmount: 400,
+          enabled: true,
+        },
+      ],
+    });
+    expect(errors.some((e) => /less than Daily Wage/i.test(e))).toBe(true);
+  });
 });

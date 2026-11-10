@@ -28,6 +28,15 @@ import {
   validateDailyWage,
   type SalaryDraft,
 } from "./salaryValidation";
+import {
+  applyCalendarDailyBasic,
+  buildManualComponentsFromLibrary,
+  buildManualMatchSummary,
+  manualModeAmountHint,
+  manualTargetAmountLabel,
+  partitionSalaryComponents,
+  resolveManualSplitCodes,
+} from "./salaryManualFlow";
 
 export type SalaryEditorHandle = {
   saveStructure: () => Promise<void>;
@@ -107,6 +116,7 @@ const EmployeeSalaryStructureEditor = forwardRef<
   const [isRevising, setIsRevising] = useState(isDraftMode);
   const [inputMode, setInputMode] = useState<"template" | "manual" | null>(null);
   const [selectedManualCodes, setSelectedManualCodes] = useState<string[]>([]);
+  const [manualPickerOpen, setManualPickerOpen] = useState(true);
   const [revisionType, setRevisionType] = useState("Annual Increment");
   const [revisionReason, setRevisionReason] = useState("");
   const [loading, setLoading] = useState(true);
@@ -276,6 +286,8 @@ const EmployeeSalaryStructureEditor = forwardRef<
     setInputMode(mode);
     setComponents([]);
     setSelectedManualCodes([]);
+    setManualPickerOpen(true);
+    setBasicFixed("");
     if (mode === "template") setSelectedStructureId("");
     setError("");
     setMsg("");
@@ -297,6 +309,8 @@ const EmployeeSalaryStructureEditor = forwardRef<
     setComponents([]);
     setSelectedManualCodes([]);
     setSelectedStructureId("");
+    setManualPickerOpen(true);
+    setBasicFixed("");
     setInputMode(null);
     setError("");
     setMsg("");
@@ -401,36 +415,111 @@ const EmployeeSalaryStructureEditor = forwardRef<
     );
   };
 
-  const handleApplyManualComponents = () => {
+  const handleApplyManualComponents = async () => {
     if (selectedManualCodes.length === 0) {
       return setError("Please select at least one component.");
     }
-    const newComponents = libraryComponents
-      .filter((c) => selectedManualCodes.includes(c.code))
-      .map((c) => ({
-        code: c.code,
-        name: c.name,
-        category: c.category,
-        monthlyAmount: 0,
-        dailyAmount: 0,
-        calculationType: c.calculationType || "Custom",
-        enabled: true,
-        isEmployerContribution: c.isEmployerContribution || false,
-        isPartOfCTC: c.isPartOfCTC !== false,
-      }));
-    setComponents(newComponents);
-    if (usesDailyWageInput) {
+    if (!vendorId) return setError("Vendor not found.");
+    setError("");
+
+    // Calendar Daily: Fixed Basic hand path (not library CTC % split).
+    if (isCalendarDaily) {
+      let newComponents = buildManualComponentsFromLibrary(
+        libraryComponents,
+        selectedManualCodes,
+      );
+      const applied = applyCalendarDailyBasic(
+        newComponents,
+        libraryComponents,
+        Number(basicFixed),
+      );
+      if (applied.error) return setError(applied.error);
+      newComponents = applied.components;
+      const basicCode = newComponents.find(
+        (c) => String(c.code).toUpperCase() === "BASIC",
+      )?.code;
+      if (basicCode && !selectedManualCodes.includes(basicCode)) {
+        setSelectedManualCodes((prev) => [...prev, basicCode]);
+      }
+      setComponents(newComponents);
+      setManualPickerOpen(false);
       syncDraft("", dailyWage, wageType, "", newComponents);
-    } else {
-      syncDraft(ctcAnnual, "", wageType, "", newComponents);
+      setMsg(
+        `${newComponents.length} components ready. Adjust monthly preview amounts below if needed.`,
+      );
+      setTimeout(() => setMsg(""), 4000);
+      return;
     }
-    setMsg(`${newComponents.length} components added. Enter amounts below.`);
-    setTimeout(() => setMsg(""), 3000);
+
+    if (isDaily) {
+      const wageErr = validateDailyWage(dailyWage);
+      if (wageErr) return setError(wageErr);
+    } else {
+      const ctcErr = validateAnnualCtc(ctcAnnual);
+      if (ctcErr) return setError(ctcErr);
+    }
+
+    const codes = resolveManualSplitCodes(
+      selectedManualCodes,
+      libraryComponents,
+      wageType,
+    );
+    if (codes.includes("SPECIAL") && !selectedManualCodes.map((c) => c.toUpperCase()).includes("SPECIAL")) {
+      setSelectedManualCodes((prev) =>
+        prev.some((c) => c.toUpperCase() === "SPECIAL")
+          ? prev
+          : [...prev, "SPECIAL"],
+      );
+    }
+
+    try {
+      setCalculating(true);
+      const result = await calculateStructureSplit(vendorId, {
+        wageType,
+        componentCodes: codes,
+        ...(isDaily
+          ? { dailyWage: Number(dailyWage) }
+          : { ctcAnnual: Number(ctcAnnual) }),
+      });
+      const parsed = result.components || [];
+      if (!parsed.length) {
+        setError("Calculation returned no components. Check component rates in Settings.");
+        return;
+      }
+      setComponents(parsed);
+      setManualPickerOpen(false);
+      if (isDaily) {
+        setDailyGross(
+          result.summary?.ctcEarnings ?? result.summary?.totalEarnings ?? 0,
+        );
+        syncDraft("", dailyWage, wageType, "", parsed);
+      } else {
+        setMonthlyGross(
+          result.summary?.ctcEarnings ?? result.summary?.totalEarnings ?? 0,
+        );
+        syncDraft(ctcAnnual, "", wageType, "", parsed);
+      }
+      setMsg(
+        `Split applied from library rates (${parsed.length} components). Tweak amounts below if needed.`,
+      );
+      setTimeout(() => setMsg(""), 4000);
+    } catch (e) {
+      setError(
+        e instanceof ApiError
+          ? e.message
+          : "Failed to split salary from selected components.",
+      );
+    } finally {
+      setCalculating(false);
+    }
   };
 
   const updateComponentAmount = (code: string, value: string) => {
     const numericVal = Number(value) || 0;
     const amountKey = isDaily ? "dailyAmount" : "monthlyAmount";
+    if (isCalendarDaily && String(code).toUpperCase() === "BASIC") {
+      setBasicFixed(value);
+    }
     setComponents((prev) => {
       const next = [...(Array.isArray(prev) ? prev : [])];
       const targetIdx = next.findIndex((c) => c.code === code);
@@ -440,6 +529,7 @@ const EmployeeSalaryStructureEditor = forwardRef<
         numericVal - Number(next[targetIdx][amountKey] || 0);
       next[targetIdx] = { ...next[targetIdx], [amountKey]: numericVal };
 
+      // Balance via SPECIAL only in template mode (auto-split math).
       if (inputMode === "template" && editedIsCTC) {
         const specialIdx = next.findIndex((c) => c.code === "SPECIAL");
         if (specialIdx !== -1 && code !== "SPECIAL") {
@@ -457,6 +547,24 @@ const EmployeeSalaryStructureEditor = forwardRef<
       } else {
         syncDraft(ctcAnnual, "", wageType, selectedStructureId, next);
       }
+      return next;
+    });
+  };
+
+  const syncBasicFixedIntoComponents = (value: string) => {
+    setBasicFixed(value);
+    if (!isCalendarDaily || inputMode !== "manual" || !safeComponents.length) {
+      return;
+    }
+    const amt = Number(value) || 0;
+    setComponents((prev) => {
+      const next = [...(Array.isArray(prev) ? prev : [])];
+      const idx = next.findIndex(
+        (c) => String(c.code || "").toUpperCase() === "BASIC",
+      );
+      if (idx === -1) return prev;
+      next[idx] = { ...next[idx], monthlyAmount: amt, dailyAmount: 0 };
+      syncDraft("", dailyWage, wageType, "", next);
       return next;
     });
   };
@@ -619,8 +727,11 @@ const EmployeeSalaryStructureEditor = forwardRef<
     );
   }
 
-  const earnings = safeComponents.filter((c) => c.category === "Earning");
-  const deductions = safeComponents.filter((c) => c.category === "Deduction");
+  const {
+    earnings,
+    deductions,
+    employerContributions,
+  } = partitionSalaryComponents(safeComponents);
   const libEarnings = libraryComponents.filter((c) => c.category === "Earning");
   const libDeductions = libraryComponents.filter(
     (c) => c.category === "Deduction" && !c.isEmployerContribution,
@@ -628,6 +739,15 @@ const EmployeeSalaryStructureEditor = forwardRef<
   const libEmployer = libraryComponents.filter((c) => c.isEmployerContribution);
 
   const amountKey = isDaily ? "dailyAmount" : "monthlyAmount";
+  const manualMatch =
+    isRevising && inputMode === "manual"
+      ? buildManualMatchSummary({
+          wageType,
+          ctcAnnual,
+          dailyWage,
+          components: safeComponents,
+        })
+      : null;
 
   const wageTab = (
     type: "MONTHLY" | "DAILY" | "CALENDAR_DAILY",
@@ -755,7 +875,7 @@ const EmployeeSalaryStructureEditor = forwardRef<
                 Select Components Manually
               </span>
               <span className="text-xs font-normal text-wz-text-primary">
-                Choose individual components and enter monthly amounts yourself
+                {manualModeAmountHint(wageType)}
               </span>
             </button>
           </div>
@@ -866,15 +986,14 @@ const EmployeeSalaryStructureEditor = forwardRef<
 
       {isRevising && inputMode === "manual" ? (
         <div className="flex flex-col gap-wz-4">
+          <p className="m-0 text-sm text-wz-text-secondary">
+            Manual mode: enter the target, pick components, then Apply &amp; Split
+            uses each component&apos;s library rates (same engine as Template).
+            Tweak amounts afterward if needed.
+          </p>
           <div className="flex flex-wrap items-end gap-wz-4">
             <Field
-              label={
-                isCalendarDaily
-                  ? "Per Day Pay (₹/day)"
-                  : isDaily
-                    ? "Daily Wage (₹/day)"
-                    : "Annual CTC (₹)"
-              }
+              label={manualTargetAmountLabel(wageType)}
               htmlFor="salary-manual-amount"
               className="min-w-[200px] flex-1"
             >
@@ -891,125 +1010,213 @@ const EmployeeSalaryStructureEditor = forwardRef<
                 disabled={calculating || saving}
               />
             </Field>
+            {isCalendarDaily ? (
+              <Field
+                label="Fixed Basic (₹) — required"
+                htmlFor="salary-manual-basic-fixed"
+                className="min-w-[180px] flex-1"
+              >
+                <Input
+                  id="salary-manual-basic-fixed"
+                  type="number"
+                  min={0}
+                  value={basicFixed}
+                  onChange={(e) => syncBasicFixedIntoComponents(e.target.value)}
+                  placeholder="e.g. 10994"
+                  disabled={calculating || saving}
+                />
+              </Field>
+            ) : null}
             <Button
               type="button"
               variant="secondary"
-              onClick={handleApplyManualComponents}
+              onClick={() => void handleApplyManualComponents()}
               disabled={
-                calculating || saving || selectedManualCodes.length === 0
+                calculating ||
+                saving ||
+                selectedManualCodes.length === 0 ||
+                (isCalendarDaily
+                  ? !basicFixed || !dailyWage
+                  : isDaily
+                    ? !dailyWage
+                    : !ctcAnnual)
               }
             >
-              Apply Selected ({selectedManualCodes.length})
+              {calculating ? (
+                <RefreshCw className="size-4 animate-spin" aria-hidden />
+              ) : null}
+              3. Apply &amp; Split ({selectedManualCodes.length})
             </Button>
           </div>
-          <div className="grid grid-cols-1 gap-wz-4 md:grid-cols-3">
-            {(
-              [
-                ["Earnings", libEarnings],
-                ["Deductions", libDeductions],
-                ["Employer Cont.", libEmployer],
-              ] as const
-            ).map(([title, items]) =>
-              items.length ? (
-                <div
-                  key={title}
-                  className="rounded-wz-lg border border-wz-border bg-white p-wz-3"
-                >
-                  <p className="m-0 mb-2 text-xs font-semibold text-wz-text-secondary">
-                    {title}
-                  </p>
-                  <div className="flex max-h-48 flex-col gap-1 overflow-y-auto">
-                    {items.map((comp) => (
-                      <label
-                        key={comp.code}
-                        className={cn(
-                          "inline-flex cursor-pointer items-center gap-2 rounded-wz-md px-2 py-1.5 text-sm",
-                          selectedManualCodes.includes(comp.code)
-                            ? "bg-wz-hover"
-                            : "hover:bg-wz-neutral-50",
-                        )}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selectedManualCodes.includes(comp.code)}
-                          onChange={() => handleToggleManualComponent(comp)}
-                          disabled={calculating || saving}
-                        />
-                        {comp.name}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              ) : null,
-            )}
-          </div>
+
+          {safeComponents.length > 0 && !manualPickerOpen ? (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-wz-md border border-wz-border bg-wz-neutral-50 px-3 py-2 text-sm">
+              <span className="text-wz-text-secondary">
+                {safeComponents.length} component
+                {safeComponents.length === 1 ? "" : "s"} split from library rates
+                — tweak amounts below (step 4) if needed.
+              </span>
+              <Button
+                type="button"
+                variant="ghost"
+                className="text-xs"
+                onClick={() => setManualPickerOpen(true)}
+                disabled={calculating || saving}
+              >
+                Change selection
+              </Button>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              <p className="m-0 text-xs font-semibold text-wz-text-secondary">
+                2. Select components
+                {isCalendarDaily ? " (BASIC is required and filled from Fixed Basic)" : ""}
+              </p>
+              <div className="grid grid-cols-1 gap-wz-4 md:grid-cols-3">
+                {(
+                  [
+                    ["Earnings", libEarnings],
+                    ["Deductions", libDeductions],
+                    ["Employer Cont.", libEmployer],
+                  ] as const
+                ).map(([title, items]) =>
+                  items.length ? (
+                    <div
+                      key={title}
+                      className="rounded-wz-lg border border-wz-border bg-white p-wz-3"
+                    >
+                      <p className="m-0 mb-2 text-xs font-semibold text-wz-text-secondary">
+                        {title}
+                      </p>
+                      <div className="flex max-h-48 flex-col gap-1 overflow-y-auto">
+                        {items.map((comp) => (
+                          <label
+                            key={comp.code}
+                            className={cn(
+                              "inline-flex cursor-pointer items-center gap-2 rounded-wz-md px-2 py-1.5 text-sm",
+                              selectedManualCodes.includes(comp.code)
+                                ? "bg-wz-hover"
+                                : "hover:bg-wz-neutral-50",
+                            )}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedManualCodes.includes(comp.code)}
+                              onChange={() => handleToggleManualComponent(comp)}
+                              disabled={calculating || saving}
+                            />
+                            {comp.name}
+                            {isCalendarDaily &&
+                            String(comp.code).toUpperCase() === "BASIC"
+                              ? " (required)"
+                              : ""}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null,
+                )}
+              </div>
+            </div>
+          )}
+
+          {manualMatch && safeComponents.length > 0 ? (
+            <div
+              className={cn(
+                "rounded-wz-md border px-3.5 py-3 text-sm",
+                manualMatch.status === "ok"
+                  ? "border-[#a6f4c5] bg-[#ecfdf3] text-[#027a48]"
+                  : manualMatch.status === "empty"
+                    ? "border-wz-border bg-wz-neutral-50 text-wz-text-secondary"
+                    : "border-[#fecdca] bg-[#fef3f2] text-wz-error",
+              )}
+              role="status"
+            >
+              {manualMatch.message}
+            </div>
+          ) : null}
         </div>
       ) : null}
 
       {safeComponents.length > 0 ? (
-        <div className="grid grid-cols-1 gap-wz-4 md:grid-cols-2">
-          {(
-            [
-              ["Earnings", earnings],
-              ["Deductions", deductions],
-            ] as const
-          ).map(([title, items]) => (
-            <div
-              key={title}
-              className="overflow-hidden rounded-wz-lg border border-wz-border bg-white"
-            >
-              <div className="flex items-center justify-between border-b border-wz-border bg-wz-neutral-50 px-wz-4 py-wz-3">
-                <span className="text-sm font-semibold text-wz-text-primary">
-                  {title}
-                  {isDaily ? " (per day)" : ""}
-                </span>
-                <span className="text-xs text-wz-text-secondary">
-                  {items.length}
-                </span>
-              </div>
-              <div className="flex flex-col divide-y divide-wz-border">
-                {items.length ? (
-                  items.map((c) => {
-                    const val = c[amountKey] ?? c.monthlyAmount ?? 0;
-                    return (
-                      <div
-                        key={c.code}
-                        className="flex items-center justify-between gap-3 px-wz-4 py-wz-3"
-                      >
-                        <div className="min-w-0">
-                          <p className="m-0 truncate text-sm font-medium text-wz-text-primary">
-                            {c.name}
-                          </p>
-                          <p className="m-0 text-[11px] text-wz-text-secondary">
-                            {c.calculationType || "Custom"}
-                            {c.isPartOfCTC === false ? " · Outside CTC" : ""}
-                          </p>
+        <div className="flex flex-col gap-wz-3">
+          {inputMode === "manual" && isRevising ? (
+            <p className="m-0 text-xs font-semibold text-wz-text-secondary">
+              4. Review / tweak amounts
+              {isDaily
+                ? " (per day)"
+                : isCalendarDaily
+                  ? " (monthly preview)"
+                  : " (monthly)"}
+            </p>
+          ) : null}
+          <div className="grid grid-cols-1 gap-wz-4 md:grid-cols-2">
+            {(
+              [
+                ["Earnings", earnings],
+                ["Deductions", deductions],
+                ...(employerContributions.length
+                  ? ([["Employer Cont.", employerContributions]] as const)
+                  : []),
+              ] as const
+            ).map(([title, items]) => (
+              <div
+                key={title}
+                className="overflow-hidden rounded-wz-lg border border-wz-border bg-white"
+              >
+                <div className="flex items-center justify-between border-b border-wz-border bg-wz-neutral-50 px-wz-4 py-wz-3">
+                  <span className="text-sm font-semibold text-wz-text-primary">
+                    {title}
+                    {isDaily ? " (per day)" : ""}
+                  </span>
+                  <span className="text-xs text-wz-text-secondary">
+                    {items.length}
+                  </span>
+                </div>
+                <div className="flex flex-col divide-y divide-wz-border">
+                  {items.length ? (
+                    items.map((c) => {
+                      const val = c[amountKey] ?? c.monthlyAmount ?? 0;
+                      return (
+                        <div
+                          key={c.code}
+                          className="flex items-center justify-between gap-3 px-wz-4 py-wz-3"
+                        >
+                          <div className="min-w-0">
+                            <p className="m-0 truncate text-sm font-medium text-wz-text-primary">
+                              {c.name}
+                            </p>
+                            <p className="m-0 text-[11px] text-wz-text-secondary">
+                              {c.calculationType || "Custom"}
+                              {c.isPartOfCTC === false ? " · Outside CTC" : ""}
+                            </p>
+                          </div>
+                          <Input
+                            type="number"
+                            min={0}
+                            className="w-28"
+                            value={val === 0 ? "" : String(val)}
+                            onChange={(e) =>
+                              updateComponentAmount(
+                                String(c.code),
+                                e.target.value,
+                              )
+                            }
+                            disabled={!isRevising || calculating || saving}
+                            placeholder="0"
+                          />
                         </div>
-                        <Input
-                          type="number"
-                          min={0}
-                          className="w-28"
-                          value={val === 0 ? "" : String(val)}
-                          onChange={(e) =>
-                            updateComponentAmount(
-                              String(c.code),
-                              e.target.value,
-                            )
-                          }
-                          disabled={!isRevising || calculating || saving}
-                          placeholder="0"
-                        />
-                      </div>
-                    );
-                  })
-                ) : (
-                  <p className="m-0 px-wz-4 py-wz-4 text-sm text-wz-text-secondary">
-                    No {title.toLowerCase()} configured.
-                  </p>
-                )}
+                      );
+                    })
+                  ) : (
+                    <p className="m-0 px-wz-4 py-wz-4 text-sm text-wz-text-secondary">
+                      No {title.toLowerCase()} configured.
+                    </p>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       ) : null}
 

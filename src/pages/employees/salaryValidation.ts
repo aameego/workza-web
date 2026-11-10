@@ -173,15 +173,12 @@ export const validateStructureDraft = (
   const components = draft.components || [];
 
   if (wt === "CALENDAR_DAILY") {
-    const errors: string[] = [];
-    const wageErr = validateDailyWage(draft.dailyWage);
-    if (wageErr) errors.push(wageErr);
+    // validateComponentsMatchCalendarDaily already checks daily wage.
     const matchErr = validateComponentsMatchCalendarDaily({
       dailyWage: draft.dailyWage,
       components,
     });
-    if (matchErr) errors.push(matchErr);
-    return errors;
+    return matchErr ? [matchErr] : [];
   }
 
   if (wt === "DAILY") {

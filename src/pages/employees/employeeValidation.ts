@@ -188,9 +188,18 @@ export const validateEmployeeField = (
 
 export type EmployeeFormErrors = Record<string, string>;
 
+export type CollectEmployeeFormErrorsOptions = {
+  /**
+   * Employee already has a linked login (edit). Contact is only required when
+   * creating a brand-new app login, not when syncing an existing one.
+   */
+  hasExistingAppLogin?: boolean;
+};
+
 /** Full-form validation for submit — CRA collectEmployeeFormErrors equivalent */
 export const collectEmployeeFormErrors = (
   values: EmployeeFormValues,
+  options: CollectEmployeeFormErrorsOptions = {},
 ): EmployeeFormErrors => {
   const fieldNames: (keyof EmployeeFormValues)[] = [
     "employeeCode",
@@ -221,8 +230,10 @@ export const collectEmployeeFormErrors = (
     if (err) errors[name] = err;
   }
 
+  const creatingNewLogin =
+    values.createAppLogin && !options.hasExistingAppLogin;
   if (
-    values.createAppLogin &&
+    creatingNewLogin &&
     !String(values.email || "").trim() &&
     !String(values.phone || "").trim()
   ) {

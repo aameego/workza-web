@@ -54,6 +54,8 @@ export type CalculateSplitPayload = {
   ctcAnnual?: number;
   dailyWage?: number;
   structureId?: string;
+  /** Manual Apply: split using library rates for these codes (no template). */
+  componentCodes?: string[];
   daysInMonth?: number;
   basicFixedAmount?: number;
 };

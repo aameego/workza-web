@@ -55,6 +55,22 @@ describe("collectEmployeeFormErrors", () => {
     );
     expect(errors.email).toMatch(/email or phone/i);
   });
+
+  it("does not require contact when editing an employee who already has app login", () => {
+    const errors = collectEmployeeFormErrors(
+      createEmptyEmployeeForm({
+        name: "Priya Sharma",
+        departmentId: "dept1",
+        designation: "Engineer",
+        dateOfJoining: "2024-01-15",
+        createAppLogin: true,
+        email: "",
+        phone: "",
+      }),
+      { hasExistingAppLogin: true },
+    );
+    expect(errors.email).toBeUndefined();
+  });
 });
 
 describe("buildEmployeePayload", () => {
@@ -129,9 +145,43 @@ describe("buildEmployeePayload", () => {
     expect(payload.userRole).toBe("HR");
     expect(payload.userPassword).toBe("resetme");
   });
+
+  it("includes CALENDAR_DAILY payType on update payloads", () => {
+    const payload = buildEmployeePayload(
+      createEmptyEmployeeForm({
+        name: "Field Worker",
+        departmentId: "dept1",
+        designation: "Labour",
+        dateOfJoining: "2024-01-15",
+        payType: "CALENDAR_DAILY",
+      }),
+    );
+    expect(payload.payType).toBe("CALENDAR_DAILY");
+  });
 });
 
 describe("employeeDetailToForm", () => {
+  it("maps daily wage consultancy payType and department fallback", () => {
+    const form = employeeDetailToForm({
+      _id: "c1",
+      name: "Consultant",
+      department: "ops-dept",
+      isConsultancy: true,
+      payType: "DAILY",
+      monthlyConsultancyPay: 40000,
+      tdsPercent: 10,
+      hasLoginEnabled: true,
+      userRole: "Intern",
+    } as EmployeeDetail);
+    expect(form.departmentId).toBe("ops-dept");
+    expect(form.isConsultancy).toBe(true);
+    expect(form.payType).toBe("DAILY");
+    expect(form.monthlyConsultancyPay).toBe("40000");
+    expect(form.tdsPercent).toBe("10");
+    expect(form.createAppLogin).toBe(true);
+    expect(form.userRole).toBe("Intern");
+  });
+
   it("normalizes nested refs, dates, and family members", () => {
     const emp = {
       _id: "e1",

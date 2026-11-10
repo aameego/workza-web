@@ -60,7 +60,11 @@ export function useEmployeeAttendanceMonth(
 ) {
   return useQuery({
     queryKey: [EMPLOYEE_ATTENDANCE_KEY, employeeId, year, month],
-    queryFn: () => getMonthlyAttendance(year, month, employeeId!),
+    queryFn: () =>
+      getMonthlyAttendance(year, month, {
+        target: "org",
+        employeeId: employeeId!,
+      }),
     enabled: Boolean(employeeId) && enabled,
   });
 }

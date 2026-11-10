@@ -4,6 +4,9 @@ import LoginPage from "./auth/LoginPage";
 import ForgotPasswordPage from "./auth/ForgotPasswordPage";
 import AppLayout from "./layouts/AppLayout";
 import EmptyScreen from "./pages/EmptyScreen";
+import AttendancePage from "./pages/attendance/AttendancePage";
+import LeavePage from "./pages/leave/LeavePage";
+import LeavePolicyPage from "./pages/leave/LeavePolicyPage";
 import EmployeesPage from "./pages/employees/EmployeesPage";
 import AddEmployeePage from "./pages/employees/AddEmployeePage";
 import EditEmployeePage from "./pages/employees/EditEmployeePage";
@@ -50,6 +53,7 @@ function App() {
           <Route path="employees/:employeeId" element={<ViewEmployeePage />} />
 
           <Route path="letters" element={<EmptyScreen />} />
+          <Route path="leave/policy" element={<LeavePolicyPage />} />
           {APP_NAV_ITEMS.map((item) => (
             <Route
               key={item.path}
@@ -57,6 +61,10 @@ function App() {
               element={
                 item.path === "/employees" ? (
                   <EmployeesPage />
+                ) : item.path === "/attendance" ? (
+                  <AttendancePage />
+                ) : item.path === "/leave" ? (
+                  <LeavePage />
                 ) : (
                   <EmptyScreen />
                 )
