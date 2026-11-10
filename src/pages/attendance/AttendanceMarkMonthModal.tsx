@@ -3,7 +3,7 @@ import { Button, Field, Input, Modal, Select } from "../../design-system";
 import { useMarkMonthAttendance } from "../../hooks/useAttendance";
 import { ApiError } from "../../lib/apiClient";
 import SearchableEmployeeSelect from "./SearchableEmployeeSelect";
-import { MONTH_NAMES } from "./attendanceMonthOptions";
+import { MONTH_NAMES, type MonthName } from "./attendanceMonthOptions";
 
 export type AttendanceMarkMonthModalProps = {
   open: boolean;
@@ -147,7 +147,7 @@ export default function AttendanceMarkMonthModal({
           <Field label="Month" required>
             <Select
               value={month}
-              onChange={(e) => setMonth(e.target.value)}
+              onChange={(e) => setMonth(e.target.value as MonthName)}
               disabled={mutation.isPending}
             >
               {availableMonths.map((m) => (

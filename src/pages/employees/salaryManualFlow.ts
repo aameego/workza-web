@@ -17,7 +17,7 @@ export type ManualWageType = "MONTHLY" | "DAILY" | "CALENDAR_DAILY";
 export type ManualLibraryComponent = {
   code: string;
   name: string;
-  category: string;
+  category?: string;
   calculationType?: string;
   isEmployerContribution?: boolean;
   isPartOfCTC?: boolean;
@@ -89,7 +89,7 @@ export const buildManualComponentsFromLibrary = (
     .map((c) => ({
       code: c.code,
       name: c.name,
-      category: c.category,
+      category: c.category || "Earning",
       monthlyAmount: 0,
       dailyAmount: 0,
       calculationType: c.calculationType || "Custom",
@@ -133,7 +133,7 @@ export const applyCalendarDailyBasic = (
     next.unshift({
       code: libBasic.code,
       name: libBasic.name,
-      category: libBasic.category,
+      category: libBasic.category || "Earning",
       monthlyAmount: basicAmt,
       dailyAmount: 0,
       calculationType: libBasic.calculationType || "Custom",
