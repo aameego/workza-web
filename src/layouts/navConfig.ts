@@ -76,12 +76,45 @@ export const normalizeAppPath = (pathname: string): string => {
 export const titleForPath = (pathname: string): string => {
   const path = normalizeAppPath(pathname);
   if (PAGE_TITLES[path]) return PAGE_TITLES[path];
-  if (/^\/employees\/[^/]+\/edit$/.test(path)) return "Edit Employee";
+  if (/^\/employees\/[^/]+\/edit$/.test(path)) return "Edit Employee Details";
   if (/^\/employees\/[^/]+$/.test(path) && path !== "/employees/new") {
     return "Employee Details";
   }
   if (path.startsWith("/employees/")) return PAGE_TITLES["/employees"] || "Employees";
   return "Dashboard";
+};
+
+export type PageCrumb = {
+  label: string;
+  /** App path without vendor slug, e.g. `/employees`. Omit for the current page. */
+  path?: string;
+};
+
+/**
+ * Figma topbar breadcrumb trail for nested screens.
+ * Empty for top-level pages (title only).
+ */
+export const crumbsForPath = (pathname: string): PageCrumb[] => {
+  const path = normalizeAppPath(pathname);
+  if (path === "/employees/new") {
+    return [
+      { label: "Employees", path: "/employees" },
+      { label: "Add New Employee" },
+    ];
+  }
+  if (/^\/employees\/[^/]+\/edit$/.test(path)) {
+    return [
+      { label: "Employees", path: "/employees" },
+      { label: "Edit Employee Details" },
+    ];
+  }
+  if (/^\/employees\/[^/]+$/.test(path) && path !== "/employees/new") {
+    return [
+      { label: "Employees", path: "/employees" },
+      { label: "Employee Details" },
+    ];
+  }
+  return [];
 };
 
 /** Whether a sidebar item should appear active for the current app path */

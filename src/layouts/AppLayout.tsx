@@ -5,9 +5,19 @@ import {
   useNavigate,
   useParams,
 } from "react-router-dom";
-import { Bell, ChevronLeft, ChevronDown, LogOut, Menu, X } from "lucide-react";
+import {
+  Bell,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  LogOut,
+  Menu,
+  X,
+} from "lucide-react";
+import { Link } from "react-router-dom";
 import {
   APP_NAV_ITEMS,
+  crumbsForPath,
   isNavPathActive,
   normalizeAppPath,
   titleForPath,
@@ -47,6 +57,8 @@ export default function AppLayout() {
 
   const currentPath = normalizeAppPath(location.pathname);
   const pageTitle = titleForPath(location.pathname);
+  const pageCrumbs = crumbsForPath(location.pathname);
+  const vendorBase = `/${vendorCode}`;
   const displayName = displayNameFor(user);
   const roleLabel = roleLabelFor(user);
   const initials = initialsFor(displayName);
@@ -217,7 +229,8 @@ export default function AppLayout() {
       >
         <header
           className={cn(
-            "sticky top-0 z-20 m-0 flex h-wz-topbar min-h-wz-topbar items-center justify-between gap-wz-4 rounded-none border-0 border-b border-wz-border bg-white px-wz-6 py-0 max-[900px]:px-wz-4",
+            "sticky top-0 z-20 m-0 flex min-h-wz-topbar items-center justify-between gap-wz-4 rounded-none border-0 border-b border-wz-border bg-white px-wz-6 py-3 max-[900px]:px-wz-4",
+            pageCrumbs.length > 0 ? "h-auto" : "h-wz-topbar py-0",
           )}
         >
           <div className="flex min-w-0 items-center gap-wz-3">
@@ -238,9 +251,56 @@ export default function AppLayout() {
                 </IconButton>
               )
             )}
-            <h1 className="m-0 text-lg font-semibold leading-6 tracking-[-0.01em] text-wz-text">
-              {pageTitle}
-            </h1>
+            <div className="min-w-0">
+              <h1 className="m-0 text-lg font-semibold leading-6 tracking-[-0.01em] text-wz-text">
+                {pageTitle}
+              </h1>
+              {pageCrumbs.length > 0 ? (
+                <nav
+                  className="mt-1 flex min-w-0 flex-wrap items-center gap-1 text-xs leading-4 text-wz-text-secondary"
+                  aria-label="Breadcrumb"
+                >
+                  <Link
+                    to={`${vendorBase}${pageCrumbs[0]?.path || "/employees"}`}
+                    className="inline-flex shrink-0 items-center text-wz-text-secondary no-underline hover:text-wz-primary"
+                    aria-label="Back"
+                  >
+                    <ChevronLeft className="size-3.5" aria-hidden />
+                  </Link>
+                  {pageCrumbs.map((crumb, index) => {
+                    const isLast = index === pageCrumbs.length - 1;
+                    return (
+                      <span
+                        key={`${crumb.label}-${index}`}
+                        className="inline-flex min-w-0 items-center gap-1"
+                      >
+                        {index > 0 ? (
+                          <ChevronRight
+                            className="size-3 shrink-0 text-wz-neutral-400"
+                            aria-hidden
+                          />
+                        ) : null}
+                        {crumb.path && !isLast ? (
+                          <Link
+                            to={`${vendorBase}${crumb.path}`}
+                            className="truncate text-wz-text-secondary no-underline hover:text-wz-primary hover:underline"
+                          >
+                            {crumb.label}
+                          </Link>
+                        ) : (
+                          <span
+                            className="truncate font-medium text-wz-primary"
+                            aria-current="page"
+                          >
+                            {crumb.label}
+                          </span>
+                        )}
+                      </span>
+                    );
+                  })}
+                </nav>
+              ) : null}
+            </div>
           </div>
 
           <div className="flex items-center gap-wz-3">

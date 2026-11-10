@@ -58,6 +58,59 @@ export const buildSalaryViewModel = ({
   const suffix =
     wageType === "DAILY" ? "/day" : showAnnual ? "/yr" : "/mo";
 
+  // Calendar daily: monthly preview amounts + per-day rate (CRA EmployeeSalaryStructureView).
+  if (wageType === "CALENDAR_DAILY") {
+    const dailyWage = Number(structure?.dailyWage || 0);
+    const monthlyGross = Number(
+      structure?.monthlyGross ||
+        fallback.earnings.reduce(
+          (s, c) => s + (Number(c.monthlyAmount) || 0),
+          0,
+        ),
+    );
+    const earnings = fallback.earnings.map((c) => ({
+      name: c.name || c.code || "Earning",
+      code: c.code,
+      amount: c.monthlyAmount || 0,
+    }));
+    const deductions = fallback.deductions.map((c) => ({
+      name: c.name || c.code || "Deduction",
+      code: c.code,
+      amount: c.monthlyAmount || 0,
+    }));
+    const employerContributions = fallback.employerContributions.map((c) => ({
+      name: c.name || c.code || "Contribution",
+      code: c.code,
+      amount: c.monthlyAmount || 0,
+    }));
+    const totalDeduction = deductions.reduce((s, d) => s + d.amount, 0);
+    const net = Math.max(0, monthlyGross - totalDeduction);
+    return {
+      wageType,
+      showToggle: false,
+      metrics: [
+        { label: "Per Day Pay", value: `${formatInr(dailyWage)}/day` },
+        {
+          label: "Preview Monthly Gross",
+          value: formatInr(monthlyGross),
+        },
+        {
+          label: "Est. In-Hand",
+          value: formatInr(net),
+          highlight: true,
+        },
+      ],
+      earnings,
+      deductions,
+      employerContributions,
+      ctcTarget: monthlyGross || 1,
+      suffix: "/mo",
+      gross: monthlyGross,
+      totalDeduction,
+      netSalary: net,
+    };
+  }
+
   if (wageType === "DAILY") {
     const dailyWage = Number(structure?.dailyWage || 0);
     const dailyGross = Number(

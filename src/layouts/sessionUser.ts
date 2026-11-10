@@ -6,10 +6,14 @@ export type SessionUser = {
   employeeName?: string;
   vendorName?: string;
   vendorId?: string;
+  employeeId?: string;
+  employeeCode?: string;
   role?: string;
   email?: string;
   photoUrl?: string;
   photoDisplayUrl?: string;
+  permissions?: string[];
+  allowedModules?: string[];
 };
 
 export const readSessionUser = (): SessionUser | null => {

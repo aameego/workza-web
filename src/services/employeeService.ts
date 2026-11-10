@@ -107,6 +107,38 @@ export const bulkUploadEmployees = async (
 export const deleteEmployee = async (id: string): Promise<unknown> =>
   api.delete(`/employees/${id}`);
 
+export type EmployeeSearchParams = {
+  search?: string;
+  limit?: number;
+  departmentId?: string;
+};
+
+export type EmployeeSearchResult = {
+  _id: string;
+  employeeCode?: string;
+  name?: string;
+  email?: string;
+  designation?: string;
+  department?: string | null;
+};
+
+/** Debounced combobox search — GET /employees/search. */
+export const searchEmployees = async (
+  params: EmployeeSearchParams = {},
+): Promise<EmployeeSearchResult[]> => {
+  const data = await api.get<{ employees?: EmployeeSearchResult[] }>(
+    "/employees/search",
+    {
+      params: {
+        search: params.search || "",
+        limit: params.limit ?? 50,
+        departmentId: params.departmentId,
+      },
+    },
+  );
+  return Array.isArray(data?.employees) ? data.employees : [];
+};
+
 export const toggleAppLogin = async (
   id: string,
   enable: boolean,
