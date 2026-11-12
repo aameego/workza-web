@@ -31,6 +31,9 @@ export type LeaveRequest = {
   reason?: string;
   status?: LeaveRequestStatus;
   isCoCredit?: boolean;
+  /** What /leave/requests actually returns: the deciding user and when. */
+  approverId?: string | { _id?: string; name?: string; email?: string } | null;
+  decidedAt?: string | null;
   approvedBy?: string | LeaveEmployeeRef | null;
   approvedAt?: string | null;
   rejectedBy?: string | LeaveEmployeeRef | null;

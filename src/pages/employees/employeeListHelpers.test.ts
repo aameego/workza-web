@@ -52,7 +52,7 @@ describe("employeeListHelpers", () => {
 
   it("formats pagination window", () => {
     expect(pageWindowLabel(1, 10, 0)).toBe("Showing 0 of 0 employees");
-    expect(pageWindowLabel(2, 10, 84)).toBe("Showing 11-20 of 84 employees");
+    expect(pageWindowLabel(2, 10, 84)).toBe("Showing 11–20 of 84 employees");
   });
 
   it("builds compact page items", () => {

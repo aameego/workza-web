@@ -1,7 +1,7 @@
 import type { HTMLAttributes } from "react";
 import { cn } from "../cn";
 
-export type AvatarSize = "sm" | "md" | "lg";
+export type AvatarSize = "xs" | "sm" | "md" | "lg";
 
 export type AvatarProps = HTMLAttributes<HTMLSpanElement> & {
   initials?: string;
@@ -11,9 +11,12 @@ export type AvatarProps = HTMLAttributes<HTMLSpanElement> & {
 };
 
 const sizeClass: Record<AvatarSize, string> = {
-  sm: "size-6 text-[10px]",
-  md: "size-8 text-[11px]",
-  lg: "size-10 text-[13px]",
+  /** Figma Top Bar user-profile avatar */
+  xs: "size-6 text-[8px]",
+  /* Figma Foundation/Avatar: Small 28, Medium 36, Large 44 */
+  sm: "size-7 text-[10px]",
+  md: "size-9 text-xs",
+  lg: "size-11 text-sm",
 };
 
 /** Figma Foundation/Avatar */
@@ -28,7 +31,7 @@ export function Avatar({
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-wz-full bg-wz-primary font-bold tracking-wide text-white select-none",
+        "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-wz-full bg-wz-primary font-semibold text-white select-none",
         sizeClass[size],
         className,
       )}

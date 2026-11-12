@@ -44,6 +44,7 @@ export type EmployeeFormValues = {
   maritalStatus: string;
   bloodGroup: string;
   emergencyContact: string;
+  emergencyContactName: string;
   familyMembers: FamilyMemberForm[];
   permanentAddress: string;
   aadhaarNumber: string;
@@ -91,6 +92,7 @@ export const createEmptyEmployeeForm = (
   maritalStatus: "",
   bloodGroup: "",
   emergencyContact: "",
+  emergencyContactName: "",
   familyMembers: [],
   permanentAddress: "",
   aadhaarNumber: "",
@@ -129,6 +131,7 @@ const EMPLOYEE_PAYLOAD_FIELDS = [
   "dob",
   "bloodGroup",
   "emergencyContact",
+  "emergencyContactName",
   "gender",
   "fatherHusbandName",
   "relationWithMember",
@@ -200,6 +203,7 @@ export const employeeDetailToForm = (
     maritalStatus: emp.maritalStatus || "",
     bloodGroup: emp.bloodGroup || "",
     emergencyContact: emp.emergencyContact || "",
+    emergencyContactName: emp.emergencyContactName || "",
     familyMembers: familyMembersToForm(emp.familyMembers),
     permanentAddress: emp.permanentAddress || emp.address || "",
     aadhaarNumber: emp.aadhaarNumber || "",

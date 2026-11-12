@@ -1,13 +1,13 @@
 import { useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { Info, MoreVertical, Pencil } from "lucide-react";
+import { Info, MoreVertical, Pencil, SquarePen } from "lucide-react";
 import {
   Badge,
   Button,
   DropdownMenu,
   DropdownMenuItem,
   DropdownMenuSectionToggle,
-  cn,
+  TabSwitcher,
 } from "../../design-system";
 
 import { useEmployee } from "../../hooks/useEmployees";
@@ -116,18 +116,11 @@ export default function ViewEmployeePage() {
   const photo =
     employee.photoDisplayUrl || employee.photoUrl || employee.photo || "";
 
-  const tabClass = (active: boolean) =>
-    cn(
-      "inline-flex cursor-pointer items-center gap-2 border border-b-0 border-[#e9ecef] px-4 py-2 text-sm rounded-t-wz-sm",
-      active
-        ? "bg-white font-semibold text-[#1f5da3]"
-        : "bg-transparent font-normal text-[#6c757d] hover:text-wz-text",
-    );
 
   return (
-    <div className="flex flex-col gap-wz-6 p-wz-6">
+    <div className="flex flex-col gap-wz-6">
       {/* Figma Profile-Summary-Card */}
-      <div className="flex flex-wrap items-center justify-between gap-wz-4 rounded-wz-xl border border-wz-border bg-white px-wz-6 py-wz-4">
+      <div className="flex flex-wrap items-center justify-between gap-wz-4 rounded-wz-xl border border-wz-border bg-white px-wz-6 py-[15px]">
         <div className="flex min-w-0 items-center gap-wz-4">
           <span className="inline-flex size-[55px] shrink-0 items-center justify-center overflow-hidden rounded-[32px] bg-[#1f5da3] text-xl font-semibold text-white">
             {photo ? (
@@ -141,12 +134,12 @@ export default function ViewEmployeePage() {
             )}
           </span>
           <div className="flex min-w-0 flex-col gap-1">
-            <h1 className="m-0 truncate text-xl font-bold text-[#0a1f4a]">
+            <h1 className="m-0 truncate text-xl leading-[25px] font-bold text-wz-heading">
               {employee.name || "Employee"}
             </h1>
             <div className="flex flex-wrap items-center gap-2.5">
               <span className="text-base font-semibold text-[#6c757d]">
-                {employee.employeeCode || "—"}
+                {employee.employeeCode || "-"}
               </span>
               <Badge status={employmentActiveBadge(employee)} size="md">
                 {employmentActiveLabel(employee)}
@@ -167,20 +160,20 @@ export default function ViewEmployeePage() {
           {canManage ? (
             <button
               type="button"
-              className="inline-flex size-8 cursor-pointer items-center justify-center rounded-wz-md border-0 bg-transparent text-wz-text-secondary hover:bg-wz-neutral-100 hover:text-wz-text"
+              className="inline-flex size-6 cursor-pointer items-center justify-center rounded-wz-md border-0 bg-transparent text-wz-heading hover:bg-wz-neutral-100"
               aria-label="Edit employee"
               title="Edit"
               onClick={() =>
                 navigate(`${base}/employees/${employee._id}/edit`)
               }
             >
-              <Pencil size={14} strokeWidth={2} />
+              <SquarePen size={12} strokeWidth={2} />
             </button>
           ) : null}
           <button
             ref={moreRef}
             type="button"
-            className="inline-flex size-8 cursor-pointer items-center justify-center rounded-wz-md border-0 bg-transparent text-wz-text-secondary hover:bg-wz-neutral-100 hover:text-wz-text"
+            className="inline-flex size-6 cursor-pointer items-center justify-center rounded-wz-md border-0 bg-transparent text-wz-heading hover:bg-wz-neutral-100"
             aria-label="More actions"
             aria-haspopup="menu"
             aria-expanded={menuOpen}
@@ -190,7 +183,7 @@ export default function ViewEmployeePage() {
               setMenuOpen((open) => !open);
             }}
           >
-            <MoreVertical size={14} strokeWidth={2} />
+            <MoreVertical size={12} strokeWidth={2} />
           </button>
         </div>
       </div>
@@ -273,24 +266,12 @@ export default function ViewEmployeePage() {
       </DropdownMenu>
 
       {/* Figma Module Switcher tabs */}
-      <div
-        className="flex flex-wrap gap-2 border-b border-[#e9ecef]"
-        role="tablist"
+      <TabSwitcher
         aria-label="Employee sections"
-      >
-        {TABS.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            role="tab"
-            aria-selected={tab === item.id}
-            className={tabClass(tab === item.id)}
-            onClick={() => setTab(item.id)}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
+        value={tab}
+        onChange={setTab}
+        items={TABS.map((item) => ({ value: item.id, label: item.label }))}
+      />
 
       {tab === "overview" ? (
         <EmployeeOverviewPanel employee={employee} />

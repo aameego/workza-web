@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Button } from "../../design-system";
 import { ApiError } from "../../lib/apiClient";
 import type { SessionUser } from "../../layouts/sessionUser";
 import {
@@ -13,6 +12,7 @@ import type { LeaveRequest } from "../../services/leaveService";
 import LeaveBalancePanel from "./LeaveBalancePanel";
 import LeaveConfirmDialog from "./LeaveConfirmDialog";
 import LeaveMetrics from "./LeaveMetrics";
+import LeavePageHeader from "./LeavePageHeader";
 import LeaveRequestModal from "./LeaveRequestModal";
 import LeaveRequestsTable from "./LeaveRequestsTable";
 import LeaveUpcomingPanel from "./LeaveUpcomingPanel";
@@ -25,31 +25,40 @@ import {
 export type LeaveSelfPageProps = {
   user: SessionUser | null;
   embedded?: boolean;
+  /** Hide policy+month when parent already renders LeavePageHeader. */
+  hideHeader?: boolean;
 };
 
+const now = new Date();
+
 export default function LeaveSelfPage({
-  embedded = false,
+  user,
+  hideHeader = false,
 }: LeaveSelfPageProps) {
+  // Requests and upcoming leaves come back scoped to the caller's whole team for managers; pin them to self.
+  const selfId = user?.employeeId || undefined;
   const navigate = useNavigate();
   const { vendorSlug } = useParams();
   const base = `/${vendorSlug || "app"}`;
 
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth() + 1);
   const [requestType, setRequestType] = useState("");
   const [status, setStatus] = useState("");
+  const [page, setPage] = useState(1);
   const [createOpen, setCreateOpen] = useState(false);
   const [cancelRow, setCancelRow] = useState<LeaveRequest | null>(null);
   const [cancelLoading, setCancelLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const t = window.setTimeout(() => setSearch(searchInput.trim()), 250);
-    return () => window.clearTimeout(t);
-  }, [searchInput]);
-
   const dashboardQuery = useLeaveDashboard();
-  const requestsQuery = useLeaveRequests({});
+  const requestsQuery = useLeaveRequests({
+    page,
+    limit: 10,
+    status: status || undefined,
+    leaveType: requestType || undefined,
+    employeeId: selfId,
+  });
   const balancesQuery = useLeaveBalances();
   const cancelMutation = useCancelLeaveRequest();
 
@@ -58,11 +67,23 @@ export default function LeaveSelfPage({
     return data?.selfSummary || data?.summary;
   }, [dashboardQuery.data]);
 
-  const metrics = useMemo(() => selfLeaveMetrics(summary), [summary]);
+  // /leave/dashboard's self summary has no rejected count; use the list API's total.
+  const rejectedQuery = useLeaveRequests({ page: 1, limit: 1, status: "Rejected", employeeId: selfId });
+  const rejectedTotal = rejectedQuery.data?.total;
+  const metrics = useMemo(
+    () => selfLeaveMetrics(rejectedTotal == null ? summary : { ...summary, rejectedRequests: rejectedTotal }),
+    [summary, rejectedTotal],
+  );
 
   const upcoming = useMemo(
-    () => (dashboardQuery.data?.upcoming || []).slice(0, 6),
-    [dashboardQuery.data],
+    () =>
+      (dashboardQuery.data?.upcoming || [])
+        .filter((item) => {
+          const id = typeof item.employeeId === "object" ? item.employeeId?._id : item.employeeId;
+          return !selfId || !id || String(id) === selfId;
+        })
+        .slice(0, 6),
+    [dashboardQuery.data, selfId],
   );
 
   const balanceRows = useMemo(() => {
@@ -73,15 +94,16 @@ export default function LeaveSelfPage({
   }, [balancesQuery.data, dashboardQuery.data]);
 
   const rows = useMemo(() => {
-    const all = requestsQuery.data?.requests || dashboardQuery.data?.recent || [];
-    return filterRequests(all, { search, status, requestType });
-  }, [
-    requestsQuery.data,
-    dashboardQuery.data,
-    search,
-    status,
-    requestType,
-  ]);
+    const all =
+      requestsQuery.data?.requests || dashboardQuery.data?.recent || [];
+    return filterRequests(all, { search: "", status, requestType });
+  }, [requestsQuery.data, dashboardQuery.data, status, requestType]);
+
+  const shiftMonth = (delta: number) => {
+    const d = new Date(year, month - 1 + delta, 1);
+    setYear(d.getFullYear());
+    setMonth(d.getMonth() + 1);
+  };
 
   const handleCancel = async () => {
     if (!cancelRow) return;
@@ -101,54 +123,16 @@ export default function LeaveSelfPage({
   };
 
   return (
-    <div className="space-y-wz-5">
-      {!embedded ? (
-        <div className="flex flex-wrap items-start justify-between gap-wz-3">
-          <div>
-            <h1 className="m-0 text-xl font-semibold text-wz-text-primary">
-              Leave
-            </h1>
-            <p className="m-0 mt-1 text-sm text-wz-text-secondary">
-              Apply for leave, track requests, and view your balances.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => navigate(`${base}/leave/policy`)}
-            >
-              View Leave Policy
-            </Button>
-            <Button
-              type="button"
-              variant="primary"
-              onClick={() => setCreateOpen(true)}
-            >
-              + Submit Request
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <div className="flex flex-wrap justify-end gap-2">
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={() => navigate(`${base}/leave/policy`)}
-          >
-            View Leave Policy
-          </Button>
-          <Button
-            type="button"
-            variant="primary"
-            size="sm"
-            onClick={() => setCreateOpen(true)}
-          >
-            + Submit Request
-          </Button>
-        </div>
-      )}
+    <div className="space-y-4">
+      {!hideHeader ? (
+        <LeavePageHeader
+          year={year}
+          month={month}
+          onShiftMonth={shiftMonth}
+          showPolicy
+          onViewPolicy={() => navigate(`${base}/leave/policy`)}
+        />
+      ) : null}
 
       {actionError ? (
         <p className="m-0 text-sm text-wz-error" role="alert">
@@ -159,28 +143,35 @@ export default function LeaveSelfPage({
       <LeaveMetrics metrics={metrics} />
 
       <LeaveRequestsTable
-        title="My Recent Requests"
+        variant="self"
         rows={rows}
-        search={searchInput}
-        onSearchChange={setSearchInput}
         requestType={requestType}
-        onRequestTypeChange={setRequestType}
+        onRequestTypeChange={(v) => {
+          setRequestType(v);
+          setPage(1);
+        }}
         status={status}
-        onStatusChange={setStatus}
-        showEmployee={false}
+        onStatusChange={(v) => {
+          setStatus(v);
+          setPage(1);
+        }}
         canCancel
         onCancel={setCancelRow}
         onCreate={() => setCreateOpen(true)}
-        createLabel="+ Submit Request"
+        createLabel="Submit Request"
         loading={requestsQuery.isLoading}
         emptyMessage="You have no leave requests yet."
+        page={page}
+        total={requestsQuery.data?.total ?? rows.length}
+        pageSize={10}
+        onPageChange={setPage}
       />
 
-      <div className="grid grid-cols-1 gap-wz-5 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <LeaveUpcomingPanel
           items={upcoming}
-          title="Upcoming Leaves"
-          showEmployee={false}
+          title="Upcoming Leaves (Next 7 days)"
+          variant="self"
         />
         <LeaveBalancePanel mode="self" rows={balanceRows} />
       </div>
@@ -193,9 +184,10 @@ export default function LeaveSelfPage({
       />
       <LeaveConfirmDialog
         open={Boolean(cancelRow)}
-        title="Cancel Request"
-        message="Are you sure you want to cancel this leave request? This cannot be undone."
-        confirmLabel="Cancel Request"
+        title="Cancel Request?"
+        message="Are you sure you want to cancel this request? This action cannot be undone."
+        confirmLabel="Cancel"
+        cancelLabel="Go Back"
         variant="destructive"
         loading={cancelLoading}
         onClose={() => setCancelRow(null)}

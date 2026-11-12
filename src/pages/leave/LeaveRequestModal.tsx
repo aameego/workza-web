@@ -4,6 +4,7 @@ import {
   Field,
   Input,
   Modal,
+  SegmentedToggle,
   Select,
   TextArea,
 } from "../../design-system";
@@ -41,10 +42,10 @@ type FormState = {
 const emptyForm = (): FormState => ({
   employeeId: "",
   requestType: "Leave",
-  leaveType: "CL",
+  leaveType: "",
   startDate: "",
   endDate: "",
-  dayPart: "full",
+  dayPart: "",
   reason: "",
   coPurpose: "leave",
 });
@@ -129,13 +130,17 @@ export default function LeaveRequestModal({
       leaveType: form.leaveType,
       startDate: form.startDate,
       endDate: form.endDate,
-      dayPart: isSingleDay ? form.dayPart : "full",
+      dayPart: form.dayPart,
       reason: form.reason,
       employeeId: form.employeeId,
       requireEmployee: !forSelf,
     });
     if (validation) {
       setError(validation);
+      return;
+    }
+    if (!form.dayPart) {
+      setError("Please select a day type.");
       return;
     }
     if (needsMedical && !medicalFile) {
@@ -190,7 +195,6 @@ export default function LeaveRequestModal({
       open={open}
       title={title || (forSelf ? "Submit Request" : "Create Request")}
       onClose={saving ? () => undefined : onClose}
-      size="lg"
       footer={
         <>
           <Button
@@ -207,14 +211,14 @@ export default function LeaveRequestModal({
             disabled={saving}
             onClick={() => void handleSubmit()}
           >
-            {saving ? "Submitting…" : "Submit Request"}
+            {saving ? "Submitting…" : forSelf ? "Submit Request" : "Create Request"}
           </Button>
         </>
       }
     >
-      <div className="grid grid-cols-1 gap-wz-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-x-wz-6 gap-y-wz-6 sm:grid-cols-2">
         {!forSelf ? (
-          <Field label="Employee *" className="sm:col-span-2">
+          <Field label="Employee/ Consultant Name" required>
             <SearchableEmployeeSelect
               value={form.employeeId}
               onChange={(id) =>
@@ -224,33 +228,27 @@ export default function LeaveRequestModal({
           </Field>
         ) : null}
 
-        <Field label="Request Type">
-          <Select
-            value={form.requestType}
-            onChange={(e) => {
-              const next = e.target.value;
+        <div className={forSelf ? "sm:col-span-2" : undefined}>
+          <SegmentedToggle
+            label="Select Request Type"
+            value={form.requestType === "WFH" ? "WFH" : "Leave"}
+            options={wfhEnabled ? [["Leave", "Leave"], ["WFH", "WFH"]] : [["Leave", "Leave"]]}
+            onChange={(next) => {
               if (next === "WFH") {
-                setForm((p) => ({
-                  ...p,
-                  requestType: "WFH",
-                  leaveType: "WFH",
-                }));
+                setForm((p) => ({ ...p, requestType: "WFH", leaveType: "WFH" }));
                 setMedicalFile(null);
                 return;
               }
               setForm((p) => ({
                 ...p,
                 requestType: "Leave",
-                leaveType: p.leaveType === "WFH" ? "CL" : p.leaveType,
+                leaveType: p.leaveType === "WFH" ? "" : p.leaveType,
               }));
             }}
-          >
-            <option value="Leave">Leave</option>
-            {wfhEnabled ? <option value="WFH">WFH</option> : null}
-          </Select>
-        </Field>
+          />
+        </div>
 
-        <Field label="Leave Type">
+        <Field label="Leave Type" required>
           <Select
             value={form.requestType === "WFH" ? "WFH" : form.leaveType}
             disabled={form.requestType === "WFH"}
@@ -265,15 +263,58 @@ export default function LeaveRequestModal({
               if (next !== "SL") setMedicalFile(null);
             }}
           >
+            <option value="" disabled>
+              Select
+            </option>
             {(form.requestType === "WFH"
               ? typeOptions.filter((o) => o.code === "WFH")
               : typeOptions.filter((o) => o.code !== "WFH")
             ).map((opt) => (
               <option key={opt.code} value={opt.code}>
-                {opt.label}
+                {opt.code === "WFH" ? "Work From Home (WFH)" : opt.label}
               </option>
             ))}
           </Select>
+        </Field>
+
+        <Field label="Day Type" required>
+          <Select
+            value={form.dayPart}
+            onChange={(e) =>
+              setForm((p) => ({ ...p, dayPart: e.target.value }))
+            }
+          >
+            <option value="" disabled>
+              Select
+            </option>
+            <option value="full">Full Day</option>
+            <option value="first-half" disabled={!isSingleDay && Boolean(form.endDate)}>
+              First Half
+            </option>
+            <option value="second-half" disabled={!isSingleDay && Boolean(form.endDate)}>
+              Second Half
+            </option>
+          </Select>
+        </Field>
+
+        <Field label="Start Date" required>
+          <Input
+            type="date"
+            value={form.startDate}
+            onChange={(e) =>
+              setForm((p) => ({ ...p, startDate: e.target.value }))
+            }
+          />
+        </Field>
+        <Field label="End Date" required>
+          <Input
+            type="date"
+            value={form.endDate}
+            min={form.startDate || undefined}
+            onChange={(e) =>
+              setForm((p) => ({ ...p, endDate: e.target.value }))
+            }
+          />
         </Field>
 
         {form.leaveType === "CO" && form.requestType !== "WFH" ? (
@@ -305,44 +346,10 @@ export default function LeaveRequestModal({
           </Field>
         ) : null}
 
-        <Field label="Start Date *">
-          <Input
-            type="date"
-            value={form.startDate}
-            onChange={(e) =>
-              setForm((p) => ({ ...p, startDate: e.target.value }))
-            }
-          />
-        </Field>
-        <Field label="End Date *">
-          <Input
-            type="date"
-            value={form.endDate}
-            min={form.startDate || undefined}
-            onChange={(e) =>
-              setForm((p) => ({ ...p, endDate: e.target.value }))
-            }
-          />
-        </Field>
-
-        {isSingleDay ? (
-          <Field label="Day Type">
-            <Select
-              value={form.dayPart}
-              onChange={(e) =>
-                setForm((p) => ({ ...p, dayPart: e.target.value }))
-              }
-            >
-              <option value="full">Full Day</option>
-              <option value="first-half">First Half</option>
-              <option value="second-half">Second Half</option>
-            </Select>
-          </Field>
-        ) : null}
-
         {needsMedical ? (
           <Field
-            label={`Medical Document * (required when SL > ${slRequiredWhenDaysGt} days)`}
+            label={`Medical Document (required when SL > ${slRequiredWhenDaysGt} days)`}
+            required
             className="sm:col-span-2"
           >
             <Input
@@ -364,14 +371,15 @@ export default function LeaveRequestModal({
           </Field>
         ) : null}
 
-        <Field label="Reason *" className="sm:col-span-2">
+        <Field label="Reason" required className="sm:col-span-2">
           <TextArea
-            rows={3}
+            rows={2}
+            style={{ minHeight: 70 }}
             value={form.reason}
             placeholder={
               form.leaveType === "CO" && form.coPurpose === "credit"
                 ? "Which off-day did you work?"
-                : "Reason for leave"
+                : "Enter reason here"
             }
             onChange={(e) =>
               setForm((p) => ({ ...p, reason: e.target.value }))

@@ -345,3 +345,29 @@ export const buildTodayRowFromAttendanceResponse = (
     sessions,
   };
 };
+
+export type AttendanceRegularization = {
+  _id: string;
+  employeeId?: string | { _id?: string };
+  status?: string;
+  reason?: string;
+  requested?: { date?: string; status?: string; checkIn?: string | null; checkOut?: string | null };
+  previous?: { status?: string; checkIn?: string | null; checkOut?: string | null } | null;
+  approverId?: { name?: string; email?: string } | null;
+  decidedAt?: string | null;
+  createdAt?: string;
+};
+
+/**
+ * Approved attendance corrections, newest first — the source for the
+ * Attendance History timeline.
+ * ponytail: backend has no employee/date filter, so callers filter the latest
+ * 100; add employeeId+date params to /regularization/requests if that cuts off.
+ */
+export const getAttendanceRegularizations = async (): Promise<AttendanceRegularization[]> => {
+  const res = await api.get<{ requests?: AttendanceRegularization[] }>(
+    "/regularization/requests",
+    { params: { kind: "attendance", status: "Approved", limit: 100 } },
+  );
+  return res.requests || [];
+};

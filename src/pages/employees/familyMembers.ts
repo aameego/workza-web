@@ -93,7 +93,14 @@ const isRowEmpty = (m: FamilyMemberForm) =>
 
 export const validateFamilyMembers = (
   input: FamilyMemberForm[] | null | undefined,
-  { today = localToday() }: { today?: string } = {},
+  {
+    today = localToday(),
+    keepBlankRows = false,
+  }: {
+    today?: string;
+    /** Form submit: a row the user added but left blank is an error, not silently dropped (EMP-FN-04). */
+    keepBlankRows?: boolean;
+  } = {},
 ): { members: FamilyMemberForm[]; errors: FamilyFieldError[] } => {
   if (input === undefined || input === null) return { members: [], errors: [] };
   if (!Array.isArray(input)) {
@@ -105,7 +112,7 @@ export const validateFamilyMembers = (
 
   const rows = input
     .map((raw, index) => ({ raw, index }))
-    .filter(({ raw }) => !isRowEmpty(raw));
+    .filter(({ raw }) => keepBlankRows || !isRowEmpty(raw));
   const errors: FamilyFieldError[] = [];
 
   if (rows.length > MAX_FAMILY_MEMBERS) {
@@ -233,7 +240,7 @@ export const familyMemberErrorMap = (
   input: FamilyMemberForm[] | null | undefined,
   options?: { today?: string },
 ): Record<string, string> => {
-  const { errors } = validateFamilyMembers(input, options);
+  const { errors } = validateFamilyMembers(input, { ...options, keepBlankRows: true });
   return errors.reduce<Record<string, string>>((acc, { field, message }) => {
     if (!acc[field]) acc[field] = message;
     return acc;

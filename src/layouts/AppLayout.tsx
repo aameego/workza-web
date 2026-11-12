@@ -6,8 +6,8 @@ import {
   useParams,
 } from "react-router-dom";
 import {
+  ArrowLeft,
   Bell,
-  ChevronLeft,
   ChevronRight,
   ChevronDown,
   LogOut,
@@ -28,7 +28,8 @@ import {
   readSessionUser,
   roleLabelFor,
 } from "./sessionUser";
-import { clearAuthData } from "../lib/authStorage";
+import { api } from "../lib/apiClient";
+import { clearAuthData, updateStoredUser } from "../lib/authStorage";
 import { toVendorSlug } from "../lib/vendorPath";
 import workzaLogo from "../assets/landing/workza-logo.png";
 import { Avatar, cn, IconButton } from "../design-system";
@@ -49,6 +50,28 @@ export default function AppLayout() {
     () => typeof window !== "undefined" && window.innerWidth <= 900,
   );
   const [profileOpen, setProfileOpen] = useState(false);
+  // Login doesn't return role permissions; pages gate on them, so load them before rendering.
+  const [sessionReady, setSessionReady] = useState(
+    () => user?.role === "Admin" || Array.isArray(user?.permissions),
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .get<{ permissions?: string[] | "all" }>("/auth/session")
+      .then((session) => {
+        if (!cancelled && Array.isArray(session?.permissions)) {
+          updateStoredUser({ permissions: session.permissions });
+        }
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (!cancelled) setSessionReady(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const vendorCode = useMemo(() => {
     if (vendorSlug) return vendorSlug;
@@ -170,7 +193,7 @@ export default function AppLayout() {
                   onClick={() => setSidebarCollapsed(true)}
                   aria-label="Collapse sidebar"
                 >
-                  <ChevronLeft size={20} strokeWidth={2} />
+                  <ArrowLeft size={20} strokeWidth={2} />
                 </button>
               ) : null}
               {isMobile ? (
@@ -200,16 +223,24 @@ export default function AppLayout() {
                   key={item.path}
                   type="button"
                   className={cn(
-                    "relative flex h-10 min-h-10 w-full cursor-pointer items-center gap-wz-3 rounded-wz-lg border-0 bg-transparent py-0 pl-[14px] pr-3 text-left text-sm font-medium tracking-normal text-white transition-[background,color] duration-150 ease-in-out hover:bg-white/[0.08] hover:text-white [&_svg]:size-5 [&_svg]:shrink-0",
-                    active &&
-                      "bg-white font-semibold text-wz-primary before:absolute before:bottom-2 before:left-0 before:top-2 before:w-[3px] before:rounded-br-[3px] before:rounded-tr-[3px] before:bg-wz-primary before:content-['']",
+                    /* Figma Navigation/Nav Item: gap 10, 10/16/10/12 padding, 8 radius, 14 semibold #e8eefb, 18px icon */
+                    "relative flex h-10 min-h-10 w-full cursor-pointer items-center gap-[10px] rounded-wz-md border-0 bg-transparent py-0 pl-3 pr-4 text-left text-sm font-semibold leading-5 tracking-normal transition-[background,color] duration-150 ease-in-out [&_svg]:size-[18px] [&_svg]:shrink-0",
+                    active
+                      ? "bg-white text-wz-primary"
+                      : "text-wz-sidebar-text hover:bg-white/[0.08]",
                     collapsedDesktop &&
                       "m-0 h-10 w-11 justify-center p-0",
                   )}
                   title={item.label}
                   onClick={() => goTo(item.path)}
                 >
-                  <Icon size={20} />
+                  {active && !collapsedDesktop ? (
+                    <span
+                      className="h-5 w-[3px] shrink-0 rounded-[2px] bg-wz-primary"
+                      aria-hidden
+                    />
+                  ) : null}
+                  <Icon size={18} />
                   <span className={cn(collapsedDesktop && "hidden")}>
                     {item.label}
                   </span>
@@ -229,8 +260,8 @@ export default function AppLayout() {
       >
         <header
           className={cn(
-            "sticky top-0 z-20 m-0 flex min-h-wz-topbar items-center justify-between gap-wz-4 rounded-none border-0 border-b border-wz-border bg-white px-wz-6 py-3 max-[900px]:px-wz-4",
-            pageCrumbs.length > 0 ? "h-auto" : "h-wz-topbar py-0",
+            /* Figma Navigation/Top Bar: always 60 tall, 24 side padding */
+            "sticky top-0 z-20 m-0 flex h-wz-topbar min-h-wz-topbar items-center justify-between gap-wz-4 rounded-none border-0 border-b border-wz-border bg-white px-wz-6 py-0 max-[900px]:px-wz-4",
           )}
         >
           <div className="flex min-w-0 items-center gap-wz-3">
@@ -252,44 +283,44 @@ export default function AppLayout() {
               )
             )}
             <div className="min-w-0">
-              <h1 className="m-0 text-lg font-semibold leading-6 tracking-[-0.01em] text-wz-text">
+              <h1 className="m-0 text-lg font-bold leading-[22px] text-wz-heading">
                 {pageTitle}
               </h1>
               {pageCrumbs.length > 0 ? (
                 <nav
-                  className="mt-1 flex min-w-0 flex-wrap items-center gap-1 text-xs leading-4 text-wz-text-secondary"
+                  className="mt-0.5 flex min-w-0 flex-wrap items-center gap-[5px] text-[10px] leading-[14px] text-wz-text-muted"
                   aria-label="Breadcrumb"
                 >
                   <Link
                     to={`${vendorBase}${pageCrumbs[0]?.path || "/employees"}`}
-                    className="inline-flex shrink-0 items-center text-wz-text-secondary no-underline hover:text-wz-primary"
+                    className="inline-flex shrink-0 items-center text-wz-text-muted no-underline hover:text-wz-primary"
                     aria-label="Back"
                   >
-                    <ChevronLeft className="size-3.5" aria-hidden />
+                    <ArrowLeft className="size-2.5" aria-hidden />
                   </Link>
                   {pageCrumbs.map((crumb, index) => {
                     const isLast = index === pageCrumbs.length - 1;
                     return (
                       <span
                         key={`${crumb.label}-${index}`}
-                        className="inline-flex min-w-0 items-center gap-1"
+                        className="inline-flex min-w-0 items-center gap-[5px]"
                       >
                         {index > 0 ? (
                           <ChevronRight
-                            className="size-3 shrink-0 text-wz-neutral-400"
+                            className="size-2.5 shrink-0 text-wz-text-muted"
                             aria-hidden
                           />
                         ) : null}
                         {crumb.path && !isLast ? (
                           <Link
                             to={`${vendorBase}${crumb.path}`}
-                            className="truncate text-wz-text-secondary no-underline hover:text-wz-primary hover:underline"
+                            className="truncate text-wz-text-muted no-underline hover:text-wz-primary hover:underline"
                           >
                             {crumb.label}
                           </Link>
                         ) : (
                           <span
-                            className="truncate font-medium text-wz-primary"
+                            className="truncate font-semibold text-wz-primary"
                             aria-current="page"
                           >
                             {crumb.label}
@@ -311,23 +342,24 @@ export default function AppLayout() {
             <div className="relative">
               <button
                 type="button"
-                className="box-border flex h-9 cursor-pointer items-center gap-wz-2 rounded-wz-lg border border-wz-border bg-wz-neutral-50 py-1.5 pl-[7px] pr-2.5 hover:bg-wz-neutral-100"
+                /* Figma user-profile chip: 4/6 padding, gap 8, 8 radius, #e5eaf3 border */
+                className="box-border flex cursor-pointer items-center gap-wz-2 rounded-wz-md border border-[#e5eaf3] bg-wz-neutral-50 px-1.5 py-1 hover:bg-wz-neutral-100"
                 onClick={() => setProfileOpen((v) => !v)}
                 aria-expanded={profileOpen}
                 aria-haspopup="menu"
               >
-                <Avatar initials={initials} size="sm" />
-                <span className="text-left leading-[1.15] max-[900px]:hidden">
-                  <strong className="block text-xs font-semibold text-wz-text">
+                <Avatar initials={initials} size="xs" />
+                <span className="text-left max-[900px]:hidden">
+                  <strong className="block text-[10px] font-semibold leading-[14px] text-wz-heading">
                     {displayName}
                   </strong>
-                  <span className="block text-[0.6875rem] font-normal leading-[1.1] text-wz-text-secondary">
+                  <span className="block text-[8px] font-normal leading-3 text-wz-text-muted">
                     {roleLabel}
                   </span>
                 </span>
                 <ChevronDown
                   size={14}
-                  className="text-wz-text-secondary"
+                  className="text-wz-heading"
                   strokeWidth={2}
                 />
               </button>
@@ -353,8 +385,8 @@ export default function AppLayout() {
           </div>
         </header>
 
-        <main className="min-w-0 flex-1 px-wz-6 py-wz-5 pb-wz-8 max-[900px]:p-wz-4">
-          <Outlet />
+        <main className="min-w-0 flex-1 p-wz-6 max-[900px]:p-wz-4">
+          {sessionReady ? <Outlet /> : null}
         </main>
       </div>
     </div>

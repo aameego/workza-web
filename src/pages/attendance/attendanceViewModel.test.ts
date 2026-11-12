@@ -26,6 +26,13 @@ describe("orgDayMetrics", () => {
     });
     expect(cards).toHaveLength(5);
     expect(cards.map((c) => c.value)).toEqual([12, 2, 1, 3, 4]);
+    expect(cards.map((c) => c.hintTone)).toEqual([
+      "green",
+      "red",
+      "amber",
+      "blue",
+      "purple",
+    ]);
   });
 
   it("defaults missing stats to zero", () => {

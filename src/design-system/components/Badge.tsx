@@ -39,10 +39,11 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center justify-center gap-1 rounded-wz-sm font-semibold whitespace-nowrap box-border",
+        "inline-flex items-center justify-center gap-1 rounded-wz-sm px-2 whitespace-nowrap box-border leading-[normal]",
+        /* Figma Feedback/Status Badge: 10px semibold (md), 8px regular (sm) */
         size === "sm"
-          ? "h-[18px] px-1.5 py-0.5 text-[11px] leading-[14px]"
-          : "h-[25px] px-2 py-1 text-xs leading-4",
+          ? "py-1 text-[8px] font-normal"
+          : "py-1.5 text-[10px] font-semibold",
         statusClass[status],
         className,
       )}

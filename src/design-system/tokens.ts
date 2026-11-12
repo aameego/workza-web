@@ -9,8 +9,11 @@
 export const brand = {
   kpBlue: "#245EE4",
   kpGreen: "#08926F",
-  workzaBlue: "#1950A3",
+  /** Figma variable color/action/primary */
+  workzaBlue: "#1F5DA3",
   workzaTeal: "#1FA3A5",
+  /** Headings, sidebar, primary hover/active */
+  navy: "#0A1F4A",
 } as const;
 
 export const neutral = {
@@ -33,6 +36,9 @@ export const semantic = {
   border: neutral[300],
   textPrimary: neutral[900],
   textSecondary: neutral[600],
+  textMuted: "#6C757D",
+  heading: brand.navy,
+  danger: "#D92D20",
   stateHover: "#E8EEFB",
   stateSelected: "#D1DFFA",
   stateDisabled: neutral[200],
@@ -43,7 +49,8 @@ export const semantic = {
 
 /** App shell (Navigation/Sidenav + Top Bar) */
 export const shell = {
-  sidebarBg: "#001529",
+  sidebarBg: brand.navy,
+  sidebarText: "#E8EEFB",
   sidebarWidth: 232,
   sidebarCollapsedWidth: 72,
   topbarHeight: 60,
@@ -57,6 +64,7 @@ export const radius = {
   lg: 10,
   xl: 12,
   full: 9999,
+  modal: 16,
 } as const;
 
 export const space = {

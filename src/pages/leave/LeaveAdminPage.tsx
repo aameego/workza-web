@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Button } from "../../design-system";
 import { ApiError } from "../../lib/apiClient";
 import type { SessionUser } from "../../layouts/sessionUser";
 import {
@@ -12,6 +11,7 @@ import {
   useUpdateLeaveBalances,
 } from "../../hooks/useLeave";
 import type { LeaveRequest } from "../../services/leaveService";
+import { monthLabel } from "../employees/attendanceCalendar";
 import {
   canApproveLeave,
   canDirectEditLeave,
@@ -22,6 +22,7 @@ import LeaveBalancePanel from "./LeaveBalancePanel";
 import LeaveConfirmDialog from "./LeaveConfirmDialog";
 import LeaveEditModal from "./LeaveEditModal";
 import LeaveMetrics from "./LeaveMetrics";
+import LeavePageHeader from "./LeavePageHeader";
 import LeaveRequestModal from "./LeaveRequestModal";
 import LeaveRequestsTable from "./LeaveRequestsTable";
 import LeaveUpcomingPanel from "./LeaveUpcomingPanel";
@@ -31,6 +32,8 @@ import {
   orgLeaveMetrics,
   teamLeaveMetrics,
 } from "./leaveViewModel";
+import { useEmployee } from "../../hooks/useEmployees";
+import { employmentActiveLabel, employmentTypeLabel } from "../employees/employeeListHelpers";
 
 export type LeaveAdminPageProps = {
   user: SessionUser | null;
@@ -38,7 +41,8 @@ export type LeaveAdminPageProps = {
   embedded?: boolean;
   /** When true, treat as team scope (manager My Team). */
   teamScope?: boolean;
-  title?: string;
+  /** Hide policy+month when parent already renders LeavePageHeader. */
+  hideHeader?: boolean;
 };
 
 type ConfirmState = {
@@ -59,16 +63,21 @@ const closedConfirm = (): ConfirmState => ({
   action: null,
 });
 
+const now = new Date();
+
 export default function LeaveAdminPage({
   user,
   embedded = false,
   teamScope = false,
-  title = "Leave",
+  hideHeader = false,
 }: LeaveAdminPageProps) {
   const navigate = useNavigate();
   const { vendorSlug } = useParams();
   const base = `/${vendorSlug || "app"}`;
 
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth() + 1);
+  const [upcomingMonth, setUpcomingMonth] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [requestType, setRequestType] = useState("");
@@ -86,6 +95,7 @@ export default function LeaveAdminPage({
   const canEdit = canDirectEditLeave(user);
   const canBalances = canEditLeaveBalances(user) && !teamScope;
   const canPolicy = canManageLeavePolicy(user);
+  const canCreate = !teamScope;
 
   useEffect(() => {
     const t = window.setTimeout(() => {
@@ -100,12 +110,14 @@ export default function LeaveAdminPage({
     page,
     limit: 10,
     search: search || undefined,
-    status:
-      status === "Cancelled"
-        ? undefined
-        : status || undefined,
+    status: status || undefined,
+    leaveType: requestType || undefined,
   });
   const balanceQuery = useLeaveBalances(
+    balanceEmployeeId || undefined,
+    Boolean(balanceEmployeeId) && canBalances,
+  );
+  const { data: balanceEmployee } = useEmployee(
     balanceEmployeeId || undefined,
     Boolean(balanceEmployeeId) && canBalances,
   );
@@ -119,46 +131,80 @@ export default function LeaveAdminPage({
     return data?.orgSummary || data?.summary;
   }, [dashboardQuery.data, teamScope]);
 
-  const metrics = useMemo(
-    () => (teamScope ? teamLeaveMetrics(summary) : orgLeaveMetrics(summary)),
-    [summary, teamScope],
-  );
+  const rejectedCount = useLeaveRequests({ page: 1, limit: 1, status: "Rejected" });
+  const rejectedTotal = rejectedCount.data?.total;
+  const metrics = useMemo(() => {
+    const cards = teamScope ? teamLeaveMetrics(summary) : orgLeaveMetrics(summary);
+    if (teamScope || rejectedTotal == null) return cards;
+    // Org summary has no rejected count; use the list API's total.
+    return orgLeaveMetrics({ ...summary, rejectedRequests: rejectedTotal, requestCounts: undefined });
+  }, [summary, teamScope, rejectedTotal]);
+
+  // Tab counts come from the list API's own totals (same search/type filters), so they always agree
+  // with the table; /leave/dashboard has no org-wide per-status counts.
+  const countBase = { page: 1, limit: 1, search: search || undefined, leaveType: requestType || undefined };
+  const allCount = useLeaveRequests(countBase);
+  const pendingCount = useLeaveRequests({ ...countBase, status: "Pending" });
+  const approvedCount = useLeaveRequests({ ...countBase, status: "Approved" });
+  const cancelledCount = useLeaveRequests({ ...countBase, status: "Cancelled" });
+  const statusCounts = {
+    "": allCount.data?.total ?? 0,
+    Pending: pendingCount.data?.total ?? 0,
+    Approved: approvedCount.data?.total ?? 0,
+    Cancelled: cancelledCount.data?.total ?? 0,
+  };
+
+  const upcomingMonthOptions = useMemo(() => {
+    const options: Array<{ value: string; label: string }> = [];
+    for (let i = 0; i < 6; i += 1) {
+      const d = new Date(year, month - 1 + i, 1);
+      const y = d.getFullYear();
+      const m = d.getMonth() + 1;
+      options.push({
+        value: `${y}-${String(m).padStart(2, "0")}`,
+        label: monthLabel(y, m),
+      });
+    }
+    return options;
+  }, [year, month]);
 
   const upcoming = useMemo(() => {
     const items = dashboardQuery.data?.upcoming || [];
-    return items.slice(0, 8);
-  }, [dashboardQuery.data]);
+    const filtered = upcomingMonth
+      ? items.filter((row) => {
+          const start = row.startDate ? new Date(row.startDate) : null;
+          if (!start || Number.isNaN(start.getTime())) return false;
+          const key = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}`;
+          return key === upcomingMonth;
+        })
+      : items;
+    return filtered.slice(0, 8);
+  }, [dashboardQuery.data, upcomingMonth]);
 
   const serverRows = requestsQuery.data?.requests || [];
-  const rows = useMemo(() => {
-    let filtered = filterRequests(serverRows, {
-      search: "",
-      status:
-        status === "Cancelled"
-          ? ""
-          : status,
-      requestType,
-    });
-    if (status === "Cancelled") {
-      filtered = filtered.filter(
-        (r) => r.status === "Cancelled" || r.status === "Rejected",
-      );
-    }
-    return filtered;
-  }, [serverRows, status, requestType]);
+  const rows = useMemo(
+    () =>
+      filterRequests(serverRows, {
+        search: "",
+        status,
+        requestType,
+      }),
+    [serverRows, status, requestType],
+  );
 
-  const openDecision = (
-    row: LeaveRequest,
-    action: "approve" | "reject",
-  ) => {
+  const shiftMonth = (delta: number) => {
+    const d = new Date(year, month - 1 + delta, 1);
+    setYear(d.getFullYear());
+    setMonth(d.getMonth() + 1);
+  };
+
+  const openDecision = (row: LeaveRequest, action: "approve" | "reject") => {
     const emp = employeeFromRequest(row);
     const isApprove = action === "approve";
     setConfirm({
       open: true,
-      title: `${isApprove ? "Approve" : "Reject"} Request`,
-      message: isApprove
-        ? `Approve ${emp.name}'s leave request?`
-        : `Reject ${emp.name}'s leave request?`,
+      title: `${isApprove ? "Approve" : "Reject"} Request?`,
+      message: `Are you sure you want to ${isApprove ? "approve" : "reject"} request for ${emp.name || "this employee"}? This action cannot be undone.`,
       confirmLabel: isApprove ? "Approve" : "Reject",
       variant: isApprove ? "success" : "destructive",
       action: async () => {
@@ -179,70 +225,27 @@ export default function LeaveAdminPage({
       await confirm.action();
       setConfirm(closedConfirm());
     } catch (err) {
-      setActionError(
-        err instanceof ApiError ? err.message : "Action failed.",
-      );
+      setActionError(err instanceof ApiError ? err.message : "Action failed.");
       setConfirm(closedConfirm());
     } finally {
       setConfirmLoading(false);
     }
   };
 
+  const showHeader = !hideHeader;
+
   return (
-    <div className="space-y-wz-5">
-      {!embedded ? (
-        <div className="flex flex-wrap items-start justify-between gap-wz-3">
-          <div>
-            <h1 className="m-0 text-xl font-semibold text-wz-text-primary">
-              {title}
-            </h1>
-            <p className="m-0 mt-1 text-sm text-wz-text-secondary">
-              {teamScope
-                ? "Review and act on your team's leave requests."
-                : "Organisation leave directory — requests, balances, and upcoming leave."}
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {canPolicy ? (
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => navigate(`${base}/leave/policy`)}
-              >
-                View Leave Policy
-              </Button>
-            ) : null}
-            <Button
-              type="button"
-              variant="primary"
-              onClick={() => setCreateOpen(true)}
-            >
-              + Create Request
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <div className="flex flex-wrap justify-end gap-2">
-          {canPolicy ? (
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={() => navigate(`${base}/leave/policy`)}
-            >
-              View Leave Policy
-            </Button>
-          ) : null}
-          <Button
-            type="button"
-            variant="primary"
-            size="sm"
-            onClick={() => setCreateOpen(true)}
-          >
-            + Create Request
-          </Button>
-        </div>
-      )}
+    /* Figma leave-directory-admin: every section 24 apart */
+    <div className="space-y-6">
+      {showHeader ? (
+        <LeavePageHeader
+          year={year}
+          month={month}
+          onShiftMonth={shiftMonth}
+          showPolicy={canPolicy || embedded}
+          onViewPolicy={() => navigate(`${base}/leave/policy`)}
+        />
+      ) : null}
 
       {actionError ? (
         <p className="m-0 text-sm text-wz-error" role="alert">
@@ -253,6 +256,7 @@ export default function LeaveAdminPage({
       <LeaveMetrics metrics={metrics} />
 
       <LeaveRequestsTable
+        variant="org"
         rows={rows}
         search={searchInput}
         onSearchChange={setSearchInput}
@@ -266,13 +270,13 @@ export default function LeaveAdminPage({
           setStatus(v);
           setPage(1);
         }}
-        showEmployee
+        statusCounts={statusCounts}
         canApprove={canApprove}
         canEdit={canEdit}
         onApprove={(row) => openDecision(row, "approve")}
         onReject={(row) => openDecision(row, "reject")}
         onEdit={(row) => setEditRow(row)}
-        onCreate={() => setCreateOpen(true)}
+        onCreate={canCreate ? () => setCreateOpen(true) : undefined}
         loading={requestsQuery.isLoading}
         page={page}
         total={requestsQuery.data?.total}
@@ -283,18 +287,42 @@ export default function LeaveAdminPage({
       <div
         className={
           canBalances
-            ? "grid grid-cols-1 gap-wz-5 xl:grid-cols-2"
-            : "grid grid-cols-1 gap-wz-5"
+            ? "grid grid-cols-1 gap-6 xl:grid-cols-2"
+            : "grid grid-cols-1 gap-6"
         }
       >
-        <LeaveUpcomingPanel items={upcoming} showEmployee />
+        <LeaveUpcomingPanel
+          items={upcoming}
+          variant="org"
+          showMonthFilter
+          monthValue={upcomingMonth}
+          onMonthChange={setUpcomingMonth}
+          monthOptions={upcomingMonthOptions}
+        />
         {canBalances ? (
           <LeaveBalancePanel
             mode="manage"
             rows={balanceQuery.data?.balances || []}
             employeeId={balanceEmployeeId}
-            onEmployeeChange={setBalanceEmployeeId}
+            employeeMeta={
+              balanceQuery.data
+                ? {
+                    name: balanceQuery.data.name,
+                    employeeCode: balanceQuery.data.employeeCode,
+                    designation: balanceEmployee?.designation,
+                    status: balanceEmployee ? employmentActiveLabel(balanceEmployee) : undefined,
+                    employmentType: balanceEmployee
+                      ? employmentTypeLabel(balanceEmployee) || undefined
+                      : undefined,
+                  }
+                : null
+            }
+            onEmployeeChange={(id) => {
+              setBalanceEmployeeId(id);
+              updateBalances.reset();
+            }}
             saving={updateBalances.isPending}
+            saved={updateBalances.isSuccess}
             error={balanceError}
             onSave={async (payload) => {
               if (!balanceEmployeeId) return;

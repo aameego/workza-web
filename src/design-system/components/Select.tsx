@@ -1,22 +1,25 @@
 import { forwardRef, type SelectHTMLAttributes } from "react";
+import { ChevronDown } from "lucide-react";
 import { cn } from "../cn";
 
-const chevron =
-  "bg-[url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23868E96' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E\")] bg-no-repeat bg-size-[16px] bg-position-[right_12px_center]";
 
 export type SelectProps = SelectHTMLAttributes<HTMLSelectElement> & {
   invalid?: boolean;
 };
 
-/** Figma Form/Select */
+/**
+ * Figma Form/Select (1:13640): 40px box, 16px #6c757d chevron 13px from the right.
+ * The chevron is a real icon; the old Tailwind `bg-[url(...)]` arbitrary class
+ * was never generated, so selects rendered with no arrow at all.
+ */
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
   function Select({ className, invalid = false, children, ...rest }, ref) {
     return (
+      <div className="relative w-full">
       <select
         ref={ref}
         className={cn(
-          "w-full min-h-10 appearance-none rounded-wz-md border border-wz-border bg-white pl-3 pr-9 py-2 text-sm leading-5 text-wz-text-primary outline-none cursor-pointer transition-[border-color,box-shadow,background-color]",
-          chevron,
+          "w-full min-h-10 appearance-none rounded-wz-md border border-wz-border bg-white pl-3 pr-9 py-2 text-sm leading-5 text-wz-heading outline-none cursor-pointer transition-[border-color,box-shadow,background-color]",
           "hover:enabled:border-wz-neutral-400 focus:border-wz-primary focus:shadow-[0_0_0_1px_var(--wz-primary)] disabled:bg-wz-neutral-100 disabled:border-wz-neutral-200 disabled:text-wz-neutral-500 disabled:cursor-not-allowed",
           invalid &&
             "border-wz-error focus:border-wz-error focus:shadow-[0_0_0_1px_var(--wz-error)]",
@@ -27,6 +30,12 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
       >
         {children}
       </select>
+      <ChevronDown
+        size={16}
+        aria-hidden
+        className="pointer-events-none absolute top-1/2 right-[13px] -translate-y-1/2 text-wz-text-muted"
+      />
+      </div>
     );
   },
 );

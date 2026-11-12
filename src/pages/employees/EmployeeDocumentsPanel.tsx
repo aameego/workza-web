@@ -112,24 +112,24 @@ export default function EmployeeDocumentsPanel({
               No verified documents yet.
             </p>
           ) : (
-            <div className="grid grid-cols-1 gap-wz-4 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               {documents.map((doc) => (
                 <div
                   key={doc._id}
-                  className="flex items-center gap-3 rounded-wz-md border border-wz-border px-3 py-3"
+                  className="flex min-h-[69px] items-center gap-3 rounded-wz-md border border-wz-border bg-wz-neutral-50 p-3"
                 >
                   <FileText size={24} className="shrink-0 text-wz-error" />
                   <div className="min-w-0 flex-1">
-                    <p className="m-0 truncate text-sm font-semibold text-[#0a1f4a]">
+                    <p className="m-0 truncate text-sm leading-5 font-semibold text-wz-heading">
                       {doc.originalName ||
                         doc.fileName ||
                         docTypeLabel(doc.documentType)}
                     </p>
                     <div className="mt-1 flex flex-wrap items-center gap-2">
-                      <span className="rounded-wz-sm bg-wz-neutral-100 px-2 py-0.5 text-[11px] font-semibold text-wz-text-secondary">
+                      <span className="inline-flex h-[21px] items-center rounded-wz-sm border border-wz-border bg-white px-2 text-[10px] text-wz-text-muted">
                         {formatFileSize(doc.size ?? doc.fileSize)}
                       </span>
-                      <span className="text-xs text-wz-text-secondary">
+                      <span className="text-[11px] text-wz-text-muted">
                         {formatUploadedAgo(doc.uploadedAt || doc.createdAt)}
                       </span>
                     </div>
@@ -142,7 +142,7 @@ export default function EmployeeDocumentsPanel({
                     aria-label="View document"
                     title="View"
                   >
-                    <Eye size={18} />
+                    <Eye size={24} strokeWidth={1.5} />
                   </a>
                 </div>
               ))}
@@ -164,11 +164,17 @@ export default function EmployeeDocumentsPanel({
               All required documents are uploaded.
             </p>
           ) : (
-            <div className="grid grid-cols-1 gap-x-6 gap-y-4 md:grid-cols-2">
+            /* Figma Pending Documents: two columns filled top-down, 24 apart, 28px rows */
+            <div
+              className="grid grid-cols-1 gap-6 md:grid-flow-col md:grid-cols-2"
+              style={{
+                gridTemplateRows: `repeat(${Math.ceil(pending.length / 2)}, auto)`,
+              }}
+            >
               {pending.map((slot) => (
                 <div
                   key={slot.id}
-                  className="flex items-center justify-between gap-3"
+                  className="flex min-h-7 items-center justify-between gap-3"
                 >
                   <p className="m-0 text-sm font-semibold tracking-[0.5px] text-[#6c757d] uppercase">
                     {slot.label}
@@ -184,7 +190,7 @@ export default function EmployeeDocumentsPanel({
                       Upload
                     </Button>
                   ) : (
-                    <span className="text-xs text-wz-text-secondary">—</span>
+                    <span className="text-xs text-wz-text-secondary">-</span>
                   )}
                 </div>
               ))}

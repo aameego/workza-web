@@ -9,8 +9,11 @@
   /* Brand */
   --wz-kp-blue: #245ee4;
   --wz-kp-green: #08926f;
-  --wz-workza-blue: #1950a3;
+  /* Figma variable color/action/primary */
+  --wz-workza-blue: #1f5da3;
   --wz-workza-teal: #1fa3a5;
+  /* Figma navy — headings, sidebar, primary hover/active */
+  --wz-navy: #0a1f4a;
 
   /* Neutral ramp */
   --wz-neutral-50: #f8f9fa;
@@ -26,14 +29,17 @@
 
   /* Semantic */
   --wz-primary: var(--wz-workza-blue);
-  --wz-primary-hover: #154388;
-  --wz-primary-active: #001529;
+  --wz-primary-hover: var(--wz-navy);
+  --wz-primary-active: var(--wz-navy);
   --wz-accent: var(--wz-workza-teal);
   --wz-surface: var(--wz-neutral-50);
   --wz-border: var(--wz-neutral-300);
   --wz-text: var(--wz-neutral-900);
   --wz-text-primary: var(--wz-neutral-900);
   --wz-text-secondary: var(--wz-neutral-600);
+  /* Figma color/text/muted */
+  --wz-text-muted: #6c757d;
+  --wz-heading: var(--wz-navy);
   --wz-state-hover: #e8eefb;
   --wz-state-selected: #d1dffa;
   --wz-state-pressed: #b8cef5;
@@ -41,9 +47,12 @@
   --wz-success: #12b76a;
   --wz-warning: #f79009;
   --wz-error: #f04438;
+  /* Figma Action/Button destructive fill */
+  --wz-danger: #d92d20;
 
   /* Shell */
-  --wz-sidebar-bg: #001529;
+  --wz-sidebar-bg: var(--wz-navy);
+  --wz-sidebar-text: #e8eefb;
   --wz-sidebar-width: 232px;
   --wz-sidebar-collapsed-width: 72px;
   --wz-topbar-height: 60px;
@@ -54,6 +63,7 @@
   --wz-radius-lg: 10px;
   --wz-radius-xl: 12px;
   --wz-radius-full: 9999px;
+  --wz-radius-modal: 16px;
   --wz-space-1: 4px;
   --wz-space-2: 8px;
   --wz-space-3: 12px;
@@ -76,21 +86,21 @@
   --wz-font-overline: 600 12px/16px var(--wz-font);
   --wz-font-button: 600 14px/20px var(--wz-font);
 
-  /* Badge soft fills */
-  --wz-badge-success-bg: #e8f8ef;
-  --wz-badge-success-fg: #0e9f5a;
-  --wz-badge-warning-bg: #fef4e6;
-  --wz-badge-warning-fg: #c46d07;
-  --wz-badge-error-bg: #fdeceb;
+  /* Badge soft fills — Figma Feedback/Status Badge (1:13510) */
+  --wz-badge-success-bg: #ecfdf3;
+  --wz-badge-success-fg: #12b76a;
+  --wz-badge-warning-bg: #fffaeb;
+  --wz-badge-warning-fg: #f79009;
+  --wz-badge-error-bg: #fef3f2;
   --wz-badge-error-fg: #d92d20;
-  --wz-badge-info-bg: #eef1f6;
-  --wz-badge-info-fg: #3e4c59;
+  --wz-badge-info-bg: #e8eefb;
+  --wz-badge-info-fg: #1f5da3;
   --wz-badge-neutral-bg: #f1f3f5;
-  --wz-badge-neutral-fg: #495057;
-  --wz-badge-extra-bg: #f3e8ff;
+  --wz-badge-neutral-fg: #6c757d;
+  --wz-badge-extra-bg: rgba(138, 56, 245, 0.08);
   --wz-badge-extra-fg: #7c3aed;
-  --wz-badge-blue-bg: #e8f1fb;
-  --wz-badge-blue-fg: #1a73e8;
+  --wz-badge-blue-bg: rgba(14, 165, 233, 0.08);
+  --wz-badge-blue-fg: #0ea5e9;
 }
 
 @theme {
@@ -105,6 +115,11 @@
   --color-wz-text: var(--wz-text);
   --color-wz-text-primary: var(--wz-text-primary);
   --color-wz-text-secondary: var(--wz-text-secondary);
+  --color-wz-text-muted: var(--wz-text-muted);
+  --color-wz-heading: var(--wz-heading);
+  --color-wz-navy: var(--wz-navy);
+  --color-wz-danger: var(--wz-danger);
+  --color-wz-sidebar-text: var(--wz-sidebar-text);
   --color-wz-success: var(--wz-success);
   --color-wz-warning: var(--wz-warning);
   --color-wz-error: var(--wz-error);
@@ -145,6 +160,7 @@
   --radius-wz-lg: var(--wz-radius-lg);
   --radius-wz-xl: var(--wz-radius-xl);
   --radius-wz-full: var(--wz-radius-full);
+  --radius-wz-modal: var(--wz-radius-modal);
 
   --spacing-wz-1: var(--wz-space-1);
   --spacing-wz-2: var(--wz-space-2);

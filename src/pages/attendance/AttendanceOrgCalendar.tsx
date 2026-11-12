@@ -1,11 +1,12 @@
 import type { ReactNode } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "../../design-system";
-import { WEEKDAYS } from "../employees/attendanceCalendar";
+import AttendanceCalendar from "./AttendanceCalendar";
 import {
-  CALENDAR_LEGEND,
-  type OrgCalendarCell,
-} from "./attendanceViewModel";
+  dayCellClass,
+  dayLook,
+  dayNumberClass,
+} from "./attendanceCalendarStyle";
+import type { OrgCalendarCell } from "./attendanceViewModel";
 
 export type AttendanceOrgCalendarProps = {
   monthLabel: string;
@@ -14,10 +15,27 @@ export type AttendanceOrgCalendarProps = {
   onNext: () => void;
   onSelectDay: (day: number) => void;
   subtitle?: string;
-  /** Optional employee filter control (org calendar). */
+  /** Optional control beside month chevrons (kept for manager variants). */
   toolbar?: ReactNode;
 };
 
+/** Figma organisation legend has no Compensatory Off. */
+const ORG_LEGEND = [
+  "Present",
+  "Absent",
+  "Late",
+  "Half Day",
+  "WFH",
+  "Leave",
+  "Holiday",
+  "Week Off",
+] as const;
+
+/**
+ * Figma attendance-admin calendar (1:16935): days with attendance show "● 48"
+ * present employees (6px dot, 14px semibold green) on the present tint; the
+ * selected day is #eef4ff with a primary outline.
+ */
 export default function AttendanceOrgCalendar({
   monthLabel,
   cells,
@@ -28,86 +46,54 @@ export default function AttendanceOrgCalendar({
   toolbar,
 }: AttendanceOrgCalendarProps) {
   return (
-    <section className="rounded-wz-xl border border-wz-border bg-white p-wz-5">
-      <div className="mb-wz-4 flex flex-wrap items-center justify-between gap-wz-3">
-        <h2 className="m-0 text-base font-semibold text-wz-text-primary">
-          {monthLabel}{" "}
-          <span className="font-normal text-wz-text-secondary">{subtitle}</span>
-        </h2>
-        <div className="flex flex-wrap items-center gap-2">
-          {toolbar}
+    <AttendanceCalendar
+      title={`${monthLabel} ${subtitle}`}
+      legend={ORG_LEGEND}
+      arrowHeight={48}
+      toolbar={toolbar}
+      onPrev={onPrev}
+      onNext={onNext}
+      cells={cells}
+      renderDay={(cell) => {
+        const label = cell.holidayName || (cell.weekOff ? "Week Off" : null);
+        const look =
+          cell.presentCount > 0 && !label
+            ? dayLook("present", null)
+            : dayLook(cell.status, label, cell.weekOff, Boolean(cell.holidayName));
+        return (
           <button
+            key={cell.key}
             type="button"
-            className="inline-flex size-8 cursor-pointer items-center justify-center rounded-wz-md border border-wz-border bg-white text-wz-text-secondary hover:bg-wz-neutral-50"
-            aria-label="Previous month"
-            onClick={onPrev}
+            onClick={() => onSelectDay(cell.day)}
+            aria-pressed={cell.isSelected}
+            aria-label={`Day ${cell.day}${label ? `, ${label}` : ""}${cell.presentCount > 0 ? `, ${cell.presentCount} present` : ""}`}
+            className={cn(
+              dayCellClass,
+              cell.isSelected ? "bg-[#eef4ff] ring-1 ring-wz-primary ring-inset" : look.bg,
+            )}
           >
-            <ChevronLeft className="size-4" />
-          </button>
-          <button
-            type="button"
-            className="inline-flex size-8 cursor-pointer items-center justify-center rounded-wz-md border border-wz-border bg-white text-wz-text-secondary hover:bg-wz-neutral-50"
-            aria-label="Next month"
-            onClick={onNext}
-          >
-            <ChevronRight className="size-4" />
-          </button>
-        </div>
-      </div>
-
-      <div className="mb-2 grid grid-cols-7 gap-1 text-center text-[11px] font-semibold uppercase tracking-wide text-wz-text-secondary">
-        {WEEKDAYS.map((d) => (
-          <span key={d}>{d}</span>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-7 gap-1">
-        {cells.map((cell) =>
-          cell.empty ? (
-            <div key={cell.key} className="min-h-[64px]" />
-          ) : (
-            <button
-              key={cell.key}
-              type="button"
-              onClick={() => onSelectDay(cell.day)}
-              className={cn(
-                "flex min-h-[64px] cursor-pointer flex-col items-start rounded-wz-lg border px-2 py-1.5 text-left transition-colors",
-                cell.isSelected
-                  ? "border-wz-primary bg-wz-hover"
-                  : "border-wz-border bg-white hover:border-wz-primary/40",
-                cell.isToday && !cell.isSelected ? "ring-1 ring-wz-primary/30" : "",
-              )}
-            >
-              <span className="text-xs font-semibold text-wz-text-primary">
-                {cell.day}
+            <span className={dayNumberClass(cell.isSelected || cell.isToday)}>
+              {cell.day}
+            </span>
+            {label ? (
+              <span
+                className={cn(
+                  "mt-[6px] truncate pr-[11px] text-center text-[10px] leading-6 font-semibold",
+                  look.text,
+                )}
+                title={label}
+              >
+                {label}
               </span>
-              {cell.holidayName ? (
-                <span className="mt-auto truncate text-[10px] font-medium text-[#5925dc]">
-                  {cell.holidayName}
-                </span>
-              ) : cell.weekOff ? (
-                <span className="mt-auto text-[10px] text-wz-text-secondary">
-                  Week Off
-                </span>
-              ) : cell.presentCount > 0 ? (
-                <span className="mt-auto inline-flex items-center gap-1 text-[10px] font-semibold text-[#027a48]">
-                  <span className="size-1.5 rounded-full bg-[#12b76a]" />
-                  {cell.presentCount}
-                </span>
-              ) : null}
-            </button>
-          ),
-        )}
-      </div>
-
-      <div className="mt-wz-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] text-wz-text-secondary">
-        {CALENDAR_LEGEND.map((item) => (
-          <span key={item.key} className="inline-flex items-center gap-1.5">
-            <span className={cn("size-2 rounded-full", item.className)} />
-            {item.label}
-          </span>
-        ))}
-      </div>
-    </section>
+            ) : cell.presentCount > 0 ? (
+              <span className="mt-[6px] inline-flex items-center justify-center gap-[5px] pr-[11px] text-sm leading-6 font-semibold text-[#12b76a]">
+                <span className="size-1.5 rounded-wz-full bg-[#12b76a]" />
+                {cell.presentCount}
+              </span>
+            ) : null}
+          </button>
+        );
+      }}
+    />
   );
 }

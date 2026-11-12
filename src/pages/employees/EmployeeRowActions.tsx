@@ -17,19 +17,19 @@ import {
 } from "lucide-react";
 import {
   Button,
+  ConfirmDialog,
   DropdownMenu,
   DropdownMenuItem,
   DropdownMenuSectionToggle,
   Modal,
+  type ConfirmTone,
 } from "../../design-system";
 import { EMPLOYEES_QUERY_KEY } from "../../hooks/useEmployees";
 import { ApiError } from "../../lib/apiClient";
 import {
   confirmProbation,
-  convertToConsultant,
   convertToEmployee,
   deleteEmployee,
-  extendProbation,
   resendCredentials,
   toggleAppLogin,
 } from "../../services/employeeService";
@@ -52,6 +52,7 @@ import {
   type MenuSectionKey,
 } from "./employeeRowMenuSections";
 import IssueLetterModal from "./IssueLetterModal";
+import { ExtendProbationModal, MakeConsultantModal } from "./EmployeeActionModals";
 
 export type EmployeeRowActionsProps = {
   employee: EmployeeListItem;
@@ -82,11 +83,10 @@ export default function EmployeeRowActions({
   const queryClient = useQueryClient();
   const moreRef = useRef<HTMLButtonElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [expanded, setExpanded] = useState<MenuSectionKey | null>("general");
+  const [expanded, setExpanded] = useState<MenuSectionKey | null>(null);
   const [confirm, setConfirm] = useState<ConfirmState>(null);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [extendMonths, setExtendMonths] = useState(1);
   const [letterOpen, setLetterOpen] = useState(false);
   const [letterRule, setLetterRule] = useState<string | null>(null);
   const [docsNotice, setDocsNotice] = useState(false);
@@ -107,7 +107,7 @@ export default function EmployeeRowActions({
   const closeMenu = () => setMenuOpen(false);
 
   const openMenu = () => {
-    setExpanded("general");
+    setExpanded(null);
     setMenuOpen((open) => !open);
   };
 
@@ -135,51 +135,59 @@ export default function EmployeeRowActions({
     }
   };
 
-  const confirmCopy = (): { title: string; body: string } => {
-    const name = employee.name || employee.employeeCode || "this person";
+  const confirmCopy = (): {
+    title: string;
+    body: string;
+    label: string;
+    tone: ConfirmTone;
+  } => {
     switch (confirm?.kind) {
-      case "delete":
+      case "delete": {
+        const who = directory === "consultancy" ? "consultant" : "employee";
         return {
-          title:
-            directory === "consultancy"
-              ? "Delete consultant"
-              : "Delete employee",
-          body: `Delete ${name}? This soft-deletes the record and cannot be undone from the directory.`,
+          title: directory === "consultancy" ? "Delete Consultant?" : "Delete Employee?",
+          body: `Are you sure you want to delete ${who}? This will disable ${who} login & cannot be undone.`,
+          label: "Delete",
+          tone: "destructive",
         };
+      }
       case "toggleLogin":
-        return {
-          title: confirm.enable ? "Enable app login" : "Disable app login",
-          body: confirm.enable
-            ? `Enable app login for ${name}?`
-            : `Disable app login for ${name}? They will not be able to log in until re-enabled.`,
-        };
+        return confirm.enable
+          ? {
+              title: "Enable App Login?",
+              body: "Enable app login for this user? They will be able to log in again.",
+              label: "Enable",
+              tone: "success",
+            }
+          : {
+              title: "Disable App Login?",
+              body: "Disable app login for this user? They will not be able to log in until re-enabled.",
+              label: "Disable",
+              tone: "destructive",
+            };
       case "resend":
         return {
-          title: "Send credentials",
-          body: `Send login credentials to ${name}?`,
+          title: "Send Credentials?",
+          body: "Credentials sent to the selected user with a new password.",
+          label: "Send",
+          tone: "neutral",
         };
       case "convertEmployee":
         return {
-          title: "Convert to employee",
-          body: `Make ${name} a full employee?`,
-        };
-      case "convertConsultant":
-        return {
-          title: "Convert to consultant",
-          body: `Make ${name} a consultant?`,
+          title: "Convert to Employee?",
+          body: "Are you sure you want to convert this consultant to employee? This will update relevant information for this user.",
+          label: "Convert",
+          tone: "neutral",
         };
       case "confirmProbation":
         return {
-          title: "Mark full-time",
-          body: `Confirm probation for ${name} and mark them full-time?`,
-        };
-      case "extendProbation":
-        return {
-          title: "Extend probation",
-          body: `Extend probation for ${name} by the selected number of months.`,
+          title: "Mark as Full-Time?",
+          body: "The selected employee will be confirmed and marked as full-time.",
+          label: "Confirm",
+          tone: "success",
         };
       default:
-        return { title: "", body: "" };
+        return { title: "", body: "", label: "Confirm", tone: "neutral" };
     }
   };
 
@@ -198,23 +206,19 @@ export default function EmployeeRowActions({
       case "convertEmployee":
         void runAction(() => convertToEmployee(employee._id));
         break;
-      case "convertConsultant":
-        void runAction(() => convertToConsultant(employee._id));
-        break;
       case "confirmProbation":
         void runAction(() => confirmProbation(employee._id));
-        break;
-      case "extendProbation":
-        void runAction(() =>
-          extendProbation(employee._id, Math.max(1, extendMonths)),
-        );
         break;
       default:
         break;
     }
   };
 
-  const { title: confirmTitle, body: confirmBody } = confirmCopy();
+  const copy = confirmCopy();
+  const dialogKind =
+    confirm?.kind === "convertConsultant" || confirm?.kind === "extendProbation"
+      ? null
+      : confirm?.kind;
 
   const renderSectionBody = (key: MenuSectionKey) => {
     if (expanded !== key) return null;
@@ -265,7 +269,6 @@ export default function EmployeeRowActions({
             <DropdownMenuItem
               onClick={() => {
                 closeMenu();
-                setExtendMonths(1);
                 setConfirm({ kind: "extendProbation" });
               }}
             >
@@ -445,62 +448,38 @@ export default function EmployeeRowActions({
         </p>
       </Modal>
 
-      <Modal
-        open={Boolean(confirm)}
-        title={confirmTitle}
+      <ConfirmDialog
+        open={Boolean(dialogKind)}
+        title={copy.title}
+        message={copy.body}
+        tone={copy.tone}
+        confirmLabel={copy.label}
+        loading={busy}
         onClose={() => {
-          if (busy) return;
           setConfirm(null);
           setActionError(null);
         }}
-        footer={
-          <>
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={busy}
-              onClick={() => {
-                setConfirm(null);
-                setActionError(null);
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant={confirm?.kind === "delete" ? "destructive" : "primary"}
-              disabled={busy}
-              onClick={onConfirm}
-            >
-              {busy ? "Working…" : "Confirm"}
-            </Button>
-          </>
-        }
+        onConfirm={onConfirm}
       >
-        <div className="flex flex-col gap-wz-3">
-          <p className="m-0 text-sm text-wz-text-secondary">{confirmBody}</p>
-          {confirm?.kind === "extendProbation" ? (
-            <label className="flex flex-col gap-1.5 text-sm font-semibold text-wz-text">
-              Extra months
-              <input
-                type="number"
-                min={1}
-                max={24}
-                className="min-h-10 rounded-wz-md border border-wz-border px-3 text-sm font-normal"
-                value={extendMonths}
-                onChange={(e) =>
-                  setExtendMonths(Math.max(1, Number(e.target.value) || 1))
-                }
-              />
-            </label>
-          ) : null}
-          {actionError ? (
-            <p className="m-0 text-sm text-wz-error" role="alert">
-              {actionError}
-            </p>
-          ) : null}
-        </div>
-      </Modal>
+        {actionError ? (
+          <p className="m-0 mt-1 text-sm text-wz-error" role="alert">
+            {actionError}
+          </p>
+        ) : null}
+      </ConfirmDialog>
+
+      <ExtendProbationModal
+        open={confirm?.kind === "extendProbation"}
+        employee={employee}
+        onClose={() => setConfirm(null)}
+        onDone={invalidateList}
+      />
+      <MakeConsultantModal
+        open={confirm?.kind === "convertConsultant"}
+        employee={employee}
+        onClose={() => setConfirm(null)}
+        onDone={invalidateList}
+      />
     </>
   );
 }

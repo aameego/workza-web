@@ -44,8 +44,8 @@ describe("leaveViewModel", () => {
   });
 
   it("formats IST dates without crashing", () => {
-    expect(formatLeaveDate("2026-09-01T18:30:00.000Z")).not.toBe("—");
-    expect(formatLeaveDate(null)).toBe("—");
+    expect(formatLeaveDate("2026-09-01T18:30:00.000Z")).not.toBe("-");
+    expect(formatLeaveDate(null)).toBe("-");
   });
 
   it("extracts employee fields from request", () => {
@@ -158,5 +158,14 @@ describe("leaveViewModel", () => {
         reason: "Trip home",
       }),
     ).toBe("");
+  });
+});
+
+describe("teamLeaveMetrics hints", async () => {
+  const { teamLeaveMetrics } = await import("./leaveViewModel");
+  it("hides the team-size hint when nothing was taken", () => {
+    const cards = teamLeaveMetrics({ employeeCount: 6, wfhDaysThisMonth: 0, leaveDaysThisMonth: 2, requestCounts: {} });
+    expect(cards.find((c) => c.key === "wfh")?.hint).toBeUndefined();
+    expect(cards.find((c) => c.key === "leave")?.hint).toBe("By 6 employees");
   });
 });

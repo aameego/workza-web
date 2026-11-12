@@ -50,7 +50,7 @@ export default function EditEmployeePage() {
   );
 
   return (
-    <div className="mx-auto w-full max-w-[1200px] pb-wz-6">
+    <div className="w-full">
       <EmployeeFormEditor
         key={employee._id}
         mode="edit"

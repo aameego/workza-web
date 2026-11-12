@@ -1,7 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Check, Copy, Search } from "lucide-react";
-import { Badge, Button, cn, FilterSelect } from "../../design-system";
+import {
+  Check,
+  Copy,
+  Download,
+  Plus,
+  Search,
+  Upload,
+} from "lucide-react";
+import {
+  Badge,
+  Button,
+  cn,
+  FilterSelect,
+  Pagination,
+  TabSwitcher,
+} from "../../design-system";
 import { useDepartmentNames } from "../../hooks/useDepartmentNames";
 import { useEmployees } from "../../hooks/useEmployees";
 import { useRoles } from "../../hooks/useRoles";
@@ -18,6 +32,7 @@ import type { DirectoryTab } from "./employeeListHelpers";
 import {
   APP_LOGIN_FILTER_OPTIONS,
   DEFAULT_ACCESS_ROLE_OPTIONS,
+  NON_ACCESS_ROLES,
   STATUS_FILTER_OPTIONS,
   appLoginBadge,
   appLoginLabel,
@@ -26,35 +41,16 @@ import {
   employmentTypeBadge,
   employmentTypeLabel,
   pageWindowLabel,
-  paginationItems,
 } from "./employeeListHelpers";
 
 
 const PAGE_SIZE = 10;
 
-const tabClass = (active: boolean) =>
-  cn(
-    "inline-flex h-[34px] cursor-pointer items-center gap-2 rounded-wz-full border px-3.5 text-sm font-semibold",
-    active
-      ? "border-wz-primary bg-wz-hover text-wz-primary"
-      : "border-wz-border bg-white text-wz-text-secondary hover:bg-wz-neutral-50",
-  );
-
-const tabCountClass = (active: boolean) =>
-  cn(
-    "inline-flex h-5 min-w-[22px] items-center justify-center rounded-wz-full px-1.5 text-[11px] font-semibold",
-    active
-      ? "bg-wz-selected text-wz-primary"
-      : "bg-wz-neutral-100 text-wz-text-secondary",
-  );
-
-const pageBtnClass = (active = false) =>
-  cn(
-    "h-8 min-w-8 cursor-pointer rounded-wz-md border px-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-45",
-    active
-      ? "border-wz-primary bg-wz-primary text-white"
-      : "border-wz-border bg-white text-wz-text hover:enabled:bg-wz-neutral-50",
-  );
+/** Figma Data/Employee Table: header 54, rows 60 (content centred), 12px navy, 16px side padding. */
+const thClass =
+  "h-[54px] border-b border-wz-border bg-white px-4 text-left align-middle text-xs leading-[normal] font-semibold whitespace-pre-line text-wz-heading";
+const tdClass =
+  "h-[60px] border-b border-wz-border px-4 py-0 align-middle text-xs leading-[normal] text-wz-heading";
 
 export default function EmployeesPage() {
   const navigate = useNavigate();
@@ -107,12 +103,24 @@ export default function EmployeesPage() {
 
   const { data, isLoading, isFetching, isError, error, refetch } =
     useEmployees(listParams);
+  // Figma shows a count on every tab, so fetch the other directory's total too (1 row).
+  const { data: otherDirectory } = useEmployees({
+    page: 1,
+    limit: 1,
+    isConsultancy: directory !== "consultancy",
+    isPagination: "true",
+  });
   const { data: departments = [] } = useDepartmentNames(vendorId);
   const { data: roles = [] } = useRoles(Boolean(vendorId));
 
   const accessRoleOptions = useMemo(() => {
     const fromApi = roles
-      .filter((r) => !r.isAdmin && r.roleName && r.roleName !== "Admin")
+      .filter(
+        (r) =>
+          !r.isAdmin &&
+          r.roleName &&
+          !(NON_ACCESS_ROLES as readonly string[]).includes(r.roleName),
+      )
       .map((r) => r.roleName);
     const merged = [
       ...DEFAULT_ACCESS_ROLE_OPTIONS,
@@ -132,7 +140,6 @@ export default function EmployeesPage() {
     pages: 0,
   };
   const pages = Math.max(pagination.pages || 0, 0);
-  const pageItems = paginationItems(page, pages);
 
   const copyContact = async (
     id: string,
@@ -201,86 +208,91 @@ export default function EmployeesPage() {
   };
 
   return (
-    <div className="flex min-w-0 flex-col gap-wz-5">
-      <div
-        className="flex flex-wrap items-center gap-wz-2"
-        role="tablist"
+    <div className="flex min-w-0 flex-col gap-wz-6">
+      <TabSwitcher
         aria-label="Employee directory"
-      >
-        <button
-          type="button"
-          role="tab"
-          aria-selected={directory === "employee"}
-          className={tabClass(directory === "employee")}
-          onClick={() => switchDirectory("employee")}
-        >
-          Employees
-          {directory === "employee" ? (
-            <span className={tabCountClass(true)}>{pagination.total}</span>
-          ) : null}
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={directory === "consultancy"}
-          className={tabClass(directory === "consultancy")}
-          onClick={() => switchDirectory("consultancy")}
-        >
-          Consultancy
-          {directory === "consultancy" ? (
-            <span className={tabCountClass(true)}>{pagination.total}</span>
-          ) : null}
-        </button>
-      </div>
+        value={directory}
+        onChange={switchDirectory}
+        className="self-start"
+        items={[
+          {
+            value: "employee",
+            label: "Employees",
+            count:
+              directory === "employee"
+                ? pagination.total
+                : otherDirectory?.pagination?.total,
+          },
+          {
+            value: "consultancy",
+            label: "Consultancy",
+            count:
+              directory === "consultancy"
+                ? pagination.total
+                : otherDirectory?.pagination?.total,
+          },
+        ]}
+      />
 
-      <div className="flex flex-wrap items-center gap-wz-3">
-        <label className="relative max-w-[360px] min-w-[200px] flex-[1_1_240px]">
-          <Search
-            size={16}
-            aria-hidden
-            className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-wz-neutral-500"
-          />
-          <input
-            type="search"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Search by employees name or code..."
-            aria-label="Search employees"
-            className="box-border h-10 w-full rounded-wz-md border border-wz-border bg-white py-0 pr-3 pl-9 text-sm text-wz-text outline-none focus:border-wz-primary focus:shadow-[0_0_0_3px_var(--wz-state-hover)]"
-          />
-        </label>
-
-        <div className="ml-auto flex w-full flex-wrap gap-wz-2 max-[900px]:ml-0 sm:w-auto">
-          <Button
-            variant="secondary"
-            type="button"
-            onClick={() => {
-              setToolbarError(null);
-              setBulkOpen(true);
-            }}
-          >
-            Bulk Upload
-          </Button>
-          <Button
-            variant="secondary"
-            type="button"
-            onClick={() => void handleExport()}
-            disabled={exporting}
-          >
-            {exporting ? "Exporting…" : "Export Data"}
-          </Button>
-          <Button
-            variant="primary"
-            type="button"
-            onClick={() => navigate(addEmployeeHref)}
-          >
-            {directory === "consultancy" ? "+ Add Consultant" : "+ Add Employee"}
-          </Button>
+      {/* Figma Data/Filter Toolbar: search + actions row, then filters, 16 apart */}
+      <div className="flex flex-col gap-wz-4">
+        <div className="flex flex-wrap items-center justify-between gap-wz-4">
+          <label className="relative w-[300px] max-w-full">
+            <Search
+              size={16}
+              aria-hidden
+              className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-wz-text-muted"
+            />
+            <input
+              type="search"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder={
+                directory === "consultancy"
+                  ? "Search by consultants name or code..."
+                  : "Search by employees name or code..."
+              }
+              aria-label={directory === "consultancy" ? "Search consultants" : "Search employees"}
+              className="box-border h-10 w-full rounded-wz-md border border-wz-border bg-white py-0 pr-3 pl-9 text-[13px] text-wz-heading outline-none placeholder:text-wz-text-muted focus:border-wz-primary focus:shadow-[0_0_0_3px_var(--wz-state-hover)]"
+            />
+          </label>
+          <div className="flex flex-wrap items-center gap-wz-4">
+            <Button
+              variant="secondary"
+              size="toolbar"
+              type="button"
+              onClick={() => {
+                setToolbarError(null);
+                setBulkOpen(true);
+              }}
+            >
+              <Upload className="size-4" aria-hidden />
+              Bulk Upload
+            </Button>
+            <Button
+              variant="secondary"
+              size="toolbar"
+              type="button"
+              onClick={() => void handleExport()}
+              disabled={exporting}
+            >
+              <Download className="size-4" aria-hidden />
+              {exporting ? "Exporting…" : "Export Data"}
+            </Button>
+            <Button
+              variant="primary"
+              size="toolbar"
+              type="button"
+              onClick={() => navigate(addEmployeeHref)}
+            >
+              <Plus className="size-4" aria-hidden />
+              {directory === "consultancy" ? "Add Consultant" : "Add Employee"}
+            </Button>
+          </div>
         </div>
-      </div>
 
       <div
-        className="flex flex-wrap items-center gap-wz-3"
+        className="flex flex-wrap items-center gap-wz-4"
         role="group"
         aria-label="Employee filters"
       >
@@ -289,7 +301,8 @@ export default function EmployeesPage() {
           onChange={(e) => setDepartmentId(e.target.value)}
           aria-label="Filter by department"
         >
-          <option value="">Departments</option>
+          <option value="" hidden>Departments</option>
+          <option value="">All</option>
           {departments.map((d) => (
             <option key={d._id} value={d._id}>
               {d.name}
@@ -302,8 +315,12 @@ export default function EmployeesPage() {
           onChange={(e) => setStatus(e.target.value)}
           aria-label="Filter by employee status"
         >
-          {STATUS_FILTER_OPTIONS.map((opt) => (
-            <option key={opt.value || "all"} value={opt.value}>
+          <option value="" hidden>
+            {STATUS_FILTER_OPTIONS[0].label}
+          </option>
+          <option value="">All</option>
+          {STATUS_FILTER_OPTIONS.slice(1).map((opt) => (
+            <option key={opt.value} value={opt.value}>
               {opt.label}
             </option>
           ))}
@@ -314,8 +331,12 @@ export default function EmployeesPage() {
           onChange={(e) => setAppLogin(e.target.value)}
           aria-label="Filter by app login"
         >
-          {APP_LOGIN_FILTER_OPTIONS.map((opt) => (
-            <option key={opt.value || "all-login"} value={opt.value}>
+          <option value="" hidden>
+            {APP_LOGIN_FILTER_OPTIONS[0].label}
+          </option>
+          <option value="">All</option>
+          {APP_LOGIN_FILTER_OPTIONS.slice(1).map((opt) => (
+            <option key={opt.value} value={opt.value}>
               {opt.label}
             </option>
           ))}
@@ -326,13 +347,15 @@ export default function EmployeesPage() {
           onChange={(e) => setRole(e.target.value)}
           aria-label="Filter by access role"
         >
-          <option value="">Access Roles</option>
+          <option value="" hidden>Access Roles</option>
+          <option value="">All</option>
           {accessRoleOptions.map((roleName) => (
             <option key={roleName} value={roleName}>
               {roleName}
             </option>
           ))}
         </FilterSelect>
+      </div>
       </div>
 
       {toolbarError ? (
@@ -375,15 +398,12 @@ export default function EmployeesPage() {
                     "Designation",
                     "Department",
                     "State",
-                    "Reporting Manager",
+                    "Reporting\nManager",
                     "App Login",
                     "Status",
                     "Actions",
                   ].map((h) => (
-                    <th
-                      key={h}
-                      className="whitespace-nowrap bg-wz-neutral-50 px-4 py-3.5 text-left text-xs font-semibold text-wz-text-secondary"
-                    >
+                    <th key={h} className={thClass}>
                       {h}
                     </th>
                   ))}
@@ -397,50 +417,45 @@ export default function EmployeesPage() {
                       key={emp._id}
                       className="hover:bg-wz-neutral-50 [&:last-child>td]:border-b-0"
                     >
-                      <td className="border-b border-wz-border px-4 py-3.5 align-top text-sm text-wz-text">
-                        <div className="flex min-w-[140px] flex-col gap-0.5">
-                          <strong
-                            className="text-sm font-semibold text-wz-text"
-                            title={emp.name}
-                          >
-                            {emp.name || "—"}
-                          </strong>
-                          <span className="text-xs text-wz-text-secondary">
-                            {emp.employeeCode || "—"}
+                      <td className={tdClass}>
+                        <div className="flex min-w-[100px] flex-col gap-0.5">
+                          <span title={emp.name}>{emp.name || "-"}</span>
+                          <span className="text-[10px] text-wz-text-muted">
+                            {emp.employeeCode || "-"}
                           </span>
                         </div>
                       </td>
-                      <td className="border-b border-wz-border px-4 py-3.5 align-top text-sm">
-                        <div className="flex min-w-[160px] flex-col gap-1">
+                      <td className={tdClass}>
+                        <div className="flex min-w-[150px] flex-col gap-0.5">
                           {(
                             [
-                              ["email", emp.email],
-                              ["phone", emp.phone],
+                              ["email", emp.email, "text-xs text-wz-heading", 12],
+                              ["phone", emp.phone, "text-[10px] text-wz-text-muted", 10],
                             ] as const
-                          ).map(([kind, value]) => (
+                          ).map(([kind, value, textClass, iconSize]) => (
                             <div
                               key={kind}
                               className="flex max-w-[200px] items-center gap-1.5"
                             >
                               <span
-                                className="truncate text-xs text-wz-text-secondary"
+                                className={cn("truncate", textClass)}
                                 title={value || ""}
                               >
-                                {value || "—"}
+                                {value || "-"}
                               </span>
                               {value ? (
                                 <button
                                   type="button"
-                                  className="inline-flex size-[22px] shrink-0 cursor-pointer items-center justify-center rounded-wz-sm border-0 bg-transparent text-wz-neutral-500 hover:bg-wz-neutral-100 hover:text-wz-primary"
+                                  className="inline-flex shrink-0 cursor-pointer items-center justify-center rounded-wz-sm border-0 bg-transparent p-0 leading-none text-wz-text-muted hover:text-wz-primary"
                                   aria-label={`Copy ${kind}`}
                                   onClick={() =>
                                     void copyContact(emp._id, kind, value)
                                   }
                                 >
                                   {copiedKey === `${emp._id}-${kind}` ? (
-                                    <Check size={12} />
+                                    <Check size={iconSize} />
                                   ) : (
-                                    <Copy size={12} />
+                                    <Copy size={iconSize} />
                                   )}
                                 </button>
                               ) : null}
@@ -448,48 +463,36 @@ export default function EmployeesPage() {
                           ))}
                         </div>
                       </td>
-                      <td
-                        className="border-b border-wz-border px-4 py-3.5 align-top text-sm text-wz-text"
-                        title={emp.designation || ""}
-                      >
-                        {emp.designation || "—"}
+                      <td className={tdClass} title={emp.designation || ""}>
+                        {emp.designation || "-"}
                       </td>
-                      <td
-                        className="border-b border-wz-border px-4 py-3.5 align-top text-sm text-wz-text"
-                        title={emp.department || ""}
-                      >
-                        {emp.department || "—"}
+                      <td className={tdClass} title={emp.department || ""}>
+                        {emp.department || "-"}
                       </td>
-                      <td
-                        className="border-b border-wz-border px-4 py-3.5 align-top text-sm text-wz-text-secondary"
-                        title={emp.stateName || ""}
-                      >
-                        {emp.stateName || "—"}
+                      <td className={tdClass} title={emp.stateName || ""}>
+                        {emp.stateName || "-"}
                       </td>
-                      <td
-                        className="border-b border-wz-border px-4 py-3.5 align-top text-sm text-wz-text"
-                        title={emp.managerId?.name || ""}
-                      >
-                        {emp.managerId?.name || "—"}
+                      <td className={tdClass} title={emp.managerId?.name || ""}>
+                        {emp.managerId?.name || "-"}
                       </td>
-                      <td className="border-b border-wz-border px-4 py-3.5 align-top">
-                        <Badge status={appLoginBadge(emp)} size="sm">
+                      <td className={tdClass}>
+                        <Badge status={appLoginBadge(emp)}>
                           {appLoginLabel(emp)}
                         </Badge>
                       </td>
-                      <td className="border-b border-wz-border px-4 py-3.5 align-top">
-                        <div className="flex flex-wrap gap-1.5">
-                          <Badge status={employmentActiveBadge(emp)} size="sm">
+                      <td className={tdClass}>
+                        <div className="flex items-center gap-wz-2">
+                          <Badge status={employmentActiveBadge(emp)}>
                             {employmentActiveLabel(emp)}
                           </Badge>
                           {typeLabel ? (
-                            <Badge status={employmentTypeBadge(emp)} size="sm">
+                            <Badge status={employmentTypeBadge(emp)}>
                               {typeLabel}
                             </Badge>
                           ) : null}
                         </div>
                       </td>
-                      <td className="border-b border-wz-border px-4 py-3.5 align-top">
+                      <td className={tdClass}>
                         <EmployeeRowActions
                           employee={emp}
                           directory={directory}
@@ -507,50 +510,22 @@ export default function EmployeesPage() {
         )}
 
         {!isError && employees.length > 0 ? (
-          <div className="flex flex-wrap items-center justify-between gap-wz-3 border-t border-wz-border bg-white px-4 py-3.5">
-            <div className="text-xs text-wz-text-secondary">
-              {pageWindowLabel(page, PAGE_SIZE, pagination.total)}
-              {isFetching && !isLoading ? " · Updating…" : null}
-            </div>
-            <div className="flex flex-wrap items-center gap-1.5">
-              <button
-                type="button"
-                className={pageBtnClass()}
-                disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-              >
-                Previous
-              </button>
-              {pageItems.map((item, idx) =>
-                item === "ellipsis" ? (
-                  <span
-                    key={`e-${idx}`}
-                    className="px-1 text-xs text-wz-text-secondary"
-                  >
-                    …
-                  </span>
-                ) : (
-                  <button
-                    key={item}
-                    type="button"
-                    className={pageBtnClass(item === page)}
-                    onClick={() => setPage(item)}
-                    aria-current={item === page ? "page" : undefined}
-                  >
-                    {item}
-                  </button>
-                ),
-              )}
-              <button
-                type="button"
-                className={pageBtnClass()}
-                disabled={page >= pages}
-                onClick={() => setPage((p) => Math.min(pages, p + 1))}
-              >
-                Next
-              </button>
-            </div>
-          </div>
+          <Pagination
+            page={page}
+            pages={pages}
+            onPageChange={setPage}
+            summary={
+              <>
+                {pageWindowLabel(
+                  page,
+                  PAGE_SIZE,
+                  pagination.total,
+                  directory === "consultancy" ? "consultants" : "employees",
+                )}
+                {isFetching && !isLoading ? " · Updating…" : null}
+              </>
+            }
+          />
         ) : null}
       </div>
 

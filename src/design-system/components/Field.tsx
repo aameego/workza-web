@@ -24,12 +24,12 @@ export function Field({
   return (
     <div className={cn("flex min-w-0 flex-col gap-1.5", className)}>
       <label
-        className="text-sm font-semibold leading-5 text-wz-text-primary"
+        className="text-[13px] font-semibold leading-[18px] text-wz-heading"
         htmlFor={htmlFor}
       >
         {label}
         {required ? (
-          <span className="ml-0.5 text-wz-error" aria-hidden>
+          <span className="ml-1 text-wz-error" aria-hidden>
             *
           </span>
         ) : null}
@@ -40,7 +40,7 @@ export function Field({
           {error}
         </p>
       ) : hint ? (
-        <p className="m-0 text-xs leading-4 text-wz-text-secondary">{hint}</p>
+        <p className="m-0 text-xs leading-4 text-wz-text-muted">{hint}</p>
       ) : null}
     </div>
   );

@@ -39,7 +39,13 @@ export type { SelectProps } from "./components/Select";
 export { Modal } from "./components/Modal";
 export type { ModalProps } from "./components/Modal";
 
+export { TabSwitcher } from "./components/TabSwitcher";
+export type { TabSwitcherItem, TabSwitcherProps } from "./components/TabSwitcher";
+
 export { FilterSelect } from "./components/FilterSelect";
+export { MonthSelect } from "./components/MonthSelect";
+export { Pagination } from "./components/Pagination";
+export { paginationItems } from "./components/paginationItems";
 export type { FilterSelectProps } from "./components/FilterSelect";
 
 export {
@@ -56,3 +62,11 @@ export type {
 } from "./components/DropdownMenu";
 
 
+export { ConfirmDialog } from "./components/ConfirmDialog";
+export type { ConfirmDialogProps, ConfirmTone } from "./components/ConfirmDialog";
+export { SegmentedToggle } from "./components/SegmentedToggle";
+export type { SegmentedToggleProps } from "./components/SegmentedToggle";
+export { FileUploadZone } from "./components/FileUploadZone";
+export type { FileUploadZoneProps, UploadState } from "./components/FileUploadZone";
+export { SearchableSelect } from "./components/SearchableSelect";
+export type { SearchableSelectOption, SearchableSelectProps } from "./components/SearchableSelect";

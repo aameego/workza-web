@@ -12,6 +12,7 @@ import {
 } from "../../hooks/useLeave";
 import type { LeavePolicy, LeavePolicyType } from "../../services/leaveService";
 import { canManageLeavePolicy } from "./leaveAccess";
+import { accrualMonthOptions, accrualResultMessage } from "./leaveAccrual";
 
 const MONTHS = [
   "January",
@@ -51,6 +52,10 @@ export default function LeavePolicyPage() {
     null,
   );
   const [templateKey, setTemplateKey] = useState("india_standard");
+  const [accrualMonth, setAccrualMonth] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${d.getMonth() + 1}`;
+  });
 
   useEffect(() => {
     if (policyQuery.data?.policy) {
@@ -154,12 +159,10 @@ export default function LeavePolicyPage() {
 
   const runAccrual = async () => {
     setStatus(null);
+    const [year, month] = accrualMonth.split("-").map(Number);
     try {
-      await accrualMutation.mutateAsync({});
-      setStatus({
-        type: "ok",
-        message: "Accrual run completed for the current period.",
-      });
+      const result = await accrualMutation.mutateAsync({ year, month });
+      setStatus({ type: "ok", message: accrualResultMessage(result) });
     } catch (err) {
       setStatus({
         type: "err",
@@ -290,6 +293,15 @@ export default function LeavePolicyPage() {
               >
                 {templateMutation.isPending ? "Applying…" : "Apply template"}
               </Button>
+              <Field label="Accrual month" className="min-w-[180px]">
+                <Select value={accrualMonth} onChange={(e) => setAccrualMonth(e.target.value)}>
+                  {accrualMonthOptions().map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
               <Button
                 type="button"
                 variant="secondary"
@@ -379,7 +391,7 @@ export default function LeavePolicyPage() {
                     </Field>
                   </div>
                 ) : t.code === "WFH" ? (
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                     <Field label="Monthly limit">
                       <Input
                         type="number"
@@ -409,6 +421,22 @@ export default function LeavePolicyPage() {
                           })
                         }
                       />
+                    </Field>
+                    <Field label="Unused WFH at month end">
+                      <Select
+                        value={t.monthEnd?.lapseUnused === false ? "carry" : "lapse"}
+                        onChange={(e) =>
+                          updateType(t.code, {
+                            monthEnd: {
+                              ...(t.monthEnd || {}),
+                              lapseUnused: e.target.value !== "carry",
+                            },
+                          })
+                        }
+                      >
+                        <option value="lapse">Lapses</option>
+                        <option value="carry">Carries forward</option>
+                      </Select>
                     </Field>
                   </div>
                 ) : t.code === "CO" ? (

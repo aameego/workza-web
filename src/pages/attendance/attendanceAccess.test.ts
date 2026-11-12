@@ -128,5 +128,16 @@ describe("attendanceAccess", () => {
       ),
     ).toBe("employee");
     expect(resolveAttendanceViewMode(null)).toBe("none");
+    // Default Manager role (org-wide access) with a profile still gets the manager tabs.
+    expect(
+      resolveAttendanceViewMode(
+        user({ role: "Manager", employeeId: "m1", permissions: ["attendance:view-org"] }),
+      ),
+    ).toBe("manager");
+    // Org access without an own profile stays on the organisation view.
+    expect(
+      resolveAttendanceViewMode(user({ role: "Manager", permissions: ["attendance:view-org"] })),
+    ).toBe("admin");
+    expect(resolveAttendanceViewMode(user({ role: "HR", employeeId: "h1" }))).toBe("admin");
   });
 });

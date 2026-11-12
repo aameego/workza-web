@@ -32,13 +32,13 @@ export const APP_NAV_ITEMS: NavItem[] = [
   { label: "Employees", path: "/employees", icon: UserRoundCheck },
   { label: "Attendance", path: "/attendance", icon: Clock3 },
   { label: "Leave", path: "/leave", icon: CalendarHeart },
-  { label: "Regularisation", path: "/regularization", icon: ClipboardPen },
+  { label: "Regularization", path: "/regularization", icon: ClipboardPen },
   { label: "Payroll", path: "/payroll", icon: CircleDollarSign },
   { label: "Expenses", path: "/expenses", icon: Wallet },
   { label: "Advance Loan", path: "/advance-loan", icon: CreditCard },
   { label: "Recruitment", path: "/recruitment", icon: Briefcase },
   { label: "Documents", path: "/documents", icon: FileText },
-  { label: "Resignations", path: "/resignation", icon: DoorOpen },
+  { label: "Resignation", path: "/resignation", icon: DoorOpen },
   { label: "Reports", path: "/reports", icon: BarChart3 },
   { label: "Settings", path: "/settings", icon: Settings },
 ];
@@ -50,13 +50,13 @@ export const PAGE_TITLES: Record<string, string> = {
   "/employees/new": "Add New Employee",
   "/attendance": "Attendance",
   "/leave": "Leave",
-  "/regularization": "Regularisation",
+  "/regularization": "Regularization",
   "/payroll": "Payroll",
   "/expenses": "Expenses",
   "/advance-loan": "Advance Loan",
   "/recruitment": "Recruitment",
   "/documents": "Documents",
-  "/resignation": "Resignations",
+  "/resignation": "Resignation",
   "/reports": "Reports",
   "/settings": "Settings",
 };
@@ -78,9 +78,11 @@ export const titleForPath = (pathname: string): string => {
   if (PAGE_TITLES[path]) return PAGE_TITLES[path];
   if (/^\/employees\/[^/]+\/edit$/.test(path)) return "Edit Employee Details";
   if (/^\/employees\/[^/]+$/.test(path) && path !== "/employees/new") {
-    return "Employee Details";
+    return "Employees";
   }
-  if (path.startsWith("/employees/")) return PAGE_TITLES["/employees"] || "Employees";
+  // Nested pages (e.g. /leave/policy) take their module's title.
+  const top = `/${path.split("/").filter(Boolean)[0] || ""}`;
+  if (PAGE_TITLES[top]) return PAGE_TITLES[top];
   return "Dashboard";
 };
 

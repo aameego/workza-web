@@ -10,7 +10,7 @@ Mirrored from Figma **Workza Design System — Tokens** (`14O92bCa5gfXDTCsf2RXbp
 |-------|-----|
 | kp/blue | `#245EE4` |
 | kp/green | `#08926F` |
-| workza/blue | `#1950A3` |
+| workza/blue | `#1F5DA3` (Figma `color/action/primary`) |
 | workza/teal | `#1FA3A5` |
 
 ### Neutrals
@@ -21,7 +21,7 @@ Mirrored from Figma **Workza Design System — Tokens** (`14O92bCa5gfXDTCsf2RXbp
 
 | Token | Value |
 |-------|-------|
-| primary | workza/blue `#1950A3` |
+| primary | workza/blue `#1F5DA3` |
 | accent | workza/teal `#1FA3A5` |
 | surface | `#F8F9FA` |
 | border | `#DEE2E6` |
@@ -36,7 +36,7 @@ Mirrored from Figma **Workza Design System — Tokens** (`14O92bCa5gfXDTCsf2RXbp
 | Sidebar expanded | 232px |
 | Sidebar collapsed | 72px |
 | Top bar height | 60px |
-| Sidebar bg | `#001529` |
+| Sidebar bg | navy `#0A1F4A` |
 
 ### Typography
 

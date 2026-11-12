@@ -43,6 +43,10 @@ describe("attendanceCalendar", () => {
       entries: [{ status: "Present", checkIn: "09:00" }],
       hasSessions: false,
     });
+    // Figma Sept 2026: leading 30, 31 (Aug) and trailing 1, 2, 3 (Oct), full weeks only.
+    const outside = cells.flatMap((c) => (c.empty ? [c.outsideDay] : []));
+    expect(outside).toEqual([30, 31, 1, 2, 3]);
+    expect(cells.length % 7).toBe(0);
     expect(flattenDayRecords({ year: 2026, month: 9, dayRecords: { 2: [{ status: "Late" }] } })).toEqual([
       { day: 2, status: "Late" },
     ]);

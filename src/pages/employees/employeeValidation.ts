@@ -7,6 +7,8 @@ import type { EmployeeFormValues } from "./employeeForm";
 import { familyMemberErrorMap } from "./familyMembers";
 
 export const MIN_EMPLOYEE_AGE = 18;
+/** Oldest plausible employee (EMP-FN-07: 01-01-1900 was accepted). */
+export const MAX_EMPLOYEE_AGE = 100;
 
 const PATTERNS = {
   EMAIL: /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/,
@@ -100,7 +102,7 @@ export const validateEmployeeField = (
     case "designation":
       return String(v ?? "").trim() ? null : "Designation is required";
     case "departmentId":
-      return String(v ?? "").trim() ? null : "Department is required.";
+      return String(v ?? "").trim() ? null : "Department is required";
     case "dateOfJoining":
       return String(v ?? "").trim() ? null : "Date of joining is required";
     case "dob": {
@@ -113,6 +115,30 @@ export const validateEmployeeField = (
       if (d > getMaxDateOfBirth()) {
         return `Employee must be at least ${MIN_EMPLOYEE_AGE} years old`;
       }
+      const oldest = new Date();
+      oldest.setHours(0, 0, 0, 0);
+      oldest.setFullYear(oldest.getFullYear() - MAX_EMPLOYEE_AGE);
+      if (d < oldest) return `Employee cannot be older than ${MAX_EMPLOYEE_AGE} years`;
+      return null;
+    }
+    case "emergencyContact": {
+      const c = emptyToNull(String(v ?? ""));
+      if (!c) return null;
+      if (!PATTERNS.PHONE_IN.test(c)) return "Emergency contact number must be exactly 10 digits";
+      return null;
+    }
+    case "probationEndDate": {
+      const end = emptyToNull(String(v ?? ""));
+      const doj = emptyToNull(String(values.dateOfJoining ?? ""));
+      if (!end || !doj || values.isConsultancy) return null;
+      if (end < doj) return "Probation end date cannot be before the date of joining";
+      return null;
+    }
+    case "relievingDate": {
+      const r = emptyToNull(String(v ?? ""));
+      const doj = emptyToNull(String(values.dateOfJoining ?? ""));
+      if (!r || !doj) return null;
+      if (r < doj) return "Relieving date cannot be before the date of joining";
       return null;
     }
     case "fatherHusbandName":
@@ -150,7 +176,7 @@ export const validateEmployeeField = (
     case "accountNumber": {
       const a = emptyToNull(String(v ?? "").replace(/\s/g, ""));
       if (!a) return null;
-      if (!PATTERNS.BANK_ACCOUNT.test(a)) return "Invalid account number length";
+      if (!PATTERNS.BANK_ACCOUNT.test(a)) return "Account number must be 9 to 18 digits";
       return null;
     }
     case "ifscCode": {
@@ -163,7 +189,7 @@ export const validateEmployeeField = (
       if (!values.isConsultancy) return null;
       const n = Number(v);
       if (!Number.isFinite(n) || n <= 0) {
-        return "Monthly Consultancy Pay must be greater than ₹0.";
+        return "Monthly Consultancy Pay must be greater than ₹0";
       }
       return null;
     }
@@ -171,7 +197,7 @@ export const validateEmployeeField = (
       if (v === "" || v === null || v === undefined) return null;
       const n = Number(v);
       if (!Number.isFinite(n) || n < 0 || n > 100) {
-        return "TDS must be between 0% and 100%.";
+        return "TDS must be between 0% and 100%";
       }
       return null;
     }
@@ -210,6 +236,9 @@ export const collectEmployeeFormErrors = (
     "departmentId",
     "dateOfJoining",
     "dob",
+    "emergencyContact",
+    "probationEndDate",
+    "relievingDate",
     "fatherHusbandName",
     "nameAsPerAadhaar",
     "nameAsPerPan",

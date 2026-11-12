@@ -3,7 +3,8 @@ import { brand, figma, neutral, semantic, shell, typography } from "./tokens";
 
 describe("Workza design tokens (Figma parity)", () => {
   it("matches Figma brand colors", () => {
-    expect(brand.workzaBlue).toBe("#1950A3");
+    expect(brand.workzaBlue).toBe("#1F5DA3");
+    expect(brand.navy).toBe("#0A1F4A");
     expect(brand.workzaTeal).toBe("#1FA3A5");
     expect(brand.kpBlue).toBe("#245EE4");
     expect(brand.kpGreen).toBe("#08926F");
@@ -28,6 +29,7 @@ describe("Workza design tokens (Figma parity)", () => {
     expect(shell.sidebarWidth).toBe(232);
     expect(shell.sidebarCollapsedWidth).toBe(72);
     expect(shell.topbarHeight).toBe(60);
+    expect(shell.sidebarBg).toBe(brand.navy);
   });
 
   it("uses Sora type scale", () => {

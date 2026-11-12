@@ -1,9 +1,9 @@
-import { Clock3, MapPin, Pencil } from "lucide-react";
-import { Badge, Input, Select, cn } from "../../design-system";
+import { Clock3, Search, SquarePen } from "lucide-react";
+import LocationIcons from "./LocationIcons";
+import { Badge, Select, cn } from "../../design-system";
 import type { BadgeStatus } from "../../design-system";
 import { FILTER_TYPE_PRESETS } from "./attendanceMonthOptions";
 import {
-  ATTENDANCE_STATUS_COLORS,
   EMPLOYEE_STATUS_FILTER_OPTIONS,
   type NormalizedAttendanceRow,
 } from "./attendanceViewModel";
@@ -11,9 +11,10 @@ import {
 const statusToBadge = (status?: string): BadgeStatus => {
   const s = String(status || "");
   if (s === "Present") return "success";
-  if (s === "Absent" || s === "Not Marked") return "error";
+  if (s === "Absent") return "error";
   if (s === "Late") return "warning";
-  if (s === "Leave" || s === "Half Day" || s === "WFH") return "info";
+  if (s === "Leave") return "blue";
+  if (s === "Half Day" || s === "WFH") return "info";
   return "neutral";
 };
 
@@ -64,14 +65,16 @@ export default function AttendanceDayTable({
   onHistory,
 }: AttendanceDayTableProps) {
   return (
-    <section className="rounded-wz-xl border border-wz-border bg-white">
-      <div className="flex flex-wrap items-start justify-between gap-wz-3 border-b border-wz-border px-wz-5 py-wz-4">
+    /* Figma attendance-admin table (1:17205): title + subtitle + 300px search on the
+       page; table card 16 below with a 54px header and 60px rows. */
+    <section className="flex flex-col gap-wz-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="m-0 text-base font-semibold text-wz-text-primary">
+          <h2 className="m-0 text-lg leading-[23px] font-bold text-wz-heading">
             {title}
           </h2>
           {subtitle ? (
-            <p className="m-0 mt-1 text-xs text-wz-text-secondary">{subtitle}</p>
+            <p className="m-0 mt-1 text-xs leading-[15px] text-wz-text-muted">{subtitle}</p>
           ) : null}
           {showRangePresets ? (
             <div className="mt-2 flex flex-wrap gap-1.5">
@@ -93,7 +96,7 @@ export default function AttendanceDayTable({
             </div>
           ) : null}
         </div>
-        <div className="flex w-full max-w-3xl flex-wrap items-center justify-end gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           {showRosterFilters ? (
             <>
               <Select
@@ -123,39 +126,56 @@ export default function AttendanceDayTable({
               </Select>
             </>
           ) : null}
-          <Input
-            type="search"
-            value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search by employees name or code..."
-            className="w-full max-w-xs"
-            aria-label="Search attendance rows"
-          />
+          <label className="relative block h-10 w-[300px] max-w-full shrink-0">
+            <Search
+              size={16}
+              className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[#6c757d]"
+              aria-hidden
+            />
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => onSearchChange(e.target.value)}
+              placeholder="Search by employees name or code..."
+              className="box-border h-10 w-full rounded-lg border border-[#dee2e6] bg-white py-0 pr-3 pl-9 text-[13px] text-[#0a1f4a] outline-none placeholder:text-[#6c757d] focus:border-[#1f5da3]"
+              aria-label="Search attendance rows"
+            />
+          </label>
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[960px] border-collapse text-left text-sm">
+      <div className="overflow-x-auto rounded-wz-xl border border-wz-border bg-white">
+        <table className="w-full min-w-[960px] border-collapse text-left text-xs leading-[normal] text-wz-heading">
           <thead>
-            <tr className="border-b border-wz-border bg-wz-neutral-50 text-xs font-semibold uppercase tracking-wide text-wz-text-secondary">
-              <th className="px-wz-4 py-3">Employee</th>
-              <th className="px-wz-4 py-3">Leave Type</th>
-              <th className="px-wz-4 py-3">Check In</th>
-              <th className="px-wz-4 py-3">Check Out</th>
-              <th className="px-wz-4 py-3">Hours</th>
-              <th className="px-wz-4 py-3">Sessions</th>
-              <th className="px-wz-4 py-3">Notes</th>
-              <th className="px-wz-4 py-3">Location</th>
-              <th className="px-wz-4 py-3">Status</th>
-              <th className="px-wz-4 py-3">Actions</th>
+            <tr>
+              {[
+                "Employee",
+                "Leave Type (If any)",
+                "Check In",
+                "Check Out",
+                "Hours",
+                "Sessions",
+                "Notes",
+                "Location In",
+                "Location Out",
+                "Status",
+                "Actions",
+              ].map((h) => (
+                <th
+                  key={h}
+                  className="h-[54px] max-w-[110px] border-b border-wz-border px-4 align-middle font-semibold"
+                >
+                  {h}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
                 <td
-                  colSpan={10}
-                  className="px-wz-4 py-wz-8 text-center text-wz-text-secondary"
+                  colSpan={11}
+                  className="px-wz-4 py-wz-8 text-center text-wz-text-muted"
                 >
                   Loading attendance…
                 </td>
@@ -163,82 +183,67 @@ export default function AttendanceDayTable({
             ) : rows.length === 0 ? (
               <tr>
                 <td
-                  colSpan={10}
-                  className="px-wz-4 py-wz-8 text-center text-wz-text-secondary"
+                  colSpan={11}
+                  className="px-wz-4 py-wz-8 text-center text-wz-text-muted"
                 >
                   No attendance records for this selection.
                 </td>
               </tr>
             ) : (
               rows.map((row) => {
-                const colors =
-                  ATTENDANCE_STATUS_COLORS[row.status || ""] ||
-                  ATTENDANCE_STATUS_COLORS["Not Marked"];
+                const firstSession = row.sessions?.[0];
+                const lastSession = row.sessions?.[row.sessions.length - 1];
                 return (
                   <tr
                     key={row.rowKey}
                     className="border-b border-wz-border last:border-0"
                   >
-                    <td className="px-wz-4 py-3">
-                      <div className="flex items-center gap-2.5">
-                        <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-wz-primary text-[11px] font-bold text-white">
-                          {row.initials}
-                        </span>
-                        <div className="min-w-0">
-                          <p className="m-0 truncate font-semibold text-wz-text-primary">
-                            {row.name}
-                          </p>
-                          <p className="m-0 text-xs text-wz-text-secondary">
-                            {row.employeeCode}
-                          </p>
-                        </div>
-                      </div>
+                    <td className="h-[60px] px-4">
+                      <p className="m-0 truncate">{row.name}</p>
+                      <p className="m-0 mt-0.5 text-[10px] text-wz-text-muted">
+                        {row.employeeCode}
+                      </p>
                     </td>
-                    <td className="px-wz-4 py-3 text-wz-text-secondary">
-                      {row.leaveLabel || row.leaveType || "—"}
+                    <td className="px-4">{row.leaveLabel || row.leaveType || "-"}</td>
+                    <td className="px-4">{row.checkIn || "-"}</td>
+                    <td className="px-4">{row.checkOut || "-"}</td>
+                    <td className="px-4">{row.hours || "-"}</td>
+                    <td className="px-4">
+                      {row.sessionCount ?? row.sessions?.length ?? "-"}
                     </td>
-                    <td className="px-wz-4 py-3">{row.checkIn || "—"}</td>
-                    <td className="px-wz-4 py-3">{row.checkOut || "—"}</td>
-                    <td className="px-wz-4 py-3">{row.hours || "—"}</td>
-                    <td className="px-wz-4 py-3">
-                      {row.sessionCount ?? row.sessions?.length ?? "—"}
+                    <td className="max-w-[140px] truncate px-4">
+                      {row.notes || row.reason || "-"}
                     </td>
-                    <td className="max-w-[140px] truncate px-wz-4 py-3 text-wz-text-secondary">
-                      {row.notes || row.reason || "—"}
+                    <td className="px-4">
+                      <LocationIcons url={firstSession?.checkInLocation?.mapsUrl} />
                     </td>
-                    <td className="px-wz-4 py-3">
-                      <span className="inline-flex items-center gap-1 text-wz-text-secondary">
-                        <MapPin className="size-3.5" aria-hidden />
-                        {row.locationIn || row.locationOut ? "Map" : "—"}
-                      </span>
+                    <td className="px-4">
+                      <LocationIcons url={lastSession?.checkOutLocation?.mapsUrl} />
                     </td>
-                    <td className="px-wz-4 py-3">
-                      <Badge
-                        status={statusToBadge(row.status)}
-                        className={cn(colors?.bg, colors?.text)}
-                      >
-                        {row.status || "—"}
+                    <td className="px-4">
+                      <Badge status={statusToBadge(row.status)}>
+                        {row.status || "-"}
                       </Badge>
                     </td>
-                    <td className="px-wz-4 py-3">
+                    <td className="px-4">
                       <div className="flex items-center gap-1">
                         {canEdit ? (
                           <button
                             type="button"
-                            className="inline-flex size-8 cursor-pointer items-center justify-center rounded-wz-md border-0 bg-transparent text-wz-text-secondary hover:bg-wz-neutral-100 hover:text-wz-primary"
+                            className="inline-flex size-6 cursor-pointer items-center justify-center rounded-wz-md border-0 bg-transparent text-wz-heading hover:bg-wz-neutral-100"
                             aria-label={`Edit ${row.name}`}
                             onClick={() => onEdit?.(row)}
                           >
-                            <Pencil className="size-4" />
+                            <SquarePen size={12} />
                           </button>
                         ) : null}
                         <button
                           type="button"
-                          className="inline-flex size-8 cursor-pointer items-center justify-center rounded-wz-md border-0 bg-transparent text-wz-text-secondary hover:bg-wz-neutral-100 hover:text-wz-primary"
+                          className="inline-flex size-6 cursor-pointer items-center justify-center rounded-wz-md border-0 bg-transparent text-wz-heading hover:bg-wz-neutral-100"
                           aria-label={`History for ${row.name}`}
                           onClick={() => onHistory?.(row)}
                         >
-                          <Clock3 className="size-4" />
+                          <Clock3 size={12} />
                         </button>
                       </div>
                     </td>

@@ -117,6 +117,10 @@ export type AttendanceViewMode = "admin" | "manager" | "employee" | "none";
 export const resolveAttendanceViewMode = (
   user: SessionUser | null,
 ): AttendanceViewMode => {
+  if (user?.role === "Admin" || user?.role === "HR") return "admin";
+  // Anyone else with their own profile and team access (view-org implies it) gets the
+  // My Data | My Team tabs; AttendanceManagerPage adds an Organisation tab for view-org.
+  if (canSelfCheckIn(user) && canViewTeamAttendance(user)) return "manager";
   if (canViewOrgAttendance(user)) return "admin";
   if (canViewTeamAttendance(user)) return "manager";
   if (canSelfCheckIn(user) || user?.role === "Employee") return "employee";

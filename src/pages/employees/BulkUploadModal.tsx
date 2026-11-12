@@ -1,9 +1,8 @@
-import { useRef, useState } from "react";
-import { Check, Copy, Download, Upload } from "lucide-react";
-import { Button, Modal } from "../../design-system";
+import { useState } from "react";
+import { Check, Copy } from "lucide-react";
+import { FileUploadZone, Modal, type UploadState } from "../../design-system";
 import { useBulkUploadEmployees } from "../../hooks/useEmployees";
 import { useSalaryStructures } from "../../hooks/useSalaryStructures";
-import { ApiError } from "../../lib/apiClient";
 import {
   downloadEmployeeBulkTemplate,
   formatBulkUploadMessage,
@@ -21,39 +20,18 @@ export default function BulkUploadModal({
   onClose,
   vendorId,
 }: BulkUploadModalProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [file, setFile] = useState<File | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [upload, setUpload] = useState<UploadState | null>(null);
   const [copiedName, setCopiedName] = useState<string | null>(null);
 
   const uploadMutation = useBulkUploadEmployees();
   const { data: structures = [], isLoading: structuresLoading } =
     useSalaryStructures(vendorId, open);
 
-  const resetLocal = () => {
-    setFile(null);
-    setMessage(null);
-    setError(null);
-    setCopiedName(null);
-    if (inputRef.current) inputRef.current.value = "";
-  };
-
   const handleClose = () => {
     if (uploadMutation.isPending) return;
-    resetLocal();
+    setUpload(null);
+    setCopiedName(null);
     onClose();
-  };
-
-  const onPickFile = (next: File | null) => {
-    setMessage(null);
-    setError(null);
-    if (next && !isExcelUploadFile(next)) {
-      setFile(null);
-      setError("Please choose an .xlsx or .xls file");
-      return;
-    }
-    setFile(next);
   };
 
   const onDownloadTemplate = () => {
@@ -73,79 +51,34 @@ export default function BulkUploadModal({
     }
   };
 
-  const onUpload = async () => {
-    if (!file || uploadMutation.isPending) return;
-    setMessage(null);
-    setError(null);
+  const onFile = async (file: File) => {
+    if (!isExcelUploadFile(file)) {
+      return setUpload({ name: file.name, status: "error", message: "Please choose an .xlsx or .xls file" });
+    }
+    setUpload({ name: file.name, status: "uploading" });
     try {
       const result = await uploadMutation.mutateAsync(file);
-      setMessage(formatBulkUploadMessage(result));
-      setFile(null);
-      if (inputRef.current) inputRef.current.value = "";
+      setUpload({ name: file.name, status: "done", message: formatBulkUploadMessage(result) });
     } catch (err) {
-      const msg =
-        err instanceof ApiError
-          ? err.message
-          : err instanceof Error
-            ? err.message
-            : "Bulk upload failed";
-      setError(msg);
+      setUpload({
+        name: file.name,
+        status: "error",
+        message: err instanceof Error ? err.message : "Bulk upload failed",
+      });
     }
   };
 
   return (
-    <Modal
-      open={open}
-      title="Bulk Upload Employees"
-      onClose={handleClose}
-      size="md"
-      footer={
-        <Button
-          type="button"
-          variant="primary"
-          onClick={() => void onUpload()}
-          disabled={!file || uploadMutation.isPending}
-        >
-          {uploadMutation.isPending ? "Uploading…" : "Upload Excel"}
-        </Button>
-      }
-    >
-      <div className="flex flex-col gap-wz-4">
-        <p className="m-0 text-sm text-wz-text-secondary">
-          Download the template, fill it in, then upload it here.
-        </p>
-
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          onClick={onDownloadTemplate}
-        >
-          <Download size={15} aria-hidden />
-          Download sample template
-        </Button>
-
-        <label className="relative flex min-h-[120px] cursor-pointer flex-col items-center justify-center gap-2 rounded-wz-md border border-dashed border-wz-border bg-wz-neutral-50 px-wz-5 py-wz-5 text-center text-wz-text-secondary hover:border-wz-primary hover:bg-wz-hover">
-          <input
-            ref={inputRef}
-            type="file"
-            accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
-            className="absolute inset-0 cursor-pointer opacity-0"
-            onChange={(e) => onPickFile(e.target.files?.[0] || null)}
-          />
-          <Upload size={24} aria-hidden />
-          <span className="text-sm font-semibold text-wz-text-primary">
-            Choose .xlsx or .xls file
-          </span>
-          {file ? (
-            <span className="text-xs font-semibold text-wz-primary">
-              {file.name}
-            </span>
-          ) : (
-            <span className="text-xs">Click to browse, or drop a file</span>
-          )}
-        </label>
-
+    <Modal open={open} title="Bulk Upload - Employees" onClose={handleClose} size="md">
+      <FileUploadZone
+        title="Employees"
+        accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+        hint="Supported formats: XLSX or XLS"
+        upload={upload}
+        onFile={(f) => void onFile(f)}
+        onClear={() => setUpload(null)}
+        onDownloadTemplate={onDownloadTemplate}
+      >
         <div className="flex flex-col gap-2">
           <h3 className="m-0 text-sm font-semibold text-wz-text-primary">
             Salary Structure Names
@@ -186,20 +119,7 @@ export default function BulkUploadModal({
           )}
         </div>
 
-        {error ? (
-          <p className="m-0 whitespace-pre-line text-xs text-wz-error" role="alert">
-            {error}
-          </p>
-        ) : null}
-        {message ? (
-          <p
-            className="m-0 whitespace-pre-line text-xs text-wz-success"
-            role="status"
-          >
-            {message}
-          </p>
-        ) : null}
-      </div>
+      </FileUploadZone>
     </Modal>
   );
 }

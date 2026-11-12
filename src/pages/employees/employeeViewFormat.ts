@@ -1,6 +1,6 @@
 /** Display helpers for the Figma View Employee overview. */
 
-export const displayValue = (value: unknown, fallback = "—"): string => {
+export const displayValue = (value: unknown, fallback = "-"): string => {
   if (value === undefined || value === null) return fallback;
   const str = String(value).trim();
   return str || fallback;

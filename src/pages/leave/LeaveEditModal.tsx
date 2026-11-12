@@ -4,11 +4,14 @@ import {
   Field,
   Input,
   Modal,
+  SegmentedToggle,
   Select,
   TextArea,
 } from "../../design-system";
 import { ApiError } from "../../lib/apiClient";
 import { useDirectEditLeave } from "../../hooks/useLeave";
+import { useEmployee } from "../../hooks/useEmployees";
+import { EmployeeModalCard } from "../employees/EmployeeActionModals";
 import type { LeaveRequest } from "../../services/leaveService";
 import {
   LEAVE_TYPE_OPTIONS,
@@ -36,6 +39,8 @@ export default function LeaveEditModal({
   const [auditNote, setAuditNote] = useState("");
   const [error, setError] = useState<string | null>(null);
   const editMutation = useDirectEditLeave();
+  const recordEmpId = record ? employeeFromRequest(record).id : "";
+  const { data: employeeDetail } = useEmployee(recordEmpId || undefined, open && Boolean(recordEmpId));
 
   useEffect(() => {
     if (!open || !record) return;
@@ -97,9 +102,8 @@ export default function LeaveEditModal({
   return (
     <Modal
       open={open}
-      title={`Edit leave · ${emp.name}`}
+      title="Edit Request"
       onClose={saving ? () => undefined : onClose}
-      size="lg"
       footer={
         <>
           <Button
@@ -116,33 +120,70 @@ export default function LeaveEditModal({
             disabled={saving}
             onClick={() => void handleSave()}
           >
-            {saving ? "Saving…" : "Save changes"}
+            {saving ? "Saving…" : "Update Request"}
           </Button>
         </>
       }
     >
-      <div className="grid grid-cols-1 gap-wz-4 sm:grid-cols-2">
-        <Field label="Leave type">
+      <div className="grid grid-cols-1 gap-x-wz-6 gap-y-wz-6 sm:grid-cols-2">
+        <div className="self-center">
+          <EmployeeModalCard
+            employee={{
+              _id: emp.id,
+              isActive: true,
+              ...employeeDetail,
+              name: employeeDetail?.name || emp.name,
+              employeeCode: employeeDetail?.employeeCode || emp.employeeCode,
+            }}
+            detailed={false}
+          />
+        </div>
+        <SegmentedToggle
+          label="Select Request Type"
+          value={leaveType === "WFH" ? "WFH" : "Leave"}
+          options={[
+            ["Leave", "Leave"],
+            ["WFH", "WFH"],
+          ]}
+          onChange={(next) => setLeaveType(next === "WFH" ? "WFH" : "")}
+        />
+        <Field label="Leave Type" required>
           <Select
             value={leaveType}
+            disabled={leaveType === "WFH"}
             onChange={(e) => setLeaveType(e.target.value)}
           >
-            {LEAVE_TYPE_OPTIONS.map((o) => (
+            <option value="" disabled>
+              Select
+            </option>
+            {LEAVE_TYPE_OPTIONS.filter((o) =>
+              leaveType === "WFH" ? o.value === "WFH" : o.value !== "WFH",
+            ).map((o) => (
               <option key={o.value} value={o.value}>
-                {o.label}
+                {o.value === "WFH" ? "Work From Home (WFH)" : o.label}
               </option>
             ))}
           </Select>
         </Field>
-        <div />
-        <Field label="Start date *">
+        <Field label="Day Type" required>
+          <Select value={dayPart} onChange={(e) => setDayPart(e.target.value)}>
+            <option value="full">Full Day</option>
+            <option value="first-half" disabled={!isSingleDay}>
+              First Half
+            </option>
+            <option value="second-half" disabled={!isSingleDay}>
+              Second Half
+            </option>
+          </Select>
+        </Field>
+        <Field label="Start Date" required>
           <Input
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
           />
         </Field>
-        <Field label="End date *">
+        <Field label="End Date" required>
           <Input
             type="date"
             value={endDate}
@@ -150,30 +191,21 @@ export default function LeaveEditModal({
             onChange={(e) => setEndDate(e.target.value)}
           />
         </Field>
-        {isSingleDay ? (
-          <Field label="Day type">
-            <Select
-              value={dayPart}
-              onChange={(e) => setDayPart(e.target.value)}
-            >
-              <option value="full">Full Day</option>
-              <option value="first-half">First Half</option>
-              <option value="second-half">Second Half</option>
-            </Select>
-          </Field>
-        ) : null}
-        <Field label="Reason *" className="sm:col-span-2">
+        <Field label="Reason" required className="sm:col-span-2">
           <TextArea
-            rows={3}
+            rows={2}
+            style={{ minHeight: 70 }}
             value={reason}
+            placeholder="Enter reason here"
             onChange={(e) => setReason(e.target.value)}
           />
         </Field>
-        <Field label="Audit note *" className="sm:col-span-2">
+        <Field label="Audit Note" required className="sm:col-span-2">
           <TextArea
             rows={2}
+            style={{ minHeight: 70 }}
             value={auditNote}
-            placeholder="Why is this leave being edited?"
+            placeholder="Enter here"
             onChange={(e) => setAuditNote(e.target.value)}
           />
         </Field>

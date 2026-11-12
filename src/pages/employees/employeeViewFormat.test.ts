@@ -12,8 +12,8 @@ import {
 
 describe("employeeViewFormat", () => {
   it("formats empty values as em dash", () => {
-    expect(displayValue("")).toBe("—");
-    expect(displayValue(null)).toBe("—");
+    expect(displayValue("")).toBe("-");
+    expect(displayValue(null)).toBe("-");
   });
 
   it("masks aadhaar and bank account", () => {

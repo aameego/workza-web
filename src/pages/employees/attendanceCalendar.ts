@@ -6,7 +6,7 @@ import type {
 export const WEEKDAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"] as const;
 
 export type CalendarCell =
-  | { key: string; empty: true }
+  | OutsideCell
   | {
       key: string;
       empty?: false;
@@ -20,6 +20,28 @@ export type CalendarCell =
       hasSessions: boolean;
     };
 
+/** A greyed day from the previous/next month (Figma calendars show them). */
+export type OutsideCell = { key: string; empty: true; outsideDay: number };
+
+/** Previous-month days that fill the first week before day 1. */
+export const leadingOutsideCells = (year: number, month: number): OutsideCell[] => {
+  const firstDay = new Date(year, month - 1, 1).getDay();
+  const daysInPrevMonth = new Date(year, month - 1, 0).getDate();
+  return Array.from({ length: firstDay }, (_, i) => ({
+    key: `empty-${i}`,
+    empty: true as const,
+    outsideDay: daysInPrevMonth - firstDay + 1 + i,
+  }));
+};
+
+/** Next-month days that complete the last week, given how many cells exist so far. */
+export const trailingOutsideCells = (cellCount: number): OutsideCell[] =>
+  Array.from({ length: (7 - (cellCount % 7)) % 7 }, (_, i) => ({
+    key: `trail-${i + 1}`,
+    empty: true as const,
+    outsideDay: i + 1,
+  }));
+
 export const monthLabel = (year: number, month: number): string =>
   new Date(year, month - 1, 1).toLocaleString("en-US", {
     month: "long",
@@ -31,7 +53,6 @@ export const buildCalendarCells = (
   month: number,
   data: AttendanceMonthResponse | null | undefined,
 ): CalendarCell[] => {
-  const firstDay = new Date(year, month - 1, 1).getDay();
   const daysInMonth = new Date(year, month, 0).getDate();
   const today = new Date();
   const cells: CalendarCell[] = [];
@@ -40,9 +61,7 @@ export const buildCalendarCells = (
   const weekOffs = data?.weekOffs || {};
   const dayRecords = data?.dayRecords || {};
 
-  for (let i = 0; i < firstDay; i += 1) {
-    cells.push({ key: `empty-${i}`, empty: true });
-  }
+  cells.push(...leadingOutsideCells(year, month));
 
   for (let day = 1; day <= daysInMonth; day += 1) {
     const key = String(day);
@@ -84,6 +103,8 @@ export const buildCalendarCells = (
         day === today.getDate(),
     });
   }
+
+  cells.push(...trailingOutsideCells(cells.length));
 
   return cells;
 };

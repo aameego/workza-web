@@ -60,6 +60,16 @@ export const setAuthData = (
   storage.setItem(USER_KEY, JSON.stringify(user));
 };
 
+/** Merge fields into the stored user (same storage it came from) and notify listeners. */
+export const updateStoredUser = (patch: Record<string, unknown>): void => {
+  if (typeof window === "undefined") return;
+  const storage = window.localStorage.getItem(USER_KEY) ? window.localStorage : window.sessionStorage;
+  const current = readJson(storage.getItem(USER_KEY));
+  if (!current || typeof current !== "object") return;
+  storage.setItem(USER_KEY, JSON.stringify({ ...current, ...patch }));
+  window.dispatchEvent(new Event("user-updated"));
+};
+
 export const getStoredUser = (): unknown | null => {
   if (typeof window === "undefined") return null;
   const user =

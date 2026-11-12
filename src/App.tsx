@@ -11,6 +11,7 @@ import EmployeesPage from "./pages/employees/EmployeesPage";
 import AddEmployeePage from "./pages/employees/AddEmployeePage";
 import EditEmployeePage from "./pages/employees/EditEmployeePage";
 import ViewEmployeePage from "./pages/employees/ViewEmployeePage";
+import DepartmentsPage from "./pages/departments/DepartmentsPage";
 
 import { getAuthToken } from "./lib/authStorage";
 import { APP_NAV_ITEMS } from "./layouts/navConfig";
@@ -65,6 +66,8 @@ function App() {
                   <AttendancePage />
                 ) : item.path === "/leave" ? (
                   <LeavePage />
+                ) : item.path === "/departments" ? (
+                  <DepartmentsPage />
                 ) : (
                   <EmptyScreen />
                 )

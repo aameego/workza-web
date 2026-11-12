@@ -6,7 +6,7 @@ import {
   type FormEvent,
 } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Trash2, X } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import {
   Button,
   Card,
@@ -14,6 +14,8 @@ import {
   Input,
   Select,
   TextArea,
+  SearchableSelect,
+  cn,
 } from "../../design-system";
 import { useDepartmentNames } from "../../hooks/useDepartmentNames";
 import {
@@ -67,6 +69,9 @@ export type EmployeeFormEditorProps = {
   cancelTo?: string;
 };
 
+/** Figma Nationality dropdown (EMP-UI-15); a saved value outside the list is still shown. */
+const NATIONALITIES = ["Indian", "Nepali", "Bangladeshi", "Sri Lankan", "Bhutanese", "Other"];
+
 export default function EmployeeFormEditor({
   mode,
   initialValues,
@@ -95,6 +100,18 @@ export default function EmployeeFormEditor({
     Boolean(vendorId),
   );
   const managers = managerData?.employees ?? [];
+  // Only people still employed can supervise (EMP-FN-06); keep a current pick visible on edit.
+  const managerOptions = (current: string) =>
+    managers
+      .filter(
+        (m) =>
+          m._id === current ||
+          (m.isActive !== false && !m.isExited && !m.isDeleted && m._id !== employeeId),
+      )
+      .map((m) => ({
+        value: m._id,
+        label: m.employeeCode ? `${m.name} (${m.employeeCode})` : m.name || "Employee",
+      }));
   const addMutation = useAddEmployee();
   const updateMutation = useUpdateEmployee();
   const saving =
@@ -121,6 +138,16 @@ export default function EmployeeFormEditor({
     });
   };
 
+  /** Digits-only fields and their max length (EMP-FN-08: letters were accepted while typing). */
+  const DIGIT_FIELDS: Record<string, number> = {
+    phone: 10,
+    emergencyContact: 10,
+    aadhaarNumber: 12,
+    uan: 12,
+    esicNumber: 10,
+    accountNumber: 18,
+  };
+
   const onTextChange =
     (name: keyof EmployeeFormValues) =>
     (
@@ -130,6 +157,8 @@ export default function EmployeeFormEditor({
     ) => {
       let value = e.target.value;
       if (name === "employeeCode") value = maskEmployeeCode(value);
+      const maxDigits = DIGIT_FIELDS[name as string];
+      if (maxDigits) value = value.replace(/\D/g, "").slice(0, maxDigits);
       if (name === "panNumber" || name === "ifscCode") {
         value = value.toUpperCase();
       }
@@ -320,49 +349,25 @@ export default function EmployeeFormEditor({
       ? "Add Consultant"
       : "Add Employee";
   const cancelLabel = isEdit ? "Cancel Changes" : "Cancel";
-  const cardClass = isEdit ? "bg-wz-neutral-50 p-wz-5" : "p-wz-5";
 
   return (
-    <div
-      className={
-        isEdit
-          ? "flex min-w-0 flex-col overflow-hidden rounded-2xl border border-wz-border bg-white shadow-[0_16px_40px_rgba(0,0,0,0.1)]"
-          : "flex min-w-0 flex-col gap-wz-5 pb-24"
-      }
-    >
-      {isEdit ? (
-        <header className="flex shrink-0 items-center justify-end border-b border-wz-border px-wz-6 py-wz-3">
-          <button
-            type="button"
-            className="inline-flex size-6 items-center justify-center rounded-wz-md border border-wz-border bg-wz-surface-muted text-wz-text-secondary hover:text-wz-text-primary"
-            aria-label="Close"
-            onClick={() => navigate(cancelPath)}
-            disabled={saving}
-          >
-            <X className="size-3" aria-hidden />
-          </button>
-        </header>
-      ) : null}
-
+    /* Figma add-employee / edit-employee: same full-page layout, cards 24 apart,
+       75px footer bar pinned to the bottom of the workspace. */
+    <div className="flex min-w-0 flex-col">
       <form
-        className={
-          isEdit
-            ? "flex flex-1 flex-col gap-wz-6 overflow-y-auto px-wz-6 py-wz-4"
-            : "flex flex-col gap-wz-5"
-        }
+        className="flex flex-col gap-wz-6"
         onSubmit={onSubmit}
         noValidate
       >
         {/* 1. Basic Information */}
-        <Card className={cardClass}>
-          <h2 className="mb-wz-5 mt-0 text-base font-semibold leading-6 text-wz-text-primary">
+        <Card compact subtle>
+          <h2 className="mb-wz-4 mt-0 text-base font-semibold leading-5 text-wz-heading">
             1. Basic Information
           </h2>
-          <div className="grid grid-cols-1 gap-x-wz-6 gap-y-wz-5 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-x-wz-6 gap-y-wz-6 md:grid-cols-2 xl:grid-cols-3">
             <Field
-              label="Employee Code"
+              label="Employee Code (Leave blank to Auto-generate)"
               htmlFor="emp-employeeCode"
-              hint="Leave blank to auto-generate"
               error={errors.employeeCode}
             >
               <Input
@@ -420,7 +425,7 @@ export default function EmployeeFormEditor({
                 maxLength={10}
                 value={form.phone}
                 onChange={onTextChange("phone")}
-                placeholder="9876543210"
+                placeholder="+91 98765 43210"
                 invalid={Boolean(errors.phone)}
               />
             </Field>
@@ -430,21 +435,15 @@ export default function EmployeeFormEditor({
               required
               error={errors.departmentId}
             >
-              <Select
+              <SearchableSelect
                 id="emp-departmentId"
-                name="departmentId"
                 value={form.departmentId}
-                onChange={onTextChange("departmentId")}
+                onChange={(v) => setField("departmentId", v)}
                 invalid={Boolean(errors.departmentId)}
-                required
-              >
-                <option value="">Select department</option>
-                {departments.map((d) => (
-                  <option key={d._id} value={d._id}>
-                    {d.name}
-                  </option>
-                ))}
-              </Select>
+                placeholder="Select department"
+                searchPlaceholder="Search department…"
+                options={departments.map((d) => ({ value: d._id, label: d.name }))}
+              />
             </Field>
             <Field
               label="Designation"
@@ -472,36 +471,24 @@ export default function EmployeeFormEditor({
               />
             </Field>
             <Field label="Reporting Manager" htmlFor="emp-managerId">
-              <Select
+              <SearchableSelect
                 id="emp-managerId"
-                name="managerId"
                 value={form.managerId}
-                onChange={onTextChange("managerId")}
-              >
-                <option value="">Search & select supervisor</option>
-                {managers.map((m) => (
-                  <option key={m._id} value={m._id}>
-                    {m.name}
-                    {m.employeeCode ? ` (${m.employeeCode})` : ""}
-                  </option>
-                ))}
-              </Select>
+                onChange={(v) => setField("managerId", v)}
+                placeholder="Search & select supervisor"
+                searchPlaceholder="Search name or code…"
+                options={managerOptions(form.managerId)}
+              />
             </Field>
             <Field label="People Manager" htmlFor="emp-peopleManagerId">
-              <Select
+              <SearchableSelect
                 id="emp-peopleManagerId"
-                name="peopleManagerId"
                 value={form.peopleManagerId}
-                onChange={onTextChange("peopleManagerId")}
-              >
-                <option value="">Search & select supervisor</option>
-                {managers.map((m) => (
-                  <option key={m._id} value={m._id}>
-                    {m.name}
-                    {m.employeeCode ? ` (${m.employeeCode})` : ""}
-                  </option>
-                ))}
-              </Select>
+                onChange={(v) => setField("peopleManagerId", v)}
+                placeholder="Search & select supervisor"
+                searchPlaceholder="Search name or code…"
+                options={managerOptions(form.peopleManagerId)}
+              />
             </Field>
             <Field
               label="Date of Joining"
@@ -534,9 +521,9 @@ export default function EmployeeFormEditor({
         </Card>
 
         {/* 2. Family & Personal */}
-        <Card className={cardClass}>
-          <h2 className="mb-wz-5 mt-0 text-base font-semibold leading-6 text-wz-text-primary">2. Family & Personal</h2>
-          <div className="grid grid-cols-1 gap-x-wz-6 gap-y-wz-5 md:grid-cols-2 xl:grid-cols-3">
+        <Card compact subtle>
+          <h2 className="mb-wz-4 mt-0 text-base font-semibold leading-5 text-wz-heading">2. Family & Personal</h2>
+          <div className="grid grid-cols-1 gap-x-wz-6 gap-y-wz-6 md:grid-cols-2 xl:grid-cols-3">
             <Field
               label="Father / Husband Name"
               htmlFor="emp-fatherHusbandName"
@@ -548,6 +535,7 @@ export default function EmployeeFormEditor({
                 value={form.fatherHusbandName}
                 onChange={onTextChange("fatherHusbandName")}
                 invalid={Boolean(errors.fatherHusbandName)}
+                placeholder="Full Name"
               />
             </Field>
             <Field label="Relationship with Member" htmlFor="emp-relationWithMember">
@@ -557,7 +545,7 @@ export default function EmployeeFormEditor({
                 value={form.relationWithMember}
                 onChange={onTextChange("relationWithMember")}
               >
-                <option value="">Select</option>
+                <option value="">Select relationship</option>
                 {RELATION_OPTIONS.map((r) => (
                   <option key={r} value={r}>
                     {r}
@@ -572,7 +560,7 @@ export default function EmployeeFormEditor({
                 value={form.gender}
                 onChange={onTextChange("gender")}
               >
-                <option value="">Select Gender</option>
+                <option value="">Select gender</option>
                 {GENDER_OPTIONS.map((g) => (
                   <option key={g} value={g}>
                     {g}
@@ -581,13 +569,19 @@ export default function EmployeeFormEditor({
               </Select>
             </Field>
             <Field label="Nationality" htmlFor="emp-nationality">
-              <Input
+              <Select
                 id="emp-nationality"
                 name="nationality"
                 value={form.nationality}
                 onChange={onTextChange("nationality")}
-                placeholder="e.g., Indian"
-              />
+              >
+                <option value="">Select nationality</option>
+                {[...NATIONALITIES, ...(form.nationality && !NATIONALITIES.includes(form.nationality) ? [form.nationality] : [])].map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </Select>
             </Field>
             <Field label="Marital Status" htmlFor="emp-maritalStatus">
               <Select
@@ -596,7 +590,7 @@ export default function EmployeeFormEditor({
                 value={form.maritalStatus}
                 onChange={onTextChange("maritalStatus")}
               >
-                <option value="">Select</option>
+                <option value="">Select marital status</option>
                 {MARITAL_OPTIONS.map((m) => (
                   <option key={m} value={m}>
                     {m}
@@ -611,7 +605,7 @@ export default function EmployeeFormEditor({
                 value={form.bloodGroup}
                 onChange={onTextChange("bloodGroup")}
               >
-                <option value="">e.g., A+</option>
+                <option value="">e.g., A+ve</option>
                 {BLOOD_GROUP_OPTIONS.map((b) => (
                   <option key={b} value={b}>
                     {b}
@@ -619,21 +613,32 @@ export default function EmployeeFormEditor({
                 ))}
               </Select>
             </Field>
-            <Field label="Emergency Contact" htmlFor="emp-emergencyContact">
+            <Field label="Emergency Contact Name" htmlFor="emp-emergencyContactName">
+              <Input
+                id="emp-emergencyContactName"
+                name="emergencyContactName"
+                value={form.emergencyContactName}
+                onChange={onTextChange("emergencyContactName")}
+                placeholder="Full Name"
+              />
+            </Field>
+            <Field label="Emergency Contact Number" htmlFor="emp-emergencyContact" error={errors.emergencyContact}>
               <Input
                 id="emp-emergencyContact"
+                inputMode="numeric"
                 name="emergencyContact"
                 type="tel"
                 value={form.emergencyContact}
                 onChange={onTextChange("emergencyContact")}
-                placeholder="Phone number"
+                placeholder="Contact number"
+                invalid={Boolean(errors.emergencyContact)}
               />
             </Field>
           </div>
 
-          <div className="mt-wz-6 flex flex-col gap-wz-4 border-t border-wz-border pt-wz-5">
+          <div className="mt-wz-4 flex flex-col gap-wz-4 border-t border-wz-border pt-wz-4">
             <div className="flex flex-wrap items-center justify-between gap-wz-3">
-              <h3 className="m-0 text-sm font-semibold text-wz-text-primary">
+              <h3 className="m-0 text-base leading-5 font-semibold text-wz-heading">
                 2.1 Family Members (ESIC / Medical)
               </h3>
               <Button
@@ -643,7 +648,7 @@ export default function EmployeeFormEditor({
                 onClick={addFamilyMember}
                 disabled={form.familyMembers.length >= MAX_FAMILY_MEMBERS}
               >
-                + Add Family Member
+                Add Family Member
               </Button>
             </div>
             {errors.familyMembers ? (
@@ -748,8 +753,8 @@ export default function EmployeeFormEditor({
         </Card>
 
         {/* 3. Address */}
-        <Card className={cardClass}>
-          <h2 className="mb-wz-5 mt-0 text-base font-semibold leading-6 text-wz-text-primary">3. Address</h2>
+        <Card compact subtle>
+          <h2 className="mb-wz-4 mt-0 text-base font-semibold leading-5 text-wz-heading">3. Address</h2>
           <Field label="Permanent Address" htmlFor="emp-permanentAddress">
             <TextArea
               id="emp-permanentAddress"
@@ -762,9 +767,9 @@ export default function EmployeeFormEditor({
         </Card>
 
         {/* 4. Identity & Compliance */}
-        <Card className={cardClass}>
-          <h2 className="mb-wz-5 mt-0 text-base font-semibold leading-6 text-wz-text-primary">4. Identity & Compliance</h2>
-          <div className="grid grid-cols-1 gap-x-wz-6 gap-y-wz-5 md:grid-cols-2 xl:grid-cols-3">
+        <Card compact subtle>
+          <h2 className="mb-wz-4 mt-0 text-base font-semibold leading-5 text-wz-heading">4. Identity & Compliance</h2>
+          <div className="grid grid-cols-1 gap-x-wz-6 gap-y-wz-6 md:grid-cols-2 xl:grid-cols-3">
             <Field
               label="Aadhaar Number"
               htmlFor="emp-aadhaarNumber"
@@ -772,6 +777,7 @@ export default function EmployeeFormEditor({
             >
               <Input
                 id="emp-aadhaarNumber"
+                placeholder="12-digit UID"
                 name="aadhaarNumber"
                 inputMode="numeric"
                 maxLength={12}
@@ -787,6 +793,7 @@ export default function EmployeeFormEditor({
             >
               <Input
                 id="emp-nameAsPerAadhaar"
+                placeholder="Full Name"
                 name="nameAsPerAadhaar"
                 value={form.nameAsPerAadhaar}
                 onChange={onTextChange("nameAsPerAadhaar")}
@@ -800,6 +807,7 @@ export default function EmployeeFormEditor({
             >
               <Input
                 id="emp-panNumber"
+                placeholder="e.g., ABCDE1234F"
                 name="panNumber"
                 maxLength={10}
                 value={form.panNumber}
@@ -814,6 +822,7 @@ export default function EmployeeFormEditor({
             >
               <Input
                 id="emp-nameAsPerPan"
+                placeholder="Full Name"
                 name="nameAsPerPan"
                 value={form.nameAsPerPan}
                 onChange={onTextChange("nameAsPerPan")}
@@ -823,6 +832,7 @@ export default function EmployeeFormEditor({
             <Field label="UAN" htmlFor="emp-uan" error={errors.uan}>
               <Input
                 id="emp-uan"
+                placeholder="12-digit UAN"
                 name="uan"
                 inputMode="numeric"
                 maxLength={12}
@@ -834,6 +844,7 @@ export default function EmployeeFormEditor({
             <Field label="PF Number" htmlFor="emp-pfNumber">
               <Input
                 id="emp-pfNumber"
+                placeholder="e.g., MH/BAN/0012345/000/0001234"
                 name="pfNumber"
                 value={form.pfNumber}
                 onChange={onTextChange("pfNumber")}
@@ -846,6 +857,7 @@ export default function EmployeeFormEditor({
             >
               <Input
                 id="emp-esicNumber"
+                placeholder="10-digit ESIC number"
                 name="esicNumber"
                 inputMode="numeric"
                 maxLength={10}
@@ -858,12 +870,13 @@ export default function EmployeeFormEditor({
         </Card>
 
         {/* 5. Bank Details */}
-        <Card className={cardClass}>
-          <h2 className="mb-wz-5 mt-0 text-base font-semibold leading-6 text-wz-text-primary">5. Bank Details</h2>
-          <div className="grid grid-cols-1 gap-x-wz-6 gap-y-wz-5 md:grid-cols-2 xl:grid-cols-3">
+        <Card compact subtle>
+          <h2 className="mb-wz-4 mt-0 text-base font-semibold leading-5 text-wz-heading">5. Bank Details</h2>
+          <div className="grid grid-cols-1 gap-x-wz-6 gap-y-wz-6 md:grid-cols-2 xl:grid-cols-3">
             <Field label="Bank Name" htmlFor="emp-bankName">
               <Input
                 id="emp-bankName"
+                placeholder="e.g., State Bank of India"
                 name="bankName"
                 value={form.bankName}
                 onChange={onTextChange("bankName")}
@@ -872,6 +885,7 @@ export default function EmployeeFormEditor({
             <Field label="Account Holder Name" htmlFor="emp-accountHolderName">
               <Input
                 id="emp-accountHolderName"
+                placeholder="Full Name"
                 name="accountHolderName"
                 value={form.accountHolderName}
                 onChange={onTextChange("accountHolderName")}
@@ -884,6 +898,7 @@ export default function EmployeeFormEditor({
             >
               <Input
                 id="emp-accountNumber"
+                placeholder="Account number"
                 name="accountNumber"
                 inputMode="numeric"
                 value={form.accountNumber}
@@ -898,6 +913,7 @@ export default function EmployeeFormEditor({
             >
               <Input
                 id="emp-ifscCode"
+                placeholder="e.g., SBIN0012345"
                 name="ifscCode"
                 maxLength={11}
                 value={form.ifscCode}
@@ -909,12 +925,13 @@ export default function EmployeeFormEditor({
         </Card>
 
         {/* 6. Education & Employment */}
-        <Card className={cardClass}>
-          <h2 className="mb-wz-5 mt-0 text-base font-semibold leading-6 text-wz-text-primary">6. Education & Employment</h2>
-          <div className="grid grid-cols-1 gap-x-wz-6 gap-y-wz-5 md:grid-cols-2 xl:grid-cols-3">
+        <Card compact subtle>
+          <h2 className="mb-wz-4 mt-0 text-base font-semibold leading-5 text-wz-heading">6. Education & Employment</h2>
+          <div className="grid grid-cols-1 gap-x-wz-6 gap-y-wz-6 md:grid-cols-2 xl:grid-cols-3">
             <Field label="Highest Qualification" htmlFor="emp-highestQualification">
               <Input
                 id="emp-highestQualification"
+                placeholder="e.g., B.Tech"
                 name="highestQualification"
                 value={form.highestQualification}
                 onChange={onTextChange("highestQualification")}
@@ -923,29 +940,32 @@ export default function EmployeeFormEditor({
             <Field label="Client" htmlFor="emp-client">
               <Input
                 id="emp-client"
+                placeholder="e.g., Client / site name"
                 name="client"
                 value={form.client}
                 onChange={onTextChange("client")}
               />
             </Field>
             {!form.isConsultancy ? (
-              <Field label="Probation End Date" htmlFor="emp-probationEndDate">
+              <Field label="Probation End Date" htmlFor="emp-probationEndDate" error={errors.probationEndDate}>
                 <Input
                   id="emp-probationEndDate"
                   name="probationEndDate"
                   type="date"
                   value={form.probationEndDate}
                   onChange={onTextChange("probationEndDate")}
-                />
+                  invalid={Boolean(errors.probationEndDate)}
+              />
               </Field>
             ) : null}
-            <Field label="Relieving Date" htmlFor="emp-relievingDate">
+            <Field label="Relieving Date" htmlFor="emp-relievingDate" error={errors.relievingDate}>
               <Input
                 id="emp-relievingDate"
                 name="relievingDate"
                 type="date"
                 value={form.relievingDate}
                 onChange={onTextChange("relievingDate")}
+                invalid={Boolean(errors.relievingDate)}
               />
             </Field>
             {!form.isConsultancy ? (
@@ -967,7 +987,7 @@ export default function EmployeeFormEditor({
           </div>
 
           {form.isConsultancy ? (
-            <div className="mt-wz-5 grid grid-cols-1 gap-x-wz-6 gap-y-wz-5 md:grid-cols-2 xl:grid-cols-3">
+            <div className="mt-wz-5 grid grid-cols-1 gap-x-wz-6 gap-y-wz-6 md:grid-cols-2 xl:grid-cols-3">
               <Field
                 label="Monthly Consultancy Pay (₹)"
                 htmlFor="emp-monthlyConsultancyPay"
@@ -976,6 +996,7 @@ export default function EmployeeFormEditor({
               >
                 <Input
                   id="emp-monthlyConsultancyPay"
+                placeholder="Enter amount"
                   name="monthlyConsultancyPay"
                   type="number"
                   min={0}
@@ -991,6 +1012,7 @@ export default function EmployeeFormEditor({
               >
                 <Input
                   id="emp-tdsPercent"
+                placeholder="Enter here"
                   name="tdsPercent"
                   type="number"
                   min={0}
@@ -1005,36 +1027,47 @@ export default function EmployeeFormEditor({
         </Card>
 
         {/* App Access */}
-        <Card className={cardClass}>
-          <h2 className="mb-wz-5 mt-0 text-base font-semibold leading-6 text-wz-text-primary">
-            {isEdit ? "7. App Access" : "App Access"}
+        <Card compact subtle>
+          <h2 className="mb-wz-4 mt-0 text-base font-semibold leading-5 text-wz-heading">
+            7. App Access
           </h2>
-          <label className="inline-flex cursor-pointer items-start gap-3 text-sm text-wz-text-primary [&_input]:mt-0.5 [&_input]:size-4 [&_input]:accent-wz-primary">
-            <input
-              type="checkbox"
-              checked={form.createAppLogin}
+          {/* Figma app-access-card: navy switch, same copy on add and edit (EMP-UI-20). */}
+          <div className="flex items-start gap-3">
+            <button
+              type="button"
+              role="switch"
+              id="emp-createAppLogin"
+              aria-checked={form.createAppLogin}
+              aria-label="Enable app login for this employee"
               disabled={isEdit && hasAppLogin}
-              onChange={(e) => setField("createAppLogin", e.target.checked)}
-            />
-            <span>
-              <span className="block text-base font-semibold">
-                {isEdit
-                  ? "Enable app login for this employee."
-                  : "Create app login for this employee"}
+              onClick={() => setField("createAppLogin", !form.createAppLogin)}
+              className={cn(
+                "relative mt-0.5 inline-flex h-[22px] w-10 shrink-0 cursor-pointer items-center rounded-wz-full border-0 p-0 transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+                form.createAppLogin ? "bg-wz-navy" : "bg-[#6c757d]",
+              )}
+            >
+              <span
+                className={cn(
+                  "absolute size-4 rounded-wz-full bg-white transition-[left]",
+                  form.createAppLogin ? "left-[21px]" : "left-[3px]",
+                )}
+              />
+            </button>
+            <label htmlFor="emp-createAppLogin" className="cursor-pointer">
+              <span className="block text-base leading-5 font-semibold text-wz-heading">
+                Enable app login for this employee.
               </span>
-              {isEdit ? (
-                <span className="mt-0.5 block text-xs font-normal text-wz-text-secondary">
-                  {hasAppLogin
-                    ? "App login is already linked. Update role or set a new temporary password below."
-                    : "Unchecked employees are managed by HR only (no mobile app access)."}
-                </span>
-              ) : null}
-            </span>
-          </label>
+              <span className="mt-0.5 block text-xs font-normal text-wz-text-secondary">
+                {isEdit && hasAppLogin
+                  ? "App login is already linked. Update role or set a new password below."
+                  : "Unchecked employees are managed by HR only (no mobile app access)."}
+              </span>
+            </label>
+          </div>
           {showAppLoginFields ? (
-            <div className="mt-wz-5 grid grid-cols-1 gap-x-wz-6 gap-y-wz-5 md:grid-cols-2 xl:grid-cols-3">
+            <div className="mt-wz-5 grid grid-cols-1 gap-x-wz-6 gap-y-wz-6 md:grid-cols-2 xl:grid-cols-3">
               <Field
-                label={isEdit ? "Login Role" : "Role"}
+                label="Login Role"
                 htmlFor="emp-userRole"
               >
                 <Select
@@ -1051,13 +1084,8 @@ export default function EmployeeFormEditor({
                 </Select>
               </Field>
               <Field
-                label={
-                  isEdit
-                    ? "Password (Leave blank to auto-generate)"
-                    : "Temporary Password"
-                }
+                label="Password (Leave blank to auto-generate)"
                 htmlFor="emp-userPassword"
-                hint={isEdit ? undefined : "Leave blank to auto-generate"}
                 error={errors.userPassword}
               >
                 <Input
@@ -1068,7 +1096,7 @@ export default function EmployeeFormEditor({
                   onChange={onTextChange("userPassword")}
                   invalid={Boolean(errors.userPassword)}
                   autoComplete="new-password"
-                  placeholder={isEdit ? "Enter password here" : undefined}
+                  placeholder="Enter password here"
                 />
               </Field>
             </div>
@@ -1076,9 +1104,9 @@ export default function EmployeeFormEditor({
         </Card>
 
         {!form.isConsultancy ? (
-          <Card className={cardClass} id="emp-salary-structure">
-            <h2 className="mb-wz-5 mt-0 text-base font-semibold leading-6 text-wz-text-primary">
-              {isEdit ? "8. Salary Structure" : "Salary Structure"}
+          <Card compact subtle id="emp-salary-structure">
+            <h2 className="mb-wz-4 mt-0 text-base font-semibold leading-5 text-wz-heading">
+              8. Salary Structure
             </h2>
             <EmployeeSalaryStructureEditor
               ref={salaryEditorRef}
@@ -1100,41 +1128,25 @@ export default function EmployeeFormEditor({
           </div>
         ) : null}
 
-        {isEdit ? (
-          <div className="-mx-wz-6 mt-auto flex shrink-0 items-center justify-end gap-wz-4 border-t border-wz-border px-wz-6 py-wz-4">
-            <Button
-              type="button"
-              variant="secondary"
-              className="min-w-[150px]"
-              onClick={() => navigate(cancelPath)}
-              disabled={saving}
-            >
-              {cancelLabel}
-            </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              className="min-w-[150px]"
-              disabled={saving}
-            >
-              {saving ? "Saving…" : submitLabel}
-            </Button>
-          </div>
-        ) : (
-          <div className="sticky bottom-0 z-5 flex justify-end gap-wz-3 bg-[linear-gradient(180deg,rgba(248,249,250,0)_0%,var(--wz-surface)_28%)] py-wz-4">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => navigate(cancelPath)}
-              disabled={saving}
-            >
-              {cancelLabel}
-            </Button>
-            <Button type="submit" variant="primary" disabled={saving}>
-              {saving ? "Saving…" : submitLabel}
-            </Button>
-          </div>
-        )}
+        <div className="sticky bottom-0 z-5 -mx-wz-6 -mb-wz-6 flex justify-end gap-wz-4 border-t border-wz-border bg-white px-wz-6 pt-[15px] pb-wz-4 max-[900px]:-mx-wz-4 max-[900px]:-mb-wz-4">
+          <Button
+            type="button"
+            variant="secondary"
+            className={isEdit ? "min-w-[150px]" : "min-w-[160px]"}
+            onClick={() => navigate(cancelPath)}
+            disabled={saving}
+          >
+            {cancelLabel}
+          </Button>
+          <Button
+            type="submit"
+            variant="primary"
+            className={isEdit ? "min-w-[150px]" : "min-w-[160px]"}
+            disabled={saving}
+          >
+            {saving ? "Saving…" : submitLabel}
+          </Button>
+        </div>
       </form>
     </div>
   );

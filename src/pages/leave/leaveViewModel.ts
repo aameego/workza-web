@@ -9,7 +9,7 @@ export const LEAVE_TYPE_LABELS: Record<string, string> = {
   CL: "Casual Leave (CL)",
   SL: "Sick Leave (SL)",
   EL: "Earned Leave (EL)",
-  CO: "Comp Off (CO)",
+  CO: "Compensatory Off (CO)",
   WFH: "Work From Home (WFH)",
   LOP: "Loss of Pay (LOP)",
   LWP: "Leave Without Pay (LWP)",
@@ -19,7 +19,7 @@ export const LEAVE_TYPE_OPTIONS = [
   { value: "CL", label: "Casual Leave (CL)" },
   { value: "SL", label: "Sick Leave (SL)" },
   { value: "EL", label: "Earned Leave (EL)" },
-  { value: "CO", label: "Comp Off (CO)" },
+  { value: "CO", label: "Compensatory Off (CO)" },
   { value: "WFH", label: "Work From Home (WFH)" },
   { value: "LOP", label: "Loss of Pay (LOP)" },
 ] as const;
@@ -36,16 +36,19 @@ export type LeaveMetricCard = {
   label: string;
   value: number | string;
   hint?: string;
-  accent: string;
+  /** Colored hint pill under the KPI value (Figma). */
+  hintTone?: "blue" | "green" | "amber" | "red";
+  /** @deprecated left-border accent — Figma uses pill hints instead */
+  accent?: string;
 };
 
 export const getLeaveTypeLabel = (type?: string): string =>
   LEAVE_TYPE_LABELS[String(type || "").toUpperCase()] || type || "Leave";
 
 export const formatLeaveDate = (value?: string | null): string => {
-  if (!value) return "—";
+  if (!value) return "-";
   const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return "—";
+  if (Number.isNaN(d.getTime())) return "-";
   try {
     return d.toLocaleDateString("en-IN", {
       timeZone: "Asia/Kolkata",
@@ -59,9 +62,9 @@ export const formatLeaveDate = (value?: string | null): string => {
 };
 
 export const formatLeaveDateTime = (value?: string | null): string => {
-  if (!value) return "—";
+  if (!value) return "-";
   const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return "—";
+  if (Number.isNaN(d.getTime())) return "-";
   try {
     return d.toLocaleString("en-IN", {
       timeZone: "Asia/Kolkata",
@@ -81,7 +84,7 @@ export const formatLeaveDays = (item: {
   days?: number;
   dayPart?: string;
 }): string => {
-  const days = item.days ?? "—";
+  const days = item.days ?? "-";
   if (item.dayPart === "first-half") return `${days}d · First Half`;
   if (item.dayPart === "second-half") return `${days}d · Second Half`;
   return `${days}d`;
@@ -96,6 +99,7 @@ export const employeeFromRequest = (
   email: string;
   phone: string;
   initials: string;
+  designation: string;
 } => {
   const emp =
     row.employeeId && typeof row.employeeId === "object"
@@ -111,14 +115,18 @@ export const employeeFromRequest = (
   return {
     id: emp?._id || (typeof row.employeeId === "string" ? row.employeeId : ""),
     name,
-    employeeCode: emp?.employeeCode || "—",
-    email: emp?.email || "—",
-    phone: emp?.phone || "—",
+    employeeCode: emp?.employeeCode || "-",
+    email: emp?.email || "-",
+    phone: emp?.phone || "-",
     initials,
+    designation: emp?.designation || "",
   };
 };
 
 export const approverLabel = (row: LeaveRequest): string => {
+  if (row.approverId && typeof row.approverId === "object" && row.approverId.name) {
+    return row.approverId.name;
+  }
   const by =
     row.approvedBy && typeof row.approvedBy === "object"
       ? row.approvedBy.name
@@ -126,42 +134,50 @@ export const approverLabel = (row: LeaveRequest): string => {
   if (by) return by;
   if (row.status === "Rejected" && row.rejectedBy) {
     return typeof row.rejectedBy === "object"
-      ? row.rejectedBy.name || "—"
-      : "—";
+      ? row.rejectedBy.name || "-"
+      : "-";
   }
-  return "—";
+  return "-";
+};
+
+const byEmployeesHint = (count?: number | null): string | undefined => {
+  if (count == null || count <= 0) return undefined;
+  return `By ${count} employee${count === 1 ? "" : "s"}`;
 };
 
 export const orgLeaveMetrics = (summary?: LeaveSummary | null): LeaveMetricCard[] => {
   const s = summary || {};
+  const pending = s.pendingRequests ?? s.pendingApprovals ?? 0;
+  const rejected = s.requestCounts?.rejected ?? s.rejectedRequests ?? 0;
   return [
     {
       key: "wfh",
       label: "Work From Home Taken",
       value: s.wfhDaysThisMonth ?? 0,
-      hint: s.employeeCount ? `Across ${s.employeeCount} employees` : undefined,
-      accent: "border-l-[#2e90fa]",
+      // ponytail: team/org size, not people who took it (no per-person count from /leave/dashboard).
+      hint: s.wfhDaysThisMonth ? byEmployeesHint(s.employeeCount) : undefined,
+      hintTone: "blue",
     },
     {
       key: "leave",
       label: "Leaves Taken",
       value: s.leaveDaysThisMonth ?? 0,
-      hint: "Approved leave days this month",
-      accent: "border-l-[#12b76a]",
+      hint: s.leaveDaysThisMonth ? byEmployeesHint(s.employeeCount) : undefined,
+      hintTone: "green",
     },
     {
       key: "pending",
       label: "Pending Requests",
-      value: s.pendingRequests ?? s.pendingApprovals ?? 0,
-      hint: "Awaiting approval",
-      accent: "border-l-[#f79009]",
+      value: pending,
+      hint: byEmployeesHint(pending),
+      hintTone: "amber",
     },
     {
       key: "rejected",
       label: "Rejected Requests",
-      value: s.requestCounts?.rejected ?? s.rejectedRequests ?? 0,
-      hint: "Rejected this period",
-      accent: "border-l-[#f04438]",
+      value: rejected,
+      hint: rejected > 0 ? `For ${rejected} employee${rejected === 1 ? "" : "s"}` : undefined,
+      hintTone: "red",
     },
   ];
 };
@@ -175,25 +191,21 @@ export const selfLeaveMetrics = (
       key: "wfh",
       label: "Work From Home Taken",
       value: s.wfhDaysThisMonth ?? 0,
-      accent: "border-l-[#2e90fa]",
     },
     {
       key: "leave",
       label: "Leaves Taken",
       value: s.leaveDaysThisMonth ?? 0,
-      accent: "border-l-[#12b76a]",
     },
     {
       key: "submitted",
       label: "Submitted Requests",
       value: s.pendingRequests ?? s.submittedRequests ?? 0,
-      accent: "border-l-[#f79009]",
     },
     {
       key: "rejected",
       label: "Rejected Requests",
       value: s.requestCounts?.rejected ?? s.rejectedRequests ?? 0,
-      accent: "border-l-[#f04438]",
     },
   ];
 };
@@ -209,29 +221,33 @@ export const teamLeaveMetrics = (
         key: "wfh",
         label: "Work From Home Taken",
         value: s.wfhDaysThisMonth ?? 0,
-        hint: s.employeeCount ? `By ${s.employeeCount} employees` : undefined,
-        accent: "border-l-[#2e90fa]",
+        // ponytail: hint is team size (no per-person count from /leave/dashboard); hidden when nothing was taken.
+        hint: s.wfhDaysThisMonth ? byEmployeesHint(s.employeeCount) : undefined,
+        hintTone: "blue",
       },
       {
         key: "leave",
         label: "Leaves Taken",
         value: s.leaveDaysThisMonth ?? 0,
-        hint: "Approved leave days this month",
-        accent: "border-l-[#12b76a]",
+        hint: s.leaveDaysThisMonth ? byEmployeesHint(s.employeeCount) : undefined,
+        hintTone: "green",
       },
       {
         key: "pending",
         label: "Pending Requests",
         value: counts.pending ?? 0,
-        hint: "Awaiting your approval",
-        accent: "border-l-[#f79009]",
+        hint: byEmployeesHint(counts.pending),
+        hintTone: "amber",
       },
       {
         key: "rejected",
         label: "Rejected Requests",
         value: counts.rejected ?? 0,
-        hint: "Rejected this period",
-        accent: "border-l-[#f04438]",
+        hint:
+          (counts.rejected ?? 0) > 0
+            ? `For ${counts.rejected} employee${counts.rejected === 1 ? "" : "s"}`
+            : undefined,
+        hintTone: "red",
       },
     ];
   }

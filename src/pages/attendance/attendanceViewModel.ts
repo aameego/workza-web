@@ -4,6 +4,11 @@ import type {
   AttendanceMonthResponse,
   AttendanceMonthStats,
 } from "../../services/attendanceService";
+import {
+  leadingOutsideCells,
+  trailingOutsideCells,
+  type OutsideCell,
+} from "../employees/attendanceCalendar";
 
 export const ATTENDANCE_STATUS_COLORS: Record<
   string,
@@ -32,12 +37,22 @@ export const ATTENDANCE_STATUS_COLORS: Record<
   },
 };
 
+export type OrgMetricHintTone =
+  | "green"
+  | "red"
+  | "amber"
+  | "blue"
+  | "purple";
+
 export type OrgMetricCard = {
   key: string;
   label: string;
   value: number;
   hint: string;
-  accent: string;
+  /** Colored hint pill under the KPI value (Figma attendance-admin). */
+  hintTone: OrgMetricHintTone;
+  /** @deprecated left-border accent — Figma uses pill hints instead */
+  accent?: string;
 };
 
 export const EMPTY_STATS: AttendanceMonthStats = {
@@ -60,35 +75,35 @@ export const orgDayMetrics = (
       label: "Present Employees",
       value: s.Present ?? 0,
       hint: "Employees who marked attendance",
-      accent: "border-l-[#12b76a]",
+      hintTone: "green",
     },
     {
       key: "Absent",
       label: "Absent Employees",
       value: s.Absent ?? 0,
       hint: "Employees who missed attendance",
-      accent: "border-l-[#f04438]",
+      hintTone: "red",
     },
     {
       key: "Late",
       label: "Late Employees",
       value: s.Late ?? 0,
       hint: "Employees who arrived late",
-      accent: "border-l-[#f79009]",
+      hintTone: "amber",
     },
     {
       key: "Half Day",
       label: "Half Day Employees",
       value: s["Half Day"] ?? 0,
       hint: "Employees who logged out early",
-      accent: "border-l-[#2e90fa]",
+      hintTone: "blue",
     },
     {
       key: "Leave",
       label: "On Leave Employees",
       value: s.Leave ?? 0,
       hint: "Employees on approved leave",
-      accent: "border-l-[#7a5af8]",
+      hintTone: "purple",
     },
   ];
 };
@@ -155,7 +170,7 @@ export const presentCountForDay = (
 };
 
 export type OrgCalendarCell =
-  | { key: string; empty: true }
+  | OutsideCell
   | {
       key: string;
       empty?: false;
@@ -174,7 +189,6 @@ export const buildOrgCalendarCells = (
   data: AttendanceMonthResponse | null | undefined,
   selectedDay: number | null,
 ): OrgCalendarCell[] => {
-  const firstDay = new Date(year, month - 1, 1).getDay();
   const daysInMonth = new Date(year, month, 0).getDate();
   const today = new Date();
   const cells: OrgCalendarCell[] = [];
@@ -182,9 +196,7 @@ export const buildOrgCalendarCells = (
   const holidays = data?.holidays || {};
   const weekOffs = data?.weekOffs || {};
 
-  for (let i = 0; i < firstDay; i += 1) {
-    cells.push({ key: `empty-${i}`, empty: true });
-  }
+  cells.push(...leadingOutsideCells(year, month));
 
   for (let day = 1; day <= daysInMonth; day += 1) {
     const key = String(day);
@@ -206,6 +218,7 @@ export const buildOrgCalendarCells = (
     });
   }
 
+  cells.push(...trailingOutsideCells(cells.length));
   return cells;
 };
 

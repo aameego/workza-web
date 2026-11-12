@@ -56,3 +56,7 @@ describe("normalizeAppPath", () => {
     expect(normalizeAppPath("/acme/employees/new")).toBe("/employees/new");
   });
 });
+
+it("nested pages take their module title", () => {
+  expect(titleForPath("/acme/leave/policy")).toBe(titleForPath("/acme/leave"));
+});

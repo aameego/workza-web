@@ -52,6 +52,7 @@ export type EmployeeListItem = {
   fatherHusbandName?: string;
   relationWithMember?: string;
   emergencyContact?: string;
+  emergencyContactName?: string;
   location?: string;
   aadhaarNumber?: string;
   nameAsPerAadhaar?: string;
