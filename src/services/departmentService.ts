@@ -14,6 +14,11 @@ export type DepartmentRef = {
   employeeCode?: string;
 };
 
+export type LinkedDesignation = {
+  name: string;
+  employeeCount: number;
+};
+
 export type Department = {
   _id: string;
   name: string;
@@ -29,6 +34,9 @@ export type Department = {
   longitude?: number | null;
   geofenceRadiusMeters?: number | null;
   allowOutsideGeofence?: boolean;
+  /** Distinct employee designation titles in this department. */
+  designationCount?: number;
+  linkedDesignations?: LinkedDesignation[];
 };
 
 export type ShiftOption = {

@@ -389,7 +389,10 @@ export default function LeaveRequestModal({
 
         {daySpan != null ? (
           <p className="m-0 sm:col-span-2 text-xs text-wz-text-secondary">
-            Duration: {daySpan} day{daySpan === 1 ? "" : "s"}
+            Selected range: {daySpan} calendar day{daySpan === 1 ? "" : "s"}
+            {form.leaveType === "CO" && form.coPurpose === "credit"
+              ? ""
+              : " (week-offs and holidays are excluded from the leave balance on submit)"}
           </p>
         ) : null}
 

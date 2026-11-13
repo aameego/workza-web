@@ -38,9 +38,50 @@ export const employmentActiveBadge = (emp: EmployeeListItem): BadgeStatus => {
   return "success";
 };
 
+/** IST YYYY-MM-DD for probation end comparisons (matches backend). */
+const dayKeyIST = (value?: string | Date | null): string | null => {
+  if (!value) return null;
+  const d = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  try {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(d);
+  } catch {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+};
+
+/**
+ * Effective employment status for badges/menus: sticky "probation" becomes
+ * full-time once probationEndDate (IST day) has passed.
+ */
+export const effectiveEmploymentStatus = (
+  emp: Pick<
+    EmployeeListItem,
+    "employmentStatus" | "probationEndDate" | "isConsultancy"
+  >,
+  now: Date = new Date(),
+): string | null => {
+  if (emp.isConsultancy) return emp.employmentStatus || null;
+  const status = String(emp.employmentStatus || "").toLowerCase();
+  if (status === "full-time" || status === "fulltime" || status === "confirmed") {
+    return "full-time";
+  }
+  if (status !== "probation") return emp.employmentStatus || null;
+  const endKey = dayKeyIST(emp.probationEndDate);
+  if (!endKey) return "probation";
+  const todayKey = dayKeyIST(now);
+  if (todayKey && todayKey > endKey) return "full-time";
+  return "probation";
+};
+
 export const employmentTypeLabel = (emp: EmployeeListItem): string | null => {
   if (emp.isConsultancy) return "Consultant";
-  const status = String(emp.employmentStatus || "").toLowerCase();
+  const status = String(effectiveEmploymentStatus(emp) || "").toLowerCase();
   if (status === "probation") return "Probation";
   if (status === "full-time" || status === "fulltime" || status === "confirmed") {
     return "Full-Time";
@@ -50,7 +91,7 @@ export const employmentTypeLabel = (emp: EmployeeListItem): string | null => {
 };
 
 export const employmentTypeBadge = (emp: EmployeeListItem): BadgeStatus => {
-  const status = String(emp.employmentStatus || "").toLowerCase();
+  const status = String(effectiveEmploymentStatus(emp) || "").toLowerCase();
   if (status === "probation") return "info";
   if (status === "intern") return "warning";
   if (emp.isConsultancy) return "extra";

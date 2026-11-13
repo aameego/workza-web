@@ -2,7 +2,7 @@ type AccrualDetail = { status?: string; reason?: string };
 type AccrualResult = { message?: string; details?: AccrualDetail[] } | unknown;
 
 const REASONS: Record<string, string> = {
-  "zero-credit": "nothing due — probation or yearly cap",
+  "zero-credit": "nothing due — yearly cap or attendance rule",
   "not-joined-yet": "not joined yet",
   exited: "exited",
   inactive: "inactive",

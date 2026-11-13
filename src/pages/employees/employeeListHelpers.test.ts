@@ -7,6 +7,7 @@ import {
   appLoginLabel,
   employmentActiveBadge,
   employmentActiveLabel,
+  effectiveEmploymentStatus,
   employmentTypeLabel,
   pageWindowLabel,
   paginationItems,
@@ -28,15 +29,40 @@ describe("employeeListHelpers", () => {
   });
 
   it("labels employment type", () => {
-    expect(employmentTypeLabel(base({ employmentStatus: "probation" }))).toBe(
-      "Probation",
-    );
+    expect(
+      employmentTypeLabel(
+        base({
+          employmentStatus: "probation",
+          probationEndDate: "2099-12-31",
+        }),
+      ),
+    ).toBe("Probation");
     expect(employmentTypeLabel(base({ employmentStatus: "full-time" }))).toBe(
       "Full-Time",
     );
     expect(employmentTypeLabel(base({ isConsultancy: true }))).toBe(
       "Consultant",
     );
+  });
+
+  it("treats past probation end date as full-time even if status is sticky", () => {
+    expect(
+      effectiveEmploymentStatus(
+        {
+          employmentStatus: "probation",
+          probationEndDate: "2020-01-15",
+        },
+        new Date("2026-03-13T10:00:00+05:30"),
+      ),
+    ).toBe("full-time");
+    expect(
+      employmentTypeLabel(
+        base({
+          employmentStatus: "probation",
+          probationEndDate: "2020-01-15",
+        }),
+      ),
+    ).toBe("Full-Time");
   });
 
   it("labels app login", () => {
