@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Avatar, Modal } from "../../design-system";
 import type { Department } from "../../services/departmentService";
+import { employeeCountLabel } from "./departmentBulk";
 import {
   headDisplay,
   otPolicyLabel,
@@ -57,11 +58,12 @@ export default function DepartmentViewModal({
   const head = headDisplay(department.departmentHead);
   const dash = (v?: string | number | null) =>
     v === null || v === undefined || v === "" ? "—" : String(v);
+  const linked = department.linkedDesignations || [];
 
   return (
     <Modal
       open={open}
-      title={`Department - ${department.name || "—"}`}
+      title={`Department – ${department.name || "—"}`}
       onClose={onClose}
       size="md"
     >
@@ -73,10 +75,12 @@ export default function DepartmentViewModal({
               value={dash(department.sitePayoutRule)}
             />
             <DetailRow label="State Name" value={dash(department.stateName)} />
-            <DetailRow
-              label="Description"
-              value={dash(department.description)}
-            />
+            <div className="sm:col-span-2">
+              <DetailRow
+                label="Description"
+                value={dash(department.description)}
+              />
+            </div>
           </div>
         </Section>
 
@@ -127,9 +131,27 @@ export default function DepartmentViewModal({
         </Section>
 
         <Section title="Linked Designations">
-          <p className="m-0 text-sm text-wz-text-muted">
-            No designations linked yet.
-          </p>
+          {linked.length === 0 ? (
+            <p className="m-0 text-sm text-wz-text-muted">
+              No designations linked yet.
+            </p>
+          ) : (
+            <ul className="m-0 flex list-none flex-col gap-wz-3 p-0">
+              {linked.map((item) => (
+                <li
+                  key={item.name}
+                  className="flex items-center justify-between gap-3"
+                >
+                  <span className="text-sm font-semibold text-wz-heading">
+                    {item.name}
+                  </span>
+                  <span className="text-[10px] font-semibold tracking-[0.04em] text-wz-text-muted uppercase">
+                    {employeeCountLabel(item.employeeCount)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </Section>
       </div>
     </Modal>

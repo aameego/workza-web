@@ -48,6 +48,8 @@ export const visibleMenuSections = ({
   const letters = employeeLetterActions(letterAccess, employee, {
     canTerminate: false,
   });
+  // Sticky stored status: keep Confirm available even after end date when
+  // auto-confirm is off / heal has not persisted yet. Badge uses effective status.
   const showProbation =
     directory === "employee" &&
     probationOk &&

@@ -124,6 +124,8 @@ export default function LeavePolicyPage() {
         templateKey: local.templateKey || "custom",
         yearStartMonth: local.yearStartMonth ?? 1,
         yearStartDay: local.yearStartDay ?? 1,
+        accruePaidLeaveDuringProbation:
+          local.accruePaidLeaveDuringProbation === true,
         types: local.types,
       });
       setLocal(res.policy || res);
@@ -272,6 +274,33 @@ export default function LeavePolicyPage() {
             <h2 className="m-0 mb-wz-3 text-base font-semibold text-wz-text-primary">
               Templates & accrual
             </h2>
+            <label className="mb-wz-4 flex cursor-pointer items-start gap-2.5 text-sm text-wz-heading">
+              <input
+                type="checkbox"
+                className="mt-0.5 size-4 accent-wz-primary"
+                checked={local?.accruePaidLeaveDuringProbation === true}
+                onChange={(e) =>
+                  setLocal((p) =>
+                    p
+                      ? {
+                          ...p,
+                          accruePaidLeaveDuringProbation: e.target.checked,
+                        }
+                      : p,
+                  )
+                }
+              />
+              <span>
+                <span className="font-semibold">
+                  Allow taking paid leave during probation
+                </span>
+                <span className="mt-0.5 block text-xs font-normal text-wz-text-muted">
+                  Off: CL, SL, and EL still collect each month, but employees
+                  cannot apply them until probation ends. On: they may apply
+                  while still on probation.
+                </span>
+              </span>
+            </label>
             <div className="flex flex-wrap items-end gap-3">
               <Field label="Apply template" className="min-w-[220px]">
                 <Select

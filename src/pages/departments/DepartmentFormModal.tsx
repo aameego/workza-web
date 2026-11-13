@@ -224,34 +224,37 @@ export default function DepartmentFormModal({
               aria-invalid={Boolean(errors.name)}
             />
           </Field>
-          <Field label="Payout Rule" htmlFor="dep-payout">
-            <Select
-              id="dep-payout"
-              value={form.sitePayoutRule}
-              onChange={(e) => setField("sitePayoutRule", e.target.value)}
-            >
-              <option value="">Select here</option>
-              {PAYOUT_RULE_OPTIONS.map((opt) => (
-                <option key={opt} value={opt}>
-                  {opt}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          <Field label="State Name" htmlFor="dep-state" className="sm:col-span-2">
-            <Select
-              id="dep-state"
-              value={form.stateName}
-              onChange={(e) => setField("stateName", e.target.value)}
-            >
-              <option value="">Select here</option>
-              {STATE_OPTIONS.map((opt) => (
-                <option key={opt} value={opt}>
-                  {opt}
-                </option>
-              ))}
-            </Select>
-          </Field>
+          {/* Figma: Payout | State as two equal columns (not 1+2). */}
+          <div className="sm:col-span-3 grid grid-cols-1 gap-wz-4 sm:grid-cols-2">
+            <Field label="Payout Rule" htmlFor="dep-payout">
+              <Select
+                id="dep-payout"
+                value={form.sitePayoutRule}
+                onChange={(e) => setField("sitePayoutRule", e.target.value)}
+              >
+                <option value="">Select here</option>
+                {PAYOUT_RULE_OPTIONS.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="State Name" htmlFor="dep-state">
+              <Select
+                id="dep-state"
+                value={form.stateName}
+                onChange={(e) => setField("stateName", e.target.value)}
+              >
+                <option value="">Select here</option>
+                {STATE_OPTIONS.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          </div>
           <Field
             label="Department Description"
             htmlFor="dep-desc"

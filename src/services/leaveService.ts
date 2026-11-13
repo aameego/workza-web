@@ -167,6 +167,8 @@ export type LeavePolicy = {
   yearStartMonth?: number;
   yearStartDay?: number;
   templateKey?: string;
+  /** When true, employees may apply CL/SL/EL while still on probation. Accrual always runs. */
+  accruePaidLeaveDuringProbation?: boolean;
   types?: LeavePolicyType[];
 };
 

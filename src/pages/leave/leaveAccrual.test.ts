@@ -12,7 +12,7 @@ it("summarises skip reasons after the backend message", () => {
     ],
   });
   expect(msg).toBe(
-    "Leave accrual completed for 2026-11. Credited: 1 · Already credited: 0 · Skipped: 3 (2 nothing due — probation or yearly cap, 1 exited)",
+    "Leave accrual completed for 2026-11. Credited: 1 · Already credited: 0 · Skipped: 3 (2 nothing due — yearly cap or attendance rule, 1 exited)",
   );
 });
 
