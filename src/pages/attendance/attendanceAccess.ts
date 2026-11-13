@@ -70,7 +70,8 @@ export const canViewTeamAttendance = (user: SessionUser | null): boolean => {
  */
 export const canMarkAttendance = (user: SessionUser | null): boolean => {
   if (!user?.role) return false;
-  if (user.role === "Admin") return true;
+  // The API allows Admin and HR by role (ATT-UI-15); others need attendance:mark.
+  if (user.role === "Admin" || user.role === "HR") return true;
   return hasPermission(user, "attendance:mark");
 };
 

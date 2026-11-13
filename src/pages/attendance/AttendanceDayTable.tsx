@@ -1,12 +1,23 @@
-import { Clock3, Search, SquarePen } from "lucide-react";
+import { Fragment, useState } from "react";
+import { ChevronDown, Clock3, Search, SquarePen } from "lucide-react";
 import LocationIcons from "./LocationIcons";
-import { Badge, Select, cn } from "../../design-system";
+import { Badge, Pagination, Select, cn } from "../../design-system";
+import { formatHistoryTime, formatHours } from "./attendanceHistory";
 import type { BadgeStatus } from "../../design-system";
 import { FILTER_TYPE_PRESETS } from "./attendanceMonthOptions";
 import {
   EMPLOYEE_STATUS_FILTER_OPTIONS,
   type NormalizedAttendanceRow,
 } from "./attendanceViewModel";
+
+/** True when the row's day is before today (local). */
+const missedCheckout = (date?: string) => {
+  if (!date) return false;
+  const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return false;
+  const t = new Date();
+  return d < new Date(t.getFullYear(), t.getMonth(), t.getDate());
+};
 
 const statusToBadge = (status?: string): BadgeStatus => {
   const s = String(status || "");
@@ -40,6 +51,14 @@ export type AttendanceDayTableProps = {
   onFilterTypeChange?: (value: string) => void;
   showRangePresets?: boolean;
   canEdit?: boolean;
+  /** Per-row edit lock, e.g. HR cannot edit their own record (ATT-FN-09). */
+  canEditRow?: (row: NormalizedAttendanceRow) => boolean;
+  /** Server pagination (ATT-UI-11). */
+  page?: number;
+  pages?: number;
+  total?: number;
+  pageSize?: number;
+  onPageChange?: (page: number) => void;
   onEdit?: (row: NormalizedAttendanceRow) => void;
   onHistory?: (row: NormalizedAttendanceRow) => void;
 };
@@ -61,9 +80,18 @@ export default function AttendanceDayTable({
   onFilterTypeChange,
   showRangePresets = false,
   canEdit,
+  canEditRow,
+  page = 1,
+  pages = 1,
+  total,
+  pageSize = 10,
+  onPageChange,
   onEdit,
   onHistory,
 }: AttendanceDayTableProps) {
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const count = total ?? rows.length;
+  const from = count === 0 ? 0 : (page - 1) * pageSize + 1;
   return (
     /* Figma attendance-admin table (1:17205): title + subtitle + 300px search on the
        page; table card 16 below with a 54px header and 60px rows. */
@@ -144,7 +172,8 @@ export default function AttendanceDayTable({
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-wz-xl border border-wz-border bg-white">
+      <div className="overflow-hidden rounded-wz-xl border border-wz-border bg-white">
+        <div className="overflow-x-auto">
         <table className="w-full min-w-[960px] border-collapse text-left text-xs leading-[normal] text-wz-heading">
           <thead>
             <tr>
@@ -191,13 +220,15 @@ export default function AttendanceDayTable({
               </tr>
             ) : (
               rows.map((row) => {
-                const firstSession = row.sessions?.[0];
-                const lastSession = row.sessions?.[row.sessions.length - 1];
+                const sessions = row.sessions || [];
+                const firstSession = sessions[0];
+                const lastSession = sessions[sessions.length - 1];
+                const sessionCount = row.sessionCount ?? sessions.length;
+                const open = expanded === row.rowKey;
+                const editable = canEdit && (canEditRow ? canEditRow(row) : true);
                 return (
-                  <tr
-                    key={row.rowKey}
-                    className="border-b border-wz-border last:border-0"
-                  >
+                  <Fragment key={row.rowKey}>
+                  <tr className="border-b border-wz-border last:border-0">
                     <td className="h-[60px] px-4">
                       <p className="m-0 truncate">{row.name}</p>
                       <p className="m-0 mt-0.5 text-[10px] text-wz-text-muted">
@@ -205,29 +236,55 @@ export default function AttendanceDayTable({
                       </p>
                     </td>
                     <td className="px-4">{row.leaveLabel || row.leaveType || "-"}</td>
-                    <td className="px-4">{row.checkIn || "-"}</td>
-                    <td className="px-4">{row.checkOut || "-"}</td>
-                    <td className="px-4">{row.hours || "-"}</td>
+                    <td className="px-4">{formatHistoryTime(row.checkIn)}</td>
+                    {/* An open session has no check-out yet (ATT-FN-06). */}
+                    <td className="px-4">{row.isCheckedIn ? "-" : formatHistoryTime(row.checkOut)}</td>
+                    <td className="px-4 whitespace-nowrap">{formatHours(row.hours)}</td>
                     <td className="px-4">
-                      {row.sessionCount ?? row.sessions?.length ?? "-"}
+                      {sessions.length ? (
+                        <button
+                          type="button"
+                          aria-expanded={open}
+                          aria-label={`Session details for ${row.name}`}
+                          className="inline-flex cursor-pointer items-center gap-1 border-0 bg-transparent p-0 text-xs text-wz-heading hover:text-wz-primary"
+                          onClick={() => setExpanded(open ? null : row.rowKey)}
+                        >
+                          {sessionCount}
+                          <ChevronDown size={12} className={cn("transition-transform", open && "rotate-180")} aria-hidden />
+                        </button>
+                      ) : (
+                        sessionCount || "-"
+                      )}
                     </td>
                     <td className="max-w-[140px] truncate px-4">
                       {row.notes || row.reason || "-"}
                     </td>
                     <td className="px-4">
-                      <LocationIcons url={firstSession?.checkInLocation?.mapsUrl} />
+                      <LocationIcons
+                        url={firstSession?.checkInLocation?.mapsUrl}
+                        selfieUrl={firstSession?.checkInSelfieUrl}
+                      />
                     </td>
                     <td className="px-4">
-                      <LocationIcons url={lastSession?.checkOutLocation?.mapsUrl} />
+                      <LocationIcons
+                        url={lastSession?.checkOutLocation?.mapsUrl}
+                        selfieUrl={lastSession?.checkOutSelfieUrl}
+                      />
                     </td>
                     <td className="px-4">
-                      <Badge status={statusToBadge(row.status)}>
-                        {row.status || "-"}
-                      </Badge>
+                      <div className="flex flex-col items-start gap-1">
+                        <Badge status={statusToBadge(row.status)}>
+                          {row.status || "-"}
+                        </Badge>
+                        {/* A session still open after its day ended (ATT-FN-06). */}
+                        {row.isCheckedIn && missedCheckout(row.date) ? (
+                          <Badge status="warning">Missed check-out</Badge>
+                        ) : null}
+                      </div>
                     </td>
                     <td className="px-4">
                       <div className="flex items-center gap-1">
-                        {canEdit ? (
+                        {editable ? (
                           <button
                             type="button"
                             className="inline-flex size-6 cursor-pointer items-center justify-center rounded-wz-md border-0 bg-transparent text-wz-heading hover:bg-wz-neutral-100"
@@ -248,11 +305,64 @@ export default function AttendanceDayTable({
                       </div>
                     </td>
                   </tr>
+                  {open ? (
+                    /* Figma session details: First In / Last Out / Total Hours / Sessions, then each session */
+                    <tr className="border-b border-wz-border bg-wz-neutral-50 last:border-0">
+                      <td colSpan={11} className="px-4 py-3">
+                        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                          {(
+                            [
+                              ["First In", formatHistoryTime(firstSession?.checkIn)],
+                              ["Last Out", lastSession?.isOpen ? "-" : formatHistoryTime(lastSession?.checkOut)],
+                              ["Total Hours", formatHours(row.hours)],
+                              ["Sessions", String(sessionCount)],
+                            ] as const
+                          ).map(([label, value]) => (
+                            <div key={label} className="rounded-wz-md border border-wz-border bg-white px-3 py-2">
+                              <p className="m-0 text-[9px] leading-3 font-bold tracking-[0.5px] text-wz-text-muted uppercase">{label}</p>
+                              <p className="m-0 mt-1 text-sm leading-[18px] font-bold text-wz-heading">{value}</p>
+                            </div>
+                          ))}
+                        </div>
+                        <ul className="m-0 mt-3 flex list-none flex-col gap-2 p-0">
+                          {sessions.map((sn, i) => (
+                            <li key={i} className="flex flex-wrap items-center gap-x-6 gap-y-1 rounded-wz-md border border-wz-border bg-white px-3 py-2">
+                              <span className="font-semibold">Session {sn.sessionNumber || i + 1}</span>
+                              <span className="inline-flex items-center gap-1.5">
+                                In: {formatHistoryTime(sn.checkIn)}
+                                {sn.checkInLocation?.mapsUrl || sn.checkInSelfieUrl ? (
+                                  <LocationIcons url={sn.checkInLocation?.mapsUrl} selfieUrl={sn.checkInSelfieUrl} />
+                                ) : null}
+                              </span>
+                              <span className="inline-flex items-center gap-1.5">
+                                Out: {sn.isOpen ? "-" : formatHistoryTime(sn.checkOut)}
+                                {!sn.isOpen && (sn.checkOutLocation?.mapsUrl || sn.checkOutSelfieUrl) ? (
+                                  <LocationIcons url={sn.checkOutLocation?.mapsUrl} selfieUrl={sn.checkOutSelfieUrl} />
+                                ) : null}
+                              </span>
+                              <span>{formatHours(sn.hours)}</span>
+                              {sn.isOpen ? <Badge status="warning">Open</Badge> : null}
+                            </li>
+                          ))}
+                        </ul>
+                      </td>
+                    </tr>
+                  ) : null}
+                  </Fragment>
                 );
               })
             )}
           </tbody>
         </table>
+        </div>
+        {onPageChange && count > 0 ? (
+          <Pagination
+            page={page}
+            pages={pages}
+            onPageChange={onPageChange}
+            summary={`Showing ${from}–${Math.min(page * pageSize, count)} of ${count} employees`}
+          />
+        ) : null}
       </div>
     </section>
   );

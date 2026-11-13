@@ -131,9 +131,36 @@ export const flattenDayRecords = (
   return rows.sort((a, b) => a.day - b.day);
 };
 
-export const kpiFromStats = (stats?: AttendanceMonthResponse["stats"]) => [
+/**
+ * Working days before today with no attendance, leave, holiday or week-off entry — they
+ * count as absent for one person's month (ATT-FN-04). Days before `joinedOn` are skipped.
+ */
+export const unmarkedPastWorkingDays = (
+  year: number,
+  month: number,
+  data: AttendanceMonthResponse | null | undefined,
+  { today = new Date(), joinedOn }: { today?: Date; joinedOn?: string | null } = {},
+): number => {
+  if (!data) return 0;
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const joined = joinedOn ? new Date(joinedOn) : null;
+  const days = new Date(year, month, 0).getDate();
+  let count = 0;
+  for (let d = 1; d <= days; d += 1) {
+    const date = new Date(year, month - 1, d);
+    if (date >= todayStart) break;
+    if (joined && !Number.isNaN(joined.getTime()) && date < new Date(joined.getFullYear(), joined.getMonth(), joined.getDate())) continue;
+    const key = String(d);
+    if (data.calendar?.[key] || data.holidays?.[key] || data.weekOffs?.[key]) continue;
+    if ((data.dayRecords?.[key] || []).length) continue;
+    count += 1;
+  }
+  return count;
+};
+
+export const kpiFromStats = (stats?: AttendanceMonthResponse["stats"], extraAbsent = 0) => [
   { label: "Present (Days)", value: stats?.Present ?? 0 },
-  { label: "Absent (Days)", value: stats?.Absent ?? 0 },
+  { label: "Absent (Days)", value: (stats?.Absent ?? 0) + extraAbsent },
   { label: "Leave (Days)", value: stats?.Leave ?? 0 },
   { label: "Half Day (Days)", value: stats?.["Half Day"] ?? 0 },
   { label: "WFH (Days)", value: stats?.WFH ?? 0 },

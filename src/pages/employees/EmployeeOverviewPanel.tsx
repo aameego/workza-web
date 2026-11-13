@@ -30,6 +30,11 @@ export default function EmployeeOverviewPanel({
     employee.hasAppLogin && employee.hasLoginEnabled,
   );
 
+  const gross = Math.max(0, Number(employee.monthlyConsultancyPay) || 0);
+  const tdsPct = Math.min(100, Math.max(0, Number(employee.tdsPercent) || 0));
+  const tdsAmt = Math.round((gross * tdsPct) / 100);
+  const rupees = (v: number) => `₹${v.toLocaleString("en-IN")}`;
+
   return (
     <div className="flex w-full flex-col gap-wz-6">
       {/* Card 1 — Personal / Emergency / Family (Figma Left-View-Column) */}
@@ -274,6 +279,33 @@ export default function EmployeeOverviewPanel({
             </EmployeeInfoRow>
           </div>
         </div>
+
+        {employee.isConsultancy ? (
+          /* Figma view-consultant "Consultancy Payments": pay, TDS and the net summary (EMP-UI-32) */
+          <div className="flex w-full flex-col gap-wz-4">
+            <EmployeeSectionHeader title="Consultancy Payments" />
+            <EmployeeInfoRow>
+              <EmployeeInfoField
+                label="Monthly Consultancy Pay"
+                value={gross > 0 ? rupees(gross) : "-"}
+              />
+              <EmployeeInfoField
+                label="TDS (%)"
+                value={employee.tdsPercent != null && employee.tdsPercent !== "" ? `${tdsPct}%` : "-"}
+              />
+            </EmployeeInfoRow>
+            <div className="flex min-h-[50px] flex-wrap items-center justify-between gap-4 rounded-wz-md border border-wz-border bg-wz-neutral-50 px-4">
+              <span className="text-xs leading-[15px] font-semibold text-wz-text-muted uppercase">
+                Gross: {rupees(gross)}
+                <span className="mx-2">|</span>
+                TDS({tdsPct}%): -{rupees(tdsAmt)}
+              </span>
+              <span className="text-sm leading-[18px] font-bold text-wz-heading">
+                Net Payable: {rupees(gross - tdsAmt)}
+              </span>
+            </div>
+          </div>
+        ) : null}
       </section>
     </div>
   );

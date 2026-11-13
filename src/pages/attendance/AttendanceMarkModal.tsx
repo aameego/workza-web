@@ -90,7 +90,12 @@ export default function AttendanceMarkModal({
     e.preventDefault();
     if (!employeeId) return setError("Please select an employee.");
     if (mode === "day") {
+      if (!date) return setError("Please select the attendance date.");
       if (!status) return setError("Please select an attendance status.");
+      // Times are required unless the day has none by definition.
+      if (!["Absent", "Leave"].includes(status) && (!checkIn || !checkOut)) {
+        return setError("Check In and Check Out are required.");
+      }
       if (checkIn && checkOut && toMin(checkOut) <= toMin(checkIn)) {
         return setError("Check-out time must be later than check-in time.");
       }
@@ -145,6 +150,7 @@ export default function AttendanceMarkModal({
       }
     >
       <form
+        noValidate
         id="attendance-mark-form"
         className="grid grid-cols-1 gap-x-wz-6 gap-y-wz-6 sm:grid-cols-2"
         onSubmit={(e) => void handleSubmit(e)}

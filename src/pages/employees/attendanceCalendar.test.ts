@@ -3,6 +3,7 @@ import {
   buildCalendarCells,
   flattenDayRecords,
   kpiFromStats,
+  unmarkedPastWorkingDays,
 } from "./attendanceCalendar";
 
 describe("attendanceCalendar", () => {
@@ -51,4 +52,20 @@ describe("attendanceCalendar", () => {
       { day: 2, status: "Late" },
     ]);
   });
+});
+
+it("counts past working days with no record as absent", () => {
+  const data = {
+    year: 2026,
+    month: 11,
+    calendar: { "2": "Present", "1": "week-off" },
+    weekOffs: { "1": { dayName: "Sunday" } },
+    holidays: { "4": { name: "Diwali" } },
+    dayRecords: { "2": [{ status: "Present" }] },
+  };
+  // 1 week-off, 2 present, 3 unmarked, 4 holiday, 5 unmarked; today = 6th
+  expect(unmarkedPastWorkingDays(2026, 11, data, { today: new Date(2026, 10, 6) })).toBe(2);
+  expect(
+    unmarkedPastWorkingDays(2026, 11, data, { today: new Date(2026, 10, 6), joinedOn: "2026-11-05" }),
+  ).toBe(1);
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildHistoryEvents, formatHistoryTime } from "./attendanceHistory";
+import { buildHistoryEvents, formatHistoryTime, formatHours } from "./attendanceHistory";
 
 describe("attendance history", () => {
   it("formats HH:MM as 12h", () => {
@@ -33,4 +33,11 @@ describe("attendance history", () => {
     expect(events[1]).toMatchObject({ previous: "-", updated: "05:30 PM" });
     expect(events[2]).toMatchObject({ checkIn: "09:00 AM", checkOut: "-" });
   });
+});
+
+it("formats hours like Figma", () => {
+  expect(formatHours("6h 00m")).toBe("06 hr 00 m");
+  expect(formatHours("9h 53m")).toBe("09 hr 53 m");
+  expect(formatHours(1.5)).toBe("01 hr 30 m");
+  expect(formatHours("—")).toBe("-");
 });

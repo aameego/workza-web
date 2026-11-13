@@ -37,6 +37,8 @@ describe("orgDayMetrics", () => {
 
   it("defaults missing stats to zero", () => {
     expect(orgDayMetrics(null)[0]?.value).toBe(0);
+    const past = orgDayMetrics({ Absent: 1, "Not Marked": 4 }, { notMarkedAsAbsent: true });
+    expect(past.find((c) => c.key === "Absent")?.value).toBe(5);
   });
 });
 
@@ -95,8 +97,8 @@ describe("presentCountForDay / buildOrgCalendarCells", () => {
     },
   };
 
-  it("counts present and late for a day", () => {
-    expect(presentCountForDay(data, 5)).toBe(2);
+  it("counts present employees for a day, matching the Present card", () => {
+    expect(presentCountForDay(data, 5)).toBe(1);
     expect(presentCountForDay(data, 6)).toBe(0);
   });
 
@@ -106,7 +108,7 @@ describe("presentCountForDay / buildOrgCalendarCells", () => {
     const day14 = cells.find((c) => !c.empty && c.day === 14);
     const day1 = cells.find((c) => !c.empty && c.day === 1);
     expect(day5 && !day5.empty && day5.isSelected).toBe(true);
-    expect(day5 && !day5.empty && day5.presentCount).toBe(2);
+    expect(day5 && !day5.empty && day5.presentCount).toBe(1);
     expect(day14 && !day14.empty && day14.holidayName).toBe("Diwali");
     expect(day1 && !day1.empty && day1.weekOff).toBe(true);
   });

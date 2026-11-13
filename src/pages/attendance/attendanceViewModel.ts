@@ -67,8 +67,11 @@ export const EMPTY_STATS: AttendanceMonthStats = {
 
 export const orgDayMetrics = (
   stats?: AttendanceMonthStats | null,
+  /** Past working day: people with no record count as absent (ATT-FN-04). */
+  { notMarkedAsAbsent = false }: { notMarkedAsAbsent?: boolean } = {},
 ): OrgMetricCard[] => {
   const s = { ...EMPTY_STATS, ...(stats || {}) };
+  if (notMarkedAsAbsent) s.Absent = (s.Absent ?? 0) + (s["Not Marked"] ?? 0);
   return [
     {
       key: "Present",
@@ -165,8 +168,9 @@ export const presentCountForDay = (
   day: number,
 ): number => {
   const entries = data?.dayRecords?.[day] || data?.dayRecords?.[String(day)] || [];
-  return entries.filter((e) => e.status === "Present" || e.status === "Late")
-    .length;
+  // Present only, so the calendar number equals the "Present Employees" card (ATT-FN-05);
+  // late arrivals have their own card.
+  return entries.filter((e) => e.status === "Present").length;
 };
 
 export type OrgCalendarCell =

@@ -1,18 +1,22 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   Check,
   Copy,
   Download,
   Plus,
   Search,
+  SquarePen,
   Upload,
 } from "lucide-react";
 import {
   Badge,
   Button,
   cn,
+  ConfirmDialog,
   FilterSelect,
+  MonthSelect,
   Pagination,
   TabSwitcher,
 } from "../../design-system";
@@ -26,7 +30,14 @@ import {
   saveDownload,
 } from "../../lib/saveDownload";
 import { exportEmployees } from "../../services/employeeService";
+import {
+  getConsultancyPayments,
+  saveConsultancyPayment,
+} from "../../services/consultancyPaymentService";
+import type { EmployeeListItem } from "../../services/employeeTypes";
+import { monthLabel } from "./attendanceCalendar";
 import BulkUploadModal from "./BulkUploadModal";
+import ConsultancyPaymentModal from "./ConsultancyPaymentModal";
 import EmployeeRowActions from "./EmployeeRowActions";
 import type { DirectoryTab } from "./employeeListHelpers";
 import {
@@ -52,6 +63,8 @@ const thClass =
 const tdClass =
   "h-[60px] border-b border-wz-border px-4 py-0 align-middle text-xs leading-[normal] text-wz-heading";
 
+const inr = (v?: number) => `₹${Math.round(Number(v) || 0).toLocaleString("en-IN")}`;
+
 export default function EmployeesPage() {
   const navigate = useNavigate();
   const { vendorSlug } = useParams();
@@ -59,7 +72,11 @@ export default function EmployeesPage() {
   const vendorId = user?.vendorId || null;
   const base = `/${vendorSlug || "app"}`;
 
-  const [directory, setDirectory] = useState<DirectoryTab>("employee");
+  const [searchParams, setSearchParams] = useSearchParams();
+  // The tab lives in the URL (?type=consultancy) so the top bar title and a refresh follow it.
+  const [directory, setDirectory] = useState<DirectoryTab>(
+    searchParams.get("type") === "consultancy" ? "consultancy" : "employee",
+  );
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
@@ -71,6 +88,55 @@ export default function EmployeesPage() {
   const [bulkOpen, setBulkOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [toolbarError, setToolbarError] = useState<string | null>(null);
+  // Consultancy tab: payments are per month (Figma "Select Year/ Month").
+  const isConsult = directory === "consultancy";
+  const qc = useQueryClient();
+  const [payPeriod, setPayPeriod] = useState(() => {
+    const d = new Date();
+    return { year: d.getFullYear(), month: d.getMonth() + 1 };
+  });
+  const [payStatus, setPayStatus] = useState("");
+  const [editPay, setEditPay] = useState<EmployeeListItem | null>(null);
+  const [markPaid, setMarkPaid] = useState<EmployeeListItem | null>(null);
+  const [markingPaid, setMarkingPaid] = useState(false);
+  const paymentsQuery = useQuery({
+    queryKey: ["consultancy-payments", payPeriod.year, payPeriod.month],
+    queryFn: () => getConsultancyPayments(payPeriod.month, payPeriod.year),
+    enabled: isConsult,
+  });
+  const paymentById = useMemo(
+    () =>
+      new Map(
+        (paymentsQuery.data?.rows || []).map((r) => [String(r.employee?._id || ""), r.payment]),
+      ),
+    [paymentsQuery.data],
+  );
+  const refreshPayments = () => void qc.invalidateQueries({ queryKey: ["consultancy-payments"] });
+  const shiftPayMonth = (delta: number) => {
+    const d = new Date(payPeriod.year, payPeriod.month - 1 + delta, 1);
+    const now = new Date();
+    // The API refuses future months.
+    if (d > new Date(now.getFullYear(), now.getMonth(), 1)) return;
+    setPayPeriod({ year: d.getFullYear(), month: d.getMonth() + 1 });
+  };
+  const confirmMarkPaid = async () => {
+    if (!markPaid) return;
+    setMarkingPaid(true);
+    try {
+      await saveConsultancyPayment({
+        employeeId: markPaid._id,
+        month: payPeriod.month,
+        year: payPeriod.year,
+        status: "Paid",
+      });
+      refreshPayments();
+    } catch (err) {
+      setToolbarError(err instanceof ApiError ? err.message : "Unable to mark the payment as paid");
+    } finally {
+      setMarkingPaid(false);
+      setMarkPaid(null);
+    }
+  };
 
   const addEmployeeHref =
     directory === "consultancy"
@@ -132,7 +198,14 @@ export default function EmployeesPage() {
     return [...new Set(merged)];
   }, [roles]);
 
-  const employees = data?.employees ?? [];
+  // ponytail: payment status filters the loaded page only (the directory API has no payment
+  // filter); move it server-side if consultants ever span many pages.
+  const employees = (data?.employees ?? []).filter(
+    (e) =>
+      !isConsult ||
+      !payStatus ||
+      (paymentById.get(e._id)?.status || "Pending") === payStatus,
+  );
   const pagination = data?.pagination ?? {
     page: 1,
     limit: PAGE_SIZE,
@@ -158,6 +231,7 @@ export default function EmployeesPage() {
   const switchDirectory = (next: DirectoryTab) => {
     if (next === directory) return;
     setDirectory(next);
+    setSearchParams(next === "consultancy" ? { type: "consultancy" } : {}, { replace: true });
     setSearchInput("");
     setSearch("");
     setStatus("");
@@ -316,7 +390,7 @@ export default function EmployeesPage() {
           aria-label="Filter by employee status"
         >
           <option value="" hidden>
-            {STATUS_FILTER_OPTIONS[0].label}
+            {isConsult ? "Consultant Status" : STATUS_FILTER_OPTIONS[0].label}
           </option>
           <option value="">All</option>
           {STATUS_FILTER_OPTIONS.slice(1).map((opt) => (
@@ -355,8 +429,59 @@ export default function EmployeesPage() {
             </option>
           ))}
         </FilterSelect>
+
+        {isConsult ? (
+          <>
+            <FilterSelect
+              value={payStatus}
+              onChange={(e) => setPayStatus(e.target.value)}
+              aria-label="Filter by payment status"
+            >
+              <option value="" hidden>
+                Payment Status
+              </option>
+              <option value="">All</option>
+              <option value="Paid">Paid</option>
+              <option value="Pending">Pending</option>
+            </FilterSelect>
+            <MonthSelect
+              year={payPeriod.year}
+              month={payPeriod.month}
+              onShift={shiftPayMonth}
+              aria-label="Select year and month"
+            />
+          </>
+        ) : null}
       </div>
       </div>
+
+      {isConsult ? (
+        /* Figma consultancy metrics: six 86px cards for the selected month */
+        <div className="grid grid-cols-2 gap-wz-4 sm:grid-cols-3 xl:grid-cols-6">
+          {(
+            [
+              ["Consultants", String(paymentsQuery.data?.summary?.totalConsultants ?? 0)],
+              ["Total Gross", inr(paymentsQuery.data?.summary?.totalPayable)],
+              ["TDS Deduction", inr(paymentsQuery.data?.summary?.totalTDS)],
+              ["Net Payable", inr(paymentsQuery.data?.summary?.totalNetPayable)],
+              ["Paid (Net)", inr(paymentsQuery.data?.summary?.paidAmount)],
+              ["Pending (Net)", inr(paymentsQuery.data?.summary?.pendingAmount)],
+            ] as const
+          ).map(([label, value]) => (
+            <div
+              key={label}
+              className="flex h-[86px] flex-col gap-1 rounded-wz-xl border border-wz-border bg-white p-wz-4"
+            >
+              <p className="m-0 text-[11px] leading-[14px] font-semibold tracking-[0.5px] text-wz-text-muted uppercase">
+                {label}
+              </p>
+              <p className="m-0 truncate text-[28px] leading-[34px] font-bold text-wz-heading">
+                {value}
+              </p>
+            </div>
+          ))}
+        </div>
+      ) : null}
 
       {toolbarError ? (
         <div
@@ -389,20 +514,42 @@ export default function EmployeesPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[980px] border-collapse">
+            <table
+              className={cn(
+                "w-full min-w-[980px] border-collapse",
+                // Figma fits 12 consultant columns in the same width: tighter cell padding.
+                isConsult && "[&_td]:px-2.5 [&_th]:px-2.5",
+              )}
+            >
               <thead>
                 <tr>
-                  {[
-                    "Employee",
-                    "Contact",
-                    "Designation",
-                    "Department",
-                    "State",
-                    "Reporting\nManager",
-                    "App Login",
-                    "Status",
-                    "Actions",
-                  ].map((h) => (
+                  {(isConsult
+                    ? [
+                        "Code",
+                        "Contact",
+                        "Designation",
+                        "Department",
+                        "State",
+                        "Monthly\nRate (₹)",
+                        "Reporting\nManager",
+                        "TDS (%)",
+                        "Status & App Login",
+                        "Payment\nStatus",
+                        "Payment\nActions",
+                        "Actions",
+                      ]
+                    : [
+                        "Employee",
+                        "Contact",
+                        "Designation",
+                        "Department",
+                        "State",
+                        "Reporting\nManager",
+                        "App Login",
+                        "Status",
+                        "Actions",
+                      ]
+                  ).map((h) => (
                     <th key={h} className={thClass}>
                       {h}
                     </th>
@@ -412,6 +559,8 @@ export default function EmployeesPage() {
               <tbody>
                 {employees.map((emp) => {
                   const typeLabel = employmentTypeLabel(emp);
+                  const pay = paymentById.get(emp._id);
+                  const paid = pay?.status === "Paid";
                   return (
                     <tr
                       key={emp._id}
@@ -472,26 +621,78 @@ export default function EmployeesPage() {
                       <td className={tdClass} title={emp.stateName || ""}>
                         {emp.stateName || "-"}
                       </td>
+                      {isConsult ? (
+                        <td className={tdClass}>
+                          {pay?.amount ?? emp.monthlyConsultancyPay
+                            ? Number(pay?.amount ?? emp.monthlyConsultancyPay).toLocaleString("en-IN")
+                            : "-"}
+                        </td>
+                      ) : null}
                       <td className={tdClass} title={emp.managerId?.name || ""}>
                         {emp.managerId?.name || "-"}
                       </td>
-                      <td className={tdClass}>
-                        <Badge status={appLoginBadge(emp)}>
-                          {appLoginLabel(emp)}
-                        </Badge>
-                      </td>
-                      <td className={tdClass}>
-                        <div className="flex items-center gap-wz-2">
-                          <Badge status={employmentActiveBadge(emp)}>
-                            {employmentActiveLabel(emp)}
-                          </Badge>
-                          {typeLabel ? (
-                            <Badge status={employmentTypeBadge(emp)}>
-                              {typeLabel}
+                      {isConsult ? (
+                        <>
+                          <td className={tdClass}>{pay?.tdsPercent ?? emp.tdsPercent ?? "-"}</td>
+                          <td className={tdClass}>
+                            <div className="flex items-center gap-wz-2">
+                              <Badge status={employmentActiveBadge(emp)}>
+                                {employmentActiveLabel(emp)}
+                              </Badge>
+                              <Badge status={appLoginBadge(emp)}>{appLoginLabel(emp)}</Badge>
+                            </div>
+                          </td>
+                          <td className={tdClass}>
+                            <Badge status={paid ? "success" : "warning"}>
+                              {paid ? "Paid" : "Pending"}
                             </Badge>
-                          ) : null}
-                        </div>
-                      </td>
+                          </td>
+                          <td className={tdClass}>
+                            {paid || !emp.isActive ? (
+                              "-"
+                            ) : (
+                              <div className="flex items-center gap-wz-2">
+                                <button
+                                  type="button"
+                                  aria-label={`Edit payment for ${emp.name}`}
+                                  className="inline-flex size-6 cursor-pointer items-center justify-center rounded-wz-md border-0 bg-transparent text-wz-heading hover:bg-wz-neutral-100"
+                                  onClick={() => setEditPay(emp)}
+                                >
+                                  <SquarePen size={12} />
+                                </button>
+                                <button
+                                  type="button"
+                                  aria-label={`Mark ${emp.name} as paid`}
+                                  className="inline-flex size-6 cursor-pointer items-center justify-center rounded-wz-md border-0 bg-transparent text-[#12b76a] hover:bg-[#ecfdf3]"
+                                  onClick={() => setMarkPaid(emp)}
+                                >
+                                  <Check size={12} />
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td className={tdClass}>
+                            <Badge status={appLoginBadge(emp)}>
+                              {appLoginLabel(emp)}
+                            </Badge>
+                          </td>
+                          <td className={tdClass}>
+                            <div className="flex items-center gap-wz-2">
+                              <Badge status={employmentActiveBadge(emp)}>
+                                {employmentActiveLabel(emp)}
+                              </Badge>
+                              {typeLabel ? (
+                                <Badge status={employmentTypeBadge(emp)}>
+                                  {typeLabel}
+                                </Badge>
+                              ) : null}
+                            </div>
+                          </td>
+                        </>
+                      )}
                       <td className={tdClass}>
                         <EmployeeRowActions
                           employee={emp}
@@ -529,6 +730,25 @@ export default function EmployeesPage() {
         ) : null}
       </div>
 
+      <ConsultancyPaymentModal
+        employee={editPay}
+        payment={editPay ? paymentById.get(editPay._id) : undefined}
+        month={payPeriod.month}
+        year={payPeriod.year}
+        periodLabel={monthLabel(payPeriod.year, payPeriod.month)}
+        onClose={() => setEditPay(null)}
+        onSaved={refreshPayments}
+      />
+      <ConfirmDialog
+        open={Boolean(markPaid)}
+        tone="success"
+        title="Mark as Paid?"
+        message={`Mark ${markPaid?.name || "this consultant"}'s ${monthLabel(payPeriod.year, payPeriod.month)} payment as paid? A paid payment cannot be edited or reverted.`}
+        confirmLabel="Mark Paid"
+        loading={markingPaid}
+        onClose={() => setMarkPaid(null)}
+        onConfirm={() => void confirmMarkPaid()}
+      />
       <BulkUploadModal
         open={bulkOpen}
         onClose={() => setBulkOpen(false)}

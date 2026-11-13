@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
-  APP_NAV_ITEMS,
+  navItemsFor,
   crumbsForPath,
   isNavPathActive,
   normalizeAppPath,
@@ -79,8 +79,8 @@ export default function AppLayout() {
   }, [vendorSlug, user?.vendorName]);
 
   const currentPath = normalizeAppPath(location.pathname);
-  const pageTitle = titleForPath(location.pathname);
-  const pageCrumbs = crumbsForPath(location.pathname);
+  const pageTitle = titleForPath(location.pathname, location.search);
+  const pageCrumbs = crumbsForPath(location.pathname, location.search);
   const vendorBase = `/${vendorCode}`;
   const displayName = displayNameFor(user);
   const roleLabel = roleLabelFor(user);
@@ -215,7 +215,7 @@ export default function AppLayout() {
               collapsedDesktop && "items-center px-[14px]",
             )}
           >
-            {APP_NAV_ITEMS.map((item) => {
+            {navItemsFor(user).map((item) => {
               const Icon = item.icon;
               const active = isNavPathActive(currentPath, item.path);
               return (

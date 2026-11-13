@@ -120,3 +120,16 @@ export const buildHistoryEvents = (
   }
   return events;
 };
+
+/** Figma hours format "09 hr 53 m" from the API's "9h 53m" (or decimal hours); "-" when empty. */
+export const formatHours = (value?: string | number | null): string => {
+  if (value == null || value === "" || value === "-" || value === "—") return "-";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  if (typeof value === "number") {
+    const mins = Math.round(value * 60);
+    return `${pad(Math.floor(mins / 60))} hr ${pad(mins % 60)} m`;
+  }
+  const m = /(\d+)\s*h\D*(\d+)?/i.exec(value);
+  if (!m) return value;
+  return `${pad(Number(m[1]))} hr ${pad(Number(m[2] || 0))} m`;
+};

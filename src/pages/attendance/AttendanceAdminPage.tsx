@@ -23,6 +23,7 @@ import {
 import AttendanceBulkUploadModal from "./AttendanceBulkUploadModal";
 import AttendanceDayTable from "./AttendanceDayTable";
 import AttendanceEditModal from "./AttendanceEditModal";
+import { employeeIdFromRow } from "./attendanceEditHelpers";
 import AttendanceExportModal from "./AttendanceExportModal";
 import AttendanceHistoryModal from "./AttendanceHistoryModal";
 import AttendanceMarkModal from "./AttendanceMarkModal";
@@ -38,6 +39,8 @@ import {
   orgDayMetrics,
   type NormalizedAttendanceRow,
 } from "./attendanceViewModel";
+
+const DAY_PAGE_SIZE = 10;
 
 export type AttendanceAdminPageProps = {
   user: SessionUser | null;
@@ -57,6 +60,7 @@ export default function AttendanceAdminPage({
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [selectedDay, setSelectedDay] = useState<number | null>(now.getDate());
+  const [listPage, setListPage] = useState(1);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [markOpen, setMarkOpen] = useState(false);
@@ -66,6 +70,10 @@ export default function AttendanceAdminPage({
   const [historyRow, setHistoryRow] = useState<NormalizedAttendanceRow | null>(
     null,
   );
+
+  useEffect(() => {
+    setListPage(1);
+  }, [year, month, selectedDay, search]);
 
   const canMark = canMarkAttendance(user);
   const canBulk = canManageAttendance(user);
@@ -88,18 +96,32 @@ export default function AttendanceAdminPage({
         month,
         selectedDay,
         search,
-        page: 1,
-        limit: 100,
+        page: listPage,
+        limit: DAY_PAGE_SIZE,
         filterType: selectedDay != null ? "custom" : "today",
       }),
-    [listTarget, year, month, selectedDay, search],
+    [listTarget, year, month, selectedDay, search, listPage],
   );
   const listQuery = useAttendanceList(listParams);
   const downloadMutation = useDownloadAttendanceReport();
 
+  // A selected day before today that is neither a holiday nor a week-off.
+  const pastWorkingDay = useMemo(() => {
+    if (selectedDay == null) return false;
+    const t = new Date();
+    const day = new Date(year, month - 1, selectedDay);
+    if (day >= new Date(t.getFullYear(), t.getMonth(), t.getDate())) return false;
+    const key = String(selectedDay);
+    const m = monthQuery.data;
+    return !(m?.holidays?.[key] || m?.weekOffs?.[key]);
+  }, [selectedDay, year, month, monthQuery.data]);
+
   const metrics = useMemo(
-    () => orgDayMetrics(listQuery.data?.stats || monthQuery.data?.stats),
-    [listQuery.data?.stats, monthQuery.data?.stats],
+    () =>
+      orgDayMetrics(listQuery.data?.stats || monthQuery.data?.stats, {
+        notMarkedAsAbsent: pastWorkingDay && Boolean(listQuery.data?.stats),
+      }),
+    [listQuery.data?.stats, monthQuery.data?.stats, pastWorkingDay],
   );
 
   const cells = useMemo(
@@ -241,6 +263,17 @@ export default function AttendanceAdminPage({
           search={searchInput}
           onSearchChange={setSearchInput}
           canEdit={canEdit}
+          // Only Admin may correct their own attendance; everyone else needs another approver.
+          canEditRow={(row) =>
+            user?.role === "Admin" ||
+            !user?.employeeId ||
+            employeeIdFromRow(row) !== String(user.employeeId)
+          }
+          page={listPage}
+          pages={listQuery.data?.pagination?.pages ?? 1}
+          total={listQuery.data?.pagination?.total}
+          pageSize={DAY_PAGE_SIZE}
+          onPageChange={setListPage}
           onEdit={(row) => setEditRow(row)}
           onHistory={(row) => setHistoryRow(row)}
         />

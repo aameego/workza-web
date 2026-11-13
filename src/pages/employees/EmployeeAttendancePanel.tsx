@@ -6,6 +6,7 @@ import {
   dayNumberClass,
 } from "../attendance/attendanceCalendarStyle";
 import LocationIcons from "../attendance/LocationIcons";
+import { formatHistoryTime, formatHours } from "../attendance/attendanceHistory";
 import { Badge, Button, cn, MonthSelect } from "../../design-system";
 import { useAttendanceMonth } from "../../hooks/useAttendance";
 import { ApiError } from "../../lib/apiClient";
@@ -16,7 +17,10 @@ import {
   flattenDayRecords,
   kpiFromStats,
   monthLabel,
+  unmarkedPastWorkingDays,
 } from "./attendanceCalendar";
+import { useEmployee } from "../../hooks/useEmployees";
+import { readSessionUser } from "../../layouts/sessionUser";
 
 export type EmployeeAttendancePanelProps = {
   /** Omit for the signed-in user's own attendance (target "self"). */
@@ -65,7 +69,16 @@ export default function EmployeeAttendancePanel({
     () => buildCalendarCells(year, month, data),
     [year, month, data],
   );
-  const kpis = useMemo(() => kpiFromStats(data?.stats), [data]);
+  const sessionUser = readSessionUser();
+  const { data: profile } = useEmployee(employeeId || sessionUser?.employeeId || undefined);
+  const kpis = useMemo(
+    () =>
+      kpiFromStats(
+        data?.stats,
+        unmarkedPastWorkingDays(year, month, data, { joinedOn: profile?.dateOfJoining }),
+      ),
+    [data, year, month, profile?.dateOfJoining],
+  );
   const rows = useMemo(() => flattenDayRecords(data), [data]);
   const label = monthLabel(year, month);
 
@@ -292,9 +305,11 @@ export default function EmployeeAttendancePanel({
                       <td className="px-4">
                         {row.leaveLabel || row.leaveType || "-"}
                       </td>
-                      <td className="px-4">{row.checkIn || "-"}</td>
-                      <td className="px-4">{row.checkOut || "-"}</td>
-                      <td className="px-4">{row.hours ?? "-"}</td>
+                      <td className="px-4">{formatHistoryTime(row.checkIn)}</td>
+                      <td className="px-4">
+                        {lastSession?.isOpen ? "-" : formatHistoryTime(row.checkOut)}
+                      </td>
+                      <td className="px-4 whitespace-nowrap">{formatHours(row.hours)}</td>
                       <td className="px-4">
                         {row.sessionCount ?? row.sessions?.length ?? "-"}
                       </td>
@@ -302,11 +317,13 @@ export default function EmployeeAttendancePanel({
                       <td className="px-4">
                         <LocationIcons
                           url={firstSession?.checkInLocation?.mapsUrl}
+                          selfieUrl={firstSession?.checkInSelfieUrl}
                         />
                       </td>
                       <td className="px-4">
                         <LocationIcons
                           url={lastSession?.checkOutLocation?.mapsUrl}
+                          selfieUrl={lastSession?.checkOutSelfieUrl}
                         />
                       </td>
                       <td className="px-4">

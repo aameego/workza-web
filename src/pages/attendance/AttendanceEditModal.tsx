@@ -123,6 +123,7 @@ export default function AttendanceEditModal({
       }
     >
       <form
+        noValidate
         id="attendance-edit-form"
         className="-mt-2 grid grid-cols-1 gap-x-wz-6 gap-y-wz-6 sm:grid-cols-2"
         onSubmit={(e) => void handleSave(e)}

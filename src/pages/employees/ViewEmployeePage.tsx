@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Info, MoreVertical, Pencil, SquarePen } from "lucide-react";
 import {
@@ -63,9 +63,14 @@ export default function ViewEmployeePage() {
       : "overview",
   );
   const [menuOpen, setMenuOpen] = useState(false);
-  const [expanded, setExpanded] = useState<"general" | "letters" | null>(
-    "general",
-  );
+  const [expanded, setExpanded] = useState<"general" | "letters" | null>(null);
+
+  // Consultants share this route; tag the URL so the top bar shows "Consultancy" (EMP-UI-33).
+  useEffect(() => {
+    if (employee?.isConsultancy && !location.search.includes("type=consultancy")) {
+      navigate(`${location.pathname}?type=consultancy`, { replace: true, state: location.state });
+    }
+  }, [employee?.isConsultancy, location.pathname, location.search, location.state, navigate]);
   const [letterOpen, setLetterOpen] = useState(false);
   const moreRef = useRef<HTMLButtonElement>(null);
 
@@ -179,7 +184,7 @@ export default function ViewEmployeePage() {
             aria-expanded={menuOpen}
             title="More"
             onClick={() => {
-              setExpanded("general");
+              setExpanded(null);
               setMenuOpen((open) => !open);
             }}
           >

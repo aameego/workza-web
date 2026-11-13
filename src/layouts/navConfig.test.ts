@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   crumbsForPath,
   isNavPathActive,
+  navItemsFor,
   normalizeAppPath,
   titleForPath,
 } from "./navConfig";
@@ -59,4 +60,20 @@ describe("normalizeAppPath", () => {
 
 it("nested pages take their module title", () => {
   expect(titleForPath("/acme/leave/policy")).toBe(titleForPath("/acme/leave"));
+});
+
+it("consultancy screens are titled Consultancy", () => {
+  expect(titleForPath("/acme/employees", "?type=consultancy")).toBe("Consultancy");
+  expect(titleForPath("/acme/employees/abc123", "?type=consultancy")).toBe("Consultancy");
+  expect(crumbsForPath("/acme/employees/abc123", "?type=consultancy")[1]?.label).toBe("Consultancy Details");
+  expect(titleForPath("/acme/employees")).not.toBe("Consultancy");
+});
+
+it("hides admin menus from self-service roles (ATT-FN-08)", () => {
+  const labels = (u: Parameters<typeof navItemsFor>[0]) => navItemsFor(u).map((i) => i.label);
+  expect(labels({ role: "Employee", permissions: ["attendance:view"] })).not.toContain("Employees");
+  expect(labels({ role: "Employee", permissions: [] })).not.toContain("Reports");
+  expect(labels({ role: "Employee", permissions: [] })).toContain("Attendance");
+  expect(labels({ role: "Manager", permissions: ["employees:view"] })).toContain("Employees");
+  expect(labels({ role: "HR" })).toContain("Recruitment");
 });

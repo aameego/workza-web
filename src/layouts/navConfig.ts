@@ -43,6 +43,29 @@ export const APP_NAV_ITEMS: NavItem[] = [
   { label: "Settings", path: "/settings", icon: Settings },
 ];
 
+/**
+ * Admin-side menus and the permissions that unlock them for other roles (ATT-FN-08).
+ * Everything not listed is self-service and shown to everyone.
+ */
+const NAV_PERMISSIONS: Record<string, string[]> = {
+  "/departments": ["departments:view", "departments:manage"],
+  "/employees": ["employees:view", "employees:manage", "consultancy:view", "consultancy:manage"],
+  "/recruitment": ["recruitment:view", "recruitment:manage"],
+  "/reports": ["reports:view", "payroll:reports"],
+};
+
+/** Sidebar items this user may see: Admin/HR get everything, others by role permissions. */
+export const navItemsFor = (
+  user: { role?: string; permissions?: string[] } | null,
+): NavItem[] => {
+  if (user?.role === "Admin" || user?.role === "HR") return APP_NAV_ITEMS;
+  const perms = Array.isArray(user?.permissions) ? user.permissions : [];
+  return APP_NAV_ITEMS.filter((item) => {
+    const needed = NAV_PERMISSIONS[item.path];
+    return !needed || needed.some((p) => perms.includes(p));
+  });
+};
+
 export const PAGE_TITLES: Record<string, string> = {
   "/dashboard": "Dashboard",
   "/departments": "Departments",
@@ -73,8 +96,18 @@ export const normalizeAppPath = (pathname: string): string => {
   return pathname || "/dashboard";
 };
 
-export const titleForPath = (pathname: string): string => {
+/** `?type=consultancy` marks consultant screens (add, view, edit) on the shared employee routes. */
+const isConsultancySearch = (search = "") =>
+  new URLSearchParams(search).get("type") === "consultancy";
+
+export const titleForPath = (pathname: string, search = ""): string => {
   const path = normalizeAppPath(pathname);
+  if (
+    isConsultancySearch(search) &&
+    (path === "/employees" || (/^\/employees\/[^/]+$/.test(path) && path !== "/employees/new"))
+  ) {
+    return "Consultancy";
+  }
   if (PAGE_TITLES[path]) return PAGE_TITLES[path];
   if (/^\/employees\/[^/]+\/edit$/.test(path)) return "Edit Employee Details";
   if (/^\/employees\/[^/]+$/.test(path) && path !== "/employees/new") {
@@ -96,8 +129,9 @@ export type PageCrumb = {
  * Figma topbar breadcrumb trail for nested screens.
  * Empty for top-level pages (title only).
  */
-export const crumbsForPath = (pathname: string): PageCrumb[] => {
+export const crumbsForPath = (pathname: string, search = ""): PageCrumb[] => {
   const path = normalizeAppPath(pathname);
+  const consult = isConsultancySearch(search);
   if (path === "/employees/new") {
     return [
       { label: "Employees", path: "/employees" },
@@ -113,7 +147,7 @@ export const crumbsForPath = (pathname: string): PageCrumb[] => {
   if (/^\/employees\/[^/]+$/.test(path) && path !== "/employees/new") {
     return [
       { label: "Employees", path: "/employees" },
-      { label: "Employee Details" },
+      { label: consult ? "Consultancy Details" : "Employee Details" },
     ];
   }
   return [];
