@@ -1,7 +1,9 @@
 import type { BadgeStatus } from "../../design-system";
 import type { EmployeeListItem } from "../../services/employeeTypes";
 
-export type DirectoryTab = "employee" | "consultancy";
+export type DirectoryTab = "employee" | "consultancy" | "intern";
+
+export { INTERN_STATUS_FILTER_OPTIONS } from "../interns/internConstants";
 
 /** Figma status filter (EMP-UI-03): no Exited / Deleted. Intern needs backend support. */
 export const STATUS_FILTER_OPTIONS = [

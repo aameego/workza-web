@@ -71,6 +71,7 @@ export const PAGE_TITLES: Record<string, string> = {
   "/departments": "Departments",
   "/employees": "Employees",
   "/employees/new": "Add New Employee",
+  "/employees/interns/new": "Add Intern",
   "/attendance": "Attendance",
   "/leave": "Leave",
   "/regularization": "Regularization",
@@ -100,8 +101,21 @@ export const normalizeAppPath = (pathname: string): string => {
 const isConsultancySearch = (search = "") =>
   new URLSearchParams(search).get("type") === "consultancy";
 
+const isInternSearch = (search = "") =>
+  new URLSearchParams(search).get("type") === "intern";
+
+const isInternAppPath = (path: string): boolean =>
+  path === "/employees/interns/new" ||
+  /^\/employees\/interns\/[^/]+(\/edit)?$/.test(path);
+
 export const titleForPath = (pathname: string, search = ""): string => {
   const path = normalizeAppPath(pathname);
+  if (isInternSearch(search) && path === "/employees") return "Interns";
+  if (path === "/employees/interns/new") return PAGE_TITLES["/employees/interns/new"] || "Add Intern";
+  if (/^\/employees\/interns\/[^/]+\/edit$/.test(path)) return "Edit Intern";
+  if (/^\/employees\/interns\/[^/]+$/.test(path) && path !== "/employees/interns/new") {
+    return "Intern Details";
+  }
   if (
     isConsultancySearch(search) &&
     (path === "/employees" || (/^\/employees\/[^/]+$/.test(path) && path !== "/employees/new"))
@@ -109,8 +123,14 @@ export const titleForPath = (pathname: string, search = ""): string => {
     return "Consultancy";
   }
   if (PAGE_TITLES[path]) return PAGE_TITLES[path];
-  if (/^\/employees\/[^/]+\/edit$/.test(path)) return "Edit Employee Details";
-  if (/^\/employees\/[^/]+$/.test(path) && path !== "/employees/new") {
+  if (/^\/employees\/[^/]+\/edit$/.test(path) && !isInternAppPath(path)) {
+    return "Edit Employee Details";
+  }
+  if (
+    /^\/employees\/[^/]+$/.test(path) &&
+    path !== "/employees/new" &&
+    !isInternAppPath(path)
+  ) {
     return "Employees";
   }
   // Nested pages (e.g. /leave/policy) take their module's title.
@@ -132,23 +152,49 @@ export type PageCrumb = {
 export const crumbsForPath = (pathname: string, search = ""): PageCrumb[] => {
   const path = normalizeAppPath(pathname);
   const consult = isConsultancySearch(search);
+  const internsTab = isInternSearch(search);
+  if (path === "/employees/interns/new") {
+    return [
+      { label: "Interns", path: "/employees?type=intern" },
+      { label: "Add Intern" },
+    ];
+  }
+  if (/^\/employees\/interns\/[^/]+\/edit$/.test(path)) {
+    return [
+      { label: "Interns", path: "/employees?type=intern" },
+      { label: "Edit Intern" },
+    ];
+  }
+  if (/^\/employees\/interns\/[^/]+$/.test(path) && path !== "/employees/interns/new") {
+    return [
+      { label: "Interns", path: "/employees?type=intern" },
+      { label: "Intern Details" },
+    ];
+  }
   if (path === "/employees/new") {
     return [
       { label: "Employees", path: "/employees" },
       { label: "Add New Employee" },
     ];
   }
-  if (/^\/employees\/[^/]+\/edit$/.test(path)) {
+  if (/^\/employees\/[^/]+\/edit$/.test(path) && !isInternAppPath(path)) {
     return [
       { label: "Employees", path: "/employees" },
       { label: "Edit Employee Details" },
     ];
   }
-  if (/^\/employees\/[^/]+$/.test(path) && path !== "/employees/new") {
+  if (
+    /^\/employees\/[^/]+$/.test(path) &&
+    path !== "/employees/new" &&
+    !isInternAppPath(path)
+  ) {
     return [
       { label: "Employees", path: "/employees" },
       { label: consult ? "Consultancy Details" : "Employee Details" },
     ];
+  }
+  if (path === "/employees" && internsTab) {
+    return [{ label: "Interns" }];
   }
   return [];
 };

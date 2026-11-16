@@ -11,6 +11,9 @@ import EmployeesPage from "./pages/employees/EmployeesPage";
 import AddEmployeePage from "./pages/employees/AddEmployeePage";
 import EditEmployeePage from "./pages/employees/EditEmployeePage";
 import ViewEmployeePage from "./pages/employees/ViewEmployeePage";
+import AddInternPage from "./pages/interns/AddInternPage";
+import EditInternPage from "./pages/interns/EditInternPage";
+import ViewInternPage from "./pages/interns/ViewInternPage";
 import DepartmentsPage from "./pages/departments/DepartmentsPage";
 
 import { getAuthToken } from "./lib/authStorage";
@@ -47,6 +50,12 @@ function App() {
           }
         >
           <Route path="employees/new" element={<AddEmployeePage />} />
+          <Route path="employees/interns/new" element={<AddInternPage />} />
+          <Route
+            path="employees/interns/:internId/edit"
+            element={<EditInternPage />}
+          />
+          <Route path="employees/interns/:internId" element={<ViewInternPage />} />
           <Route
             path="employees/:employeeId/edit"
             element={<EditEmployeePage />}
