@@ -69,6 +69,21 @@ it("consultancy screens are titled Consultancy", () => {
   expect(titleForPath("/acme/employees")).not.toBe("Consultancy");
 });
 
+it("intern screens use Interns titles and crumbs", () => {
+  expect(titleForPath("/acme/employees", "?type=intern")).toBe("Interns");
+  expect(titleForPath("/acme/employees/interns/new")).toBe("Add Intern");
+  expect(titleForPath("/acme/employees/interns/abc123")).toBe("Intern Details");
+  expect(titleForPath("/acme/employees/interns/abc123/edit")).toBe("Edit Intern");
+  expect(crumbsForPath("/acme/employees/interns/new")).toEqual([
+    { label: "Interns", path: "/employees?type=intern" },
+    { label: "Add Intern" },
+  ]);
+  expect(crumbsForPath("/acme/employees/interns/abc123")).toEqual([
+    { label: "Interns", path: "/employees?type=intern" },
+    { label: "Intern Details" },
+  ]);
+});
+
 it("hides admin menus from self-service roles (ATT-FN-08)", () => {
   const labels = (u: Parameters<typeof navItemsFor>[0]) => navItemsFor(u).map((i) => i.label);
   expect(labels({ role: "Employee", permissions: ["attendance:view"] })).not.toContain("Employees");

@@ -36,6 +36,8 @@ import {
 } from "../../services/consultancyPaymentService";
 import type { EmployeeListItem } from "../../services/employeeTypes";
 import { monthLabel } from "./attendanceCalendar";
+import { useInterns } from "../../hooks/useInterns";
+import InternsDirectory from "../interns/InternsDirectory";
 import BulkUploadModal from "./BulkUploadModal";
 import ConsultancyPaymentModal from "./ConsultancyPaymentModal";
 import EmployeeRowActions from "./EmployeeRowActions";
@@ -74,9 +76,12 @@ export default function EmployeesPage() {
 
   const [searchParams, setSearchParams] = useSearchParams();
   // The tab lives in the URL (?type=consultancy) so the top bar title and a refresh follow it.
-  const [directory, setDirectory] = useState<DirectoryTab>(
-    searchParams.get("type") === "consultancy" ? "consultancy" : "employee",
-  );
+  const directoryFromUrl = searchParams.get("type");
+  const [directory, setDirectory] = useState<DirectoryTab>(() => {
+    if (directoryFromUrl === "consultancy") return "consultancy";
+    if (directoryFromUrl === "intern") return "intern";
+    return "employee";
+  });
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
@@ -90,6 +95,7 @@ export default function EmployeesPage() {
   const [toolbarError, setToolbarError] = useState<string | null>(null);
   // Consultancy tab: payments are per month (Figma "Select Year/ Month").
   const isConsult = directory === "consultancy";
+  const isIntern = directory === "intern";
   const qc = useQueryClient();
   const [payPeriod, setPayPeriod] = useState(() => {
     const d = new Date();
@@ -167,13 +173,31 @@ export default function EmployeesPage() {
     [page, search, status, departmentId, appLogin, role, directory],
   );
 
-  const { data, isLoading, isFetching, isError, error, refetch } =
-    useEmployees(listParams);
-  // Figma shows a count on every tab, so fetch the other directory's total too (1 row).
-  const { data: otherDirectory } = useEmployees({
+  const { data, isLoading, isFetching, isError, error, refetch } = useEmployees(
+    listParams,
+    !isIntern,
+  );
+  const { data: employeeCountData } = useEmployees(
+    {
+      page: 1,
+      limit: 1,
+      isConsultancy: false,
+      isPagination: "true",
+    },
+    directory !== "employee",
+  );
+  const { data: consultancyCountData } = useEmployees(
+    {
+      page: 1,
+      limit: 1,
+      isConsultancy: true,
+      isPagination: "true",
+    },
+    directory !== "consultancy",
+  );
+  const { data: internCountData } = useInterns({
     page: 1,
     limit: 1,
-    isConsultancy: directory !== "consultancy",
     isPagination: "true",
   });
   const { data: departments = [] } = useDepartmentNames(vendorId);
@@ -231,7 +255,14 @@ export default function EmployeesPage() {
   const switchDirectory = (next: DirectoryTab) => {
     if (next === directory) return;
     setDirectory(next);
-    setSearchParams(next === "consultancy" ? { type: "consultancy" } : {}, { replace: true });
+    setSearchParams(
+      next === "consultancy"
+        ? { type: "consultancy" }
+        : next === "intern"
+          ? { type: "intern" }
+          : {},
+      { replace: true },
+    );
     setSearchInput("");
     setSearch("");
     setStatus("");
@@ -295,7 +326,7 @@ export default function EmployeesPage() {
             count:
               directory === "employee"
                 ? pagination.total
-                : otherDirectory?.pagination?.total,
+                : employeeCountData?.pagination?.total,
           },
           {
             value: "consultancy",
@@ -303,11 +334,20 @@ export default function EmployeesPage() {
             count:
               directory === "consultancy"
                 ? pagination.total
-                : otherDirectory?.pagination?.total,
+                : consultancyCountData?.pagination?.total,
+          },
+          {
+            value: "intern",
+            label: "Interns",
+            count: internCountData?.pagination?.total ?? 0,
           },
         ]}
       />
 
+      {isIntern ? <InternsDirectory /> : null}
+
+      {isIntern ? null : (
+        <>
       {/* Figma Data/Filter Toolbar: search + actions row, then filters, 16 apart */}
       <div className="flex flex-col gap-wz-4">
         <div className="flex flex-wrap items-center justify-between gap-wz-4">
@@ -754,6 +794,8 @@ export default function EmployeesPage() {
         onClose={() => setBulkOpen(false)}
         vendorId={vendorId}
       />
+        </>
+      )}
     </div>
   );
 }
