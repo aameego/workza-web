@@ -5,6 +5,7 @@ import {
   dayCellClass,
   dayLook,
   dayNumberClass,
+  mobileDayLabelClass,
 } from "./attendanceCalendarStyle";
 import type { OrgCalendarCell } from "./attendanceViewModel";
 
@@ -79,6 +80,7 @@ export default function AttendanceOrgCalendar({
               <span
                 className={cn(
                   "mt-[6px] truncate pr-[11px] text-center text-[10px] leading-6 font-semibold",
+                  mobileDayLabelClass,
                   look.text,
                 )}
                 title={label}
@@ -86,8 +88,8 @@ export default function AttendanceOrgCalendar({
                 {label}
               </span>
             ) : cell.presentCount > 0 ? (
-              <span className="mt-[6px] inline-flex items-center justify-center gap-[5px] pr-[11px] text-sm leading-6 font-semibold text-[#12b76a]">
-                <span className="size-1.5 rounded-wz-full bg-[#12b76a]" />
+              <span className="mt-[6px] inline-flex items-center justify-center gap-[5px] pr-[11px] text-sm leading-6 font-semibold text-[#12b76a] max-md:mt-0 max-md:justify-start max-md:pr-0 max-md:text-[9px]">
+                <span className="size-1.5 rounded-wz-full bg-[#12b76a] max-md:hidden" />
                 {cell.presentCount}
               </span>
             ) : null}

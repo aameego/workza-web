@@ -248,7 +248,7 @@ export default function SelfieCaptureModal({
       }
     >
       <div className="space-y-wz-3">
-        <p className="m-0 text-sm text-wz-text-secondary">
+        <p className="m-0 text-sm text-wz-text-secondary max-md:text-xs">
           Take a clear photo of your face. Your current location will be
           captured live when you confirm.
         </p>
@@ -256,10 +256,10 @@ export default function SelfieCaptureModal({
           <img
             src={previewUrl}
             alt="Captured selfie preview"
-            className="mx-auto max-h-[320px] w-full rounded-wz-lg object-cover"
+            className="mx-auto max-h-[320px] w-full rounded-wz-lg object-cover max-md:h-[284px] max-md:max-h-none max-md:rounded-[14px]"
           />
         ) : (
-          <div className="relative overflow-hidden rounded-wz-lg bg-wz-neutral-900">
+          <div className="relative overflow-hidden rounded-wz-lg bg-wz-neutral-900 max-md:h-[284px] max-md:rounded-[14px]">
             {/*
               Front cameras often feel like a bathroom mirror. Flip the live
               preview the same way we flip the captured frame so what you see
@@ -268,7 +268,7 @@ export default function SelfieCaptureModal({
             <video
               ref={videoRef}
               className={cn(
-                "mx-auto max-h-[320px] w-full object-cover",
+                "mx-auto max-h-[320px] w-full object-cover max-md:h-full max-md:max-h-none",
                 "scale-x-[-1]",
               )}
               playsInline

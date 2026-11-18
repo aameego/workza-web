@@ -52,9 +52,10 @@ export type AttendanceDayEntry = {
   locationOut?: string;
   date?: string;
   recordId?: string;
-  employeeId?: string | { _id?: string; name?: string; employeeCode?: string };
+  employeeId?: string | { _id?: string; name?: string; employeeCode?: string; designation?: string };
   name?: string;
   employeeCode?: string;
+  designation?: string;
   employeeName?: string;
   isCheckedIn?: boolean;
 };

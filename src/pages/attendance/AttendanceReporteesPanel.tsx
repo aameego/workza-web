@@ -53,12 +53,12 @@ export default function AttendanceReporteesPanel({ onView, onViewAll }: Attendan
     "inline-flex size-6 cursor-pointer items-center justify-center rounded-wz-sm border border-wz-border bg-white p-0 text-wz-heading disabled:cursor-not-allowed disabled:opacity-40";
 
   return (
-    <section className="rounded-wz-xl border border-wz-border bg-white px-4 pt-4 pb-4">
-      <div className="flex min-h-[41px] items-start justify-between gap-4 border-b border-wz-border pb-3">
-        <h2 className="m-0 text-[15px] leading-5 font-bold text-wz-heading">My Reportees Attendance</h2>
+    <section className="rounded-wz-xl border border-wz-border bg-white px-4 pt-4 pb-4 max-md:rounded-lg">
+      <div className="flex min-h-[41px] items-start justify-between gap-4 border-b border-wz-border pb-3 max-md:min-h-0 max-md:gap-2 max-md:items-center max-md:border-b-0">
+        <h2 className="m-0 text-[15px] leading-5 font-bold text-wz-heading max-md:min-w-0 max-md:flex-1 max-md:text-sm">My Reportees Attendance</h2>
         <button
           type="button"
-          className="cursor-pointer border-0 bg-transparent p-0 text-xs leading-4 font-semibold text-wz-primary"
+          className="cursor-pointer border-0 bg-transparent p-0 text-xs leading-4 font-semibold whitespace-nowrap text-wz-primary"
           onClick={onViewAll}
         >
           View All Attendance →
@@ -76,7 +76,7 @@ export default function AttendanceReporteesPanel({ onView, onViewAll }: Attendan
               <ul
                 key={ci}
                 className={cn(
-                  "m-0 flex list-none flex-col p-0",
+                  "m-0 flex list-none flex-col p-0 max-md:gap-3",
                   ci === 1 && "lg:border-l lg:border-wz-border lg:pl-6",
                   ci === 0 && "lg:pr-6",
                 )}
@@ -84,18 +84,26 @@ export default function AttendanceReporteesPanel({ onView, onViewAll }: Attendan
                 {col.map((row) => {
                   const [tone, label] = STATUS[row.status || "Not Marked"] || ["neutral", row.status || "-"];
                   return (
-                    <li key={row.rowKey} className="flex items-center gap-4 border-b border-[#f1f3f5] py-[9px] last:border-b-0">
+                    <li
+                      key={row.rowKey}
+                      className="flex items-center gap-4 border-b border-[#f1f3f5] py-[9px] last:border-b-0 max-md:min-h-16 max-md:gap-3 max-md:border-b-0 max-md:py-0"
+                    >
                       <span
                         className={cn(
-                          "inline-flex size-[26px] shrink-0 items-center justify-center rounded-wz-md text-[10px] font-bold text-white",
+                          "inline-flex size-[26px] shrink-0 items-center justify-center rounded-wz-md text-[10px] font-bold text-white max-md:rounded-lg max-md:text-[8px]",
                           avatarTone(row.id || row.name),
                         )}
                       >
                         {row.initials}
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="m-0 truncate text-[11px] leading-[14px] font-bold text-wz-heading">{row.name || "-"}</p>
-                        <p className="m-0 truncate text-[9px] leading-3 text-wz-text-muted">{row.employeeCode || "-"}</p>
+                        <p className="m-0 truncate text-[11px] leading-[14px] font-bold text-wz-heading max-md:text-xs max-md:font-semibold">
+                          {row.name || "-"}
+                        </p>
+                        <p className="m-0 truncate text-[9px] leading-3 text-wz-text-muted max-md:mt-1 max-md:text-[10px]">
+                          {row.employeeCode || "-"}
+                          {row.designation ? <span className="md:hidden"> • {row.designation}</span> : null}
+                        </p>
                       </div>
                       <Badge status={tone} size="sm">
                         {label}
@@ -117,7 +125,7 @@ export default function AttendanceReporteesPanel({ onView, onViewAll }: Attendan
         </div>
       )}
 
-      <div className="flex items-center justify-between gap-4 border-t border-wz-border pt-3">
+      <div className="flex items-center justify-between gap-4 border-t border-wz-border pt-3 max-md:-mx-4 max-md:-mb-4 max-md:h-14 max-md:px-4 max-md:pt-0">
         <span className="text-[11px] leading-[14px] font-semibold text-wz-heading">
           Showing {from}–{Math.min(page * PAGE, total)} of {total} employees
         </span>

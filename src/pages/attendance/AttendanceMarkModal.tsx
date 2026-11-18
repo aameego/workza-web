@@ -152,10 +152,10 @@ export default function AttendanceMarkModal({
       <form
         noValidate
         id="attendance-mark-form"
-        className="grid grid-cols-1 gap-x-wz-6 gap-y-wz-6 sm:grid-cols-2"
+        className="grid grid-cols-2 gap-x-wz-6 gap-y-wz-6"
         onSubmit={(e) => void handleSubmit(e)}
       >
-        <Field label="Employee/ Consultant Name" required>
+        <Field label="Employee/ Consultant Name" required className="max-md:col-span-2">
           <SearchableEmployeeSelect
             value={employeeId}
             onChange={(id) => {
@@ -167,6 +167,7 @@ export default function AttendanceMarkModal({
           />
         </Field>
 
+        <div className="max-md:col-span-2">
         <SegmentedToggle
           label="Select Mark Attendance Type"
           value={mode}
@@ -179,6 +180,7 @@ export default function AttendanceMarkModal({
             setError(null);
           }}
         />
+        </div>
 
         {mode === "day" ? (
           <>
@@ -203,9 +205,9 @@ export default function AttendanceMarkModal({
             <Field label="Check Out" required>
               <Input type="time" value={checkOut} onChange={(e) => setCheckOut(e.target.value)} />
             </Field>
-            <p className="m-0 -mt-4 flex min-h-7 items-center justify-between gap-3 rounded-wz-sm bg-[#eef8f6] px-3 text-[11px] text-wz-text-muted sm:col-span-2">
-              <span>Calculated duration between check-in and check-out.</span>
-              <span className="font-semibold whitespace-nowrap text-[#0f766e]">
+            <p className="m-0 -mt-4 flex min-h-7 items-center justify-between gap-3 rounded-wz-sm bg-[#eef8f6] px-3 text-[11px] text-wz-text-muted col-span-2 max-md:-mt-2 max-md:min-h-0 max-md:rounded-[6px] max-md:py-2 max-md:text-[10px] max-md:leading-3">
+              <span className="min-w-0 max-md:truncate max-md:text-[#53756f]">Calculated duration between check-in and check-out.</span>
+              <span className="font-semibold whitespace-nowrap text-[#0f766e] max-md:font-bold max-md:text-[#087c70]">
                 Paid hours: {Math.floor(paid / 60)}h {String(paid % 60).padStart(2, "0")}m
               </span>
             </p>
@@ -243,14 +245,14 @@ export default function AttendanceMarkModal({
                 onChange={(e) => setIncentiveDays(e.target.value)}
               />
             </Field>
-            <div className="hidden sm:block" />
-            <p className="m-0 -mt-4 flex min-h-7 items-center rounded-wz-sm bg-[#fff7e8] px-3 text-[11px] text-[#93370d] sm:col-span-2">
+            <div />
+            <p className="m-0 -mt-4 flex min-h-7 items-center rounded-wz-sm bg-[#fff7e8] px-3 text-[11px] text-[#93370d] col-span-2">
               An existing monthly record for this month is replaced. Months that already have daily attendance can't be marked here.
             </p>
           </>
         )}
 
-        <Field label="Notes / correction reason" className="mt-2 sm:col-span-2">
+        <Field label="Notes / correction reason" className="mt-2 col-span-2 max-md:mt-0">
           <TextArea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
@@ -260,7 +262,7 @@ export default function AttendanceMarkModal({
         </Field>
 
         {error ? (
-          <p className="m-0 text-sm text-wz-error sm:col-span-2" role="alert">
+          <p className="m-0 text-sm text-wz-error col-span-2" role="alert">
             {error}
           </p>
         ) : null}

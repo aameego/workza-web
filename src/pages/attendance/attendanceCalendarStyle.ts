@@ -46,8 +46,15 @@ export const dayLook = (
 
 /** Base classes for a day cell button: 59 tall + the 1px grid line = Figma's 60 pitch. */
 export const dayCellClass =
-  "relative flex h-[59px] cursor-pointer flex-col pt-[9px] pl-[11px] text-left transition-[filter] hover:brightness-[0.98]";
+  "relative flex h-[59px] cursor-pointer flex-col pt-[9px] pl-[11px] text-left transition-[filter] hover:brightness-[0.98] max-md:h-auto max-md:min-h-[76px] max-md:gap-1 max-md:border max-md:border-[#e4eaf2] max-md:p-1";
+
+/** Mobile day label (Figma 173:51061): 9px, left-aligned, wraps (holiday names). */
+export const mobileDayLabelClass =
+  "max-md:mt-0 max-md:pr-0 max-md:text-left max-md:text-[9px] max-md:leading-[14px] max-md:whitespace-normal max-md:break-words";
 
 /** Day number: 11px semibold, muted; blue for today / the selected day. */
 export const dayNumberClass = (highlight: boolean) =>
-  cn("text-[11px] leading-[14px] font-semibold", highlight ? "text-wz-primary" : "text-wz-text-muted");
+  cn(
+    "text-[11px] leading-[14px] font-semibold max-md:text-[10px]",
+    highlight ? "text-wz-primary" : "text-wz-text-muted",
+  );

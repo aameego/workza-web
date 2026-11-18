@@ -33,7 +33,7 @@ export default function LeaveManagerPage({ user }: LeaveManagerPageProps) {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 max-md:space-y-5">
       <LeavePageHeader
         year={year}
         month={month}

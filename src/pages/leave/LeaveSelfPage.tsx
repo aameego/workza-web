@@ -123,7 +123,7 @@ export default function LeaveSelfPage({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 max-md:space-y-5">
       {!hideHeader ? (
         <LeavePageHeader
           year={year}
