@@ -69,6 +69,8 @@ export default function AttendanceHistoryModal({ open, onClose, row }: Attendanc
     checkIn: firstSession?.checkIn || row.checkIn,
     checkOut: firstSession?.checkOut || row.checkOut,
     name: row.name,
+    markedByName: row.markedByName,
+    markedBySelf: row.markedBySelf,
   });
   const dash = (v: string) => v.replace("—", "-");
   const dateLabel = date
@@ -184,8 +186,8 @@ export default function AttendanceHistoryModal({ open, onClose, row }: Attendanc
                     <div className="flex items-center justify-between gap-2">
                       <p className="m-0 text-[13px] leading-4 font-bold text-wz-heading">{ev.title}</p>
                       {ev.kind === "marked" ? (
-                        <Badge status="info" size="sm">
-                          Self
+                        <Badge status={ev.self ? "info" : "neutral"} size="sm">
+                          {ev.self ? "Self" : "Manual entry"}
                         </Badge>
                       ) : null}
                     </div>

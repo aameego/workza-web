@@ -515,7 +515,14 @@ export default function EmployeesPage() {
               <p className="m-0 text-[11px] leading-[14px] font-semibold tracking-[0.5px] text-wz-text-muted uppercase">
                 {label}
               </p>
-              <p className="m-0 truncate text-[28px] leading-[34px] font-bold text-wz-heading">
+              {/* Long amounts step the font down so the full figure shows (EMP-UI-34). */}
+              <p
+                title={value}
+                className={cn(
+                  "m-0 truncate leading-[34px] font-bold text-wz-heading",
+                  value.length >= 12 ? "text-lg" : value.length >= 9 ? "text-[22px]" : "text-[28px]",
+                )}
+              >
                 {value}
               </p>
             </div>

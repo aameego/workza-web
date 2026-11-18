@@ -38,6 +38,9 @@ export type AttendanceSession = {
 
 export type AttendanceDayEntry = {
   status?: string;
+  /** User who saved the record; markedBySelf is true for the employee's own check-in. */
+  markedByName?: string | null;
+  markedBySelf?: boolean | null;
   checkIn?: string;
   checkOut?: string;
   hours?: string | number;

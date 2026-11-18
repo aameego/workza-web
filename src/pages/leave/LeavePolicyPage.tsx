@@ -380,11 +380,16 @@ export default function LeavePolicyPage() {
                         step="0.5"
                         value={String(t.accrual?.monthlyCredit ?? "")}
                         onChange={(e) =>
+                          // Monthly and yearly stay in step: yearly = monthly × 12 (BUG-72).
                           updateAccrual(t.code, {
                             monthlyCredit:
                               e.target.value === ""
                                 ? null
                                 : Number(e.target.value),
+                            yearlyCap:
+                              e.target.value === ""
+                                ? null
+                                : Math.round(Number(e.target.value) * 12 * 100) / 100,
                           })
                         }
                       />
@@ -401,6 +406,10 @@ export default function LeavePolicyPage() {
                               e.target.value === ""
                                 ? null
                                 : Number(e.target.value),
+                            monthlyCredit:
+                              e.target.value === ""
+                                ? null
+                                : Math.round((Number(e.target.value) / 12) * 100) / 100,
                           })
                         }
                       />

@@ -14,6 +14,9 @@ export type AttendanceMarkModalProps = {
   open: boolean;
   onClose: () => void;
   defaultDate?: string;
+  onSaved?: (message: string) => void;
+  /** Linked employee of the signed-in user; nobody marks their own attendance (ATT-FN-20). */
+  selfEmployeeId?: string;
 };
 
 type Mode = "day" | "month";
@@ -33,6 +36,8 @@ export default function AttendanceMarkModal({
   open,
   onClose,
   defaultDate,
+  onSaved,
+  selfEmployeeId,
 }: AttendanceMarkModalProps) {
   const today = defaultDate || toLocalDateString();
   const now = new Date();
@@ -108,6 +113,7 @@ export default function AttendanceMarkModal({
           checkIn: checkIn ? formatTimeForApi(checkIn) : "",
           checkOut: checkOut ? formatTimeForApi(checkOut) : "",
         });
+        onSaved?.("Attendance marked successfully.");
         onClose();
       } catch (err) {
         fail(err);
@@ -125,6 +131,7 @@ export default function AttendanceMarkModal({
         incentiveDays: incentiveDays.trim() || "0",
         notes: notes.trim(),
       });
+      onSaved?.("Monthly attendance saved successfully.");
       onClose();
     } catch (err) {
       fail(err);
@@ -164,6 +171,7 @@ export default function AttendanceMarkModal({
             }}
             disabled={pending}
             hasError={Boolean(error && !employeeId)}
+            excludeIds={selfEmployeeId ? [selfEmployeeId] : []}
           />
         </Field>
 

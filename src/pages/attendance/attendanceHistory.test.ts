@@ -41,3 +41,14 @@ it("formats hours like Figma", () => {
   expect(formatHours(1.5)).toBe("01 hr 30 m");
   expect(formatHours("—")).toBe("-");
 });
+
+it("credits an admin-marked day to the admin, not Self (ATT-FN-14)", () => {
+  const [ev] = buildHistoryEvents([], "e1", "2026-11-16", {
+    checkIn: "09:30",
+    checkOut: "18:30",
+    name: "QA Figma Test B",
+    markedByName: "Admin (NA)",
+    markedBySelf: false,
+  });
+  expect(ev).toMatchObject({ kind: "marked", by: "Admin (NA)", self: false });
+});

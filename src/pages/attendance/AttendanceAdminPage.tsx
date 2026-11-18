@@ -75,6 +75,14 @@ export default function AttendanceAdminPage({
     setListPage(1);
   }, [year, month, selectedDay, search]);
 
+  // Success message after Mark / Edit (ATT-FN-22).
+  const [notice, setNotice] = useState<string | null>(null);
+  useEffect(() => {
+    if (!notice) return undefined;
+    const t = window.setTimeout(() => setNotice(null), 3000);
+    return () => window.clearTimeout(t);
+  }, [notice]);
+
   const canMark = canMarkAttendance(user);
   const canBulk = canManageAttendance(user);
   const canEdit = canDirectEditAttendance(user);
@@ -129,16 +137,25 @@ export default function AttendanceAdminPage({
     [year, month, monthQuery.data, selectedDay],
   );
 
+  // Past working day: no record means Absent, same as the card (ATT-FN-11).
   const rows = useMemo(
-    () => (listQuery.data?.rows || []).map(normalizeAttendanceRow),
-    [listQuery.data?.rows],
+    () =>
+      (listQuery.data?.rows || []).map((r) =>
+        normalizeAttendanceRow(
+          pastWorkingDay && r.status === "Not Marked" ? { ...r, status: "Absent" } : r,
+        ),
+      ),
+    [listQuery.data?.rows, pastWorkingDay],
   );
 
   const shiftMonth = (delta: number) => {
     const d = new Date(year, month - 1 + delta, 1);
     setYear(d.getFullYear());
     setMonth(d.getMonth() + 1);
-    setSelectedDay(null);
+    // Cards and table follow the picked month: today in the current month, else the 1st (ATT-FN-16).
+    const t = new Date();
+    const isCurrent = d.getFullYear() === t.getFullYear() && d.getMonth() === t.getMonth();
+    setSelectedDay(isCurrent ? t.getDate() : 1);
   };
 
   const onExport = async (
@@ -297,12 +314,23 @@ export default function AttendanceAdminPage({
         open={markOpen}
         onClose={() => setMarkOpen(false)}
         defaultDate={defaultMarkDate}
+        onSaved={setNotice}
+        selfEmployeeId={user?.employeeId ? String(user.employeeId) : undefined}
       />
       <AttendanceEditModal
         open={Boolean(editRow)}
         record={editRow}
         onClose={() => setEditRow(null)}
+        onSaved={setNotice}
       />
+      {notice ? (
+        <p
+          role="status"
+          className="fixed right-6 bottom-6 z-90 m-0 rounded-wz-md bg-[#ecfdf3] px-4 py-3 text-sm font-semibold text-[#027a48] shadow-lg max-md:right-4 max-md:left-4"
+        >
+          {notice}
+        </p>
+      ) : null}
       <AttendanceHistoryModal
         open={Boolean(historyRow)}
         onClose={() => setHistoryRow(null)}
