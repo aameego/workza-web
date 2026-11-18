@@ -17,7 +17,7 @@ export default function LeaveMetrics({ metrics, className }: LeaveMetricsProps) 
   return (
     <div
       className={cn(
-        "grid grid-cols-2 gap-4 xl:grid-cols-4",
+        "grid grid-cols-2 gap-4 md:grid-cols-4",
         className,
       )}
     >
@@ -26,7 +26,7 @@ export default function LeaveMetrics({ metrics, className }: LeaveMetricsProps) 
           key={m.key}
           className="flex min-w-0 flex-col gap-1 overflow-hidden rounded-xl border border-[#dee2e6] bg-white p-4 shadow-[0px_2px_8px_0px_rgba(0,0,0,0.03)]"
         >
-          <p className="m-0 text-[10px] leading-[14px] font-bold tracking-[0.8px] whitespace-nowrap text-[#6c757d] uppercase">
+          <p className="m-0 text-[10px] leading-[14px] font-bold tracking-[0.8px] xl:whitespace-nowrap text-[#6c757d] uppercase">
             {m.label}
           </p>
           <p className="m-0 text-[28px] leading-[34px] font-bold tracking-[-0.5px] text-[#0a1f4a]">

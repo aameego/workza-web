@@ -21,7 +21,7 @@ export default function AttendanceMetrics({
   return (
     <div
       className={cn(
-        "grid grid-cols-2 gap-4 xl:grid-cols-5",
+        "grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5",
         className,
       )}
     >
