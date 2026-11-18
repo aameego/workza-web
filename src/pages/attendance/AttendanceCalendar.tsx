@@ -35,16 +35,19 @@ export default function AttendanceCalendar<C extends { key: string; empty?: fals
     ? ATTENDANCE_LEGEND.filter((i) => legend.includes(i.label))
     : ATTENDANCE_LEGEND;
   return (
-    <div className="flex flex-col gap-wz-4">
-      <div className="flex flex-wrap items-start justify-between gap-wz-3">
-        <div className="flex flex-col gap-1.5">
-          <h2 className="m-0 text-lg leading-[23px] font-bold text-wz-heading">{title}</h2>
-          <div className="flex flex-wrap gap-1.5">
+    <div className="flex flex-col gap-wz-4 max-md:gap-3">
+      {/* Mobile (Figma 173:51061): title + small arrows on one row, legend below. */}
+      <div className="flex flex-wrap items-start justify-between gap-wz-3 max-md:grid max-md:grid-cols-[1fr_auto] max-md:items-center">
+        <div className="flex flex-col gap-1.5 max-md:contents">
+          <h2 className="m-0 text-lg leading-[23px] font-bold text-wz-heading max-md:row-start-1 max-md:text-base max-md:leading-5">
+            {title}
+          </h2>
+          <div className="flex flex-wrap gap-1.5 max-md:col-span-2 max-md:row-start-2 max-md:gap-1">
             {items.map((item) => (
               <span
                 key={item.label}
                 className={cn(
-                  "inline-flex h-[19px] items-center gap-[5px] px-2 text-[9px] leading-[normal] font-semibold",
+                  "inline-flex h-[19px] items-center gap-[5px] px-2 text-[9px] leading-[normal] font-semibold max-md:h-auto max-md:rounded-full max-md:py-1 max-md:leading-[11px]",
                   item.text,
                 )}
               >
@@ -54,7 +57,7 @@ export default function AttendanceCalendar<C extends { key: string; empty?: fals
             ))}
           </div>
         </div>
-        <div className="flex items-center gap-wz-3">
+        <div className="flex items-center gap-wz-3 max-md:col-start-2 max-md:row-start-1">
           {toolbar}
           {(
             [
@@ -66,7 +69,7 @@ export default function AttendanceCalendar<C extends { key: string; empty?: fals
               key={aria}
               type="button"
               className={cn(
-                "inline-flex w-12 cursor-pointer items-center justify-center rounded-wz-md border border-[#e5eaf3] bg-white text-wz-heading hover:bg-wz-neutral-50",
+                "inline-flex w-12 cursor-pointer items-center justify-center rounded-wz-md border border-[#e5eaf3] bg-white text-wz-heading hover:bg-wz-neutral-50 max-md:size-5 max-md:rounded-[7px] max-md:border-[#dee2e6] max-md:[&_svg]:size-3",
                 arrowHeight === 48 ? "h-12" : "h-[50px]",
               )}
               aria-label={aria}
@@ -78,11 +81,11 @@ export default function AttendanceCalendar<C extends { key: string; empty?: fals
         </div>
       </div>
 
-      <div className="grid grid-cols-7 gap-px overflow-hidden rounded-wz-xl border border-[#e5eaf3] bg-[#e5eaf3]">
+      <div className="grid grid-cols-7 gap-px overflow-hidden rounded-wz-xl border border-[#e5eaf3] bg-[#e5eaf3] max-md:gap-0 max-md:border-[#dee2e6] max-md:bg-white">
         {WEEKDAYS.map((day) => (
           <div
             key={day}
-            className="flex h-[45px] items-center justify-center bg-[#eef2f7] text-[10px] font-semibold text-wz-text-muted uppercase"
+            className="flex h-[45px] items-center justify-center bg-[#eef2f7] text-[10px] font-semibold text-wz-text-muted uppercase max-md:h-[30px] max-md:bg-white max-md:text-[9px] max-md:leading-3"
           >
             {day}
           </div>
@@ -91,7 +94,7 @@ export default function AttendanceCalendar<C extends { key: string; empty?: fals
           cell.empty ? (
             <div
               key={cell.key}
-              className="h-[59px] bg-white pt-[9px] pl-[11px] text-[11px] leading-[14px] font-semibold text-[#d3d6d8]"
+              className="h-[59px] bg-white pt-[9px] pl-[11px] text-[11px] leading-[14px] font-semibold text-[#d3d6d8] max-md:h-auto max-md:min-h-[76px] max-md:border max-md:border-[#e4eaf2] max-md:bg-[#fafbfc] max-md:p-1 max-md:text-[10px] max-md:text-wz-text-muted"
               aria-hidden
             >
               {cell.outsideDay}

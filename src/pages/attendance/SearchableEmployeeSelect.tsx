@@ -98,7 +98,7 @@ export default function SearchableEmployeeSelect({
         aria-expanded={open}
         aria-haspopup="listbox"
         className={cn(
-          "flex w-full min-h-10 cursor-pointer items-center justify-between gap-2 rounded-wz-md border bg-white px-3 py-2 text-left text-sm",
+          "flex w-full min-h-[42px] cursor-pointer items-center justify-between gap-2 rounded-wz-md border bg-white px-3 py-2 text-left text-sm",
           hasError ? "border-wz-error" : "border-wz-border",
           disabled && "cursor-not-allowed bg-wz-neutral-100 text-wz-neutral-500",
         )}

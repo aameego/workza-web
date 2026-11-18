@@ -152,7 +152,7 @@ export const orgLeaveMetrics = (summary?: LeaveSummary | null): LeaveMetricCard[
   return [
     {
       key: "wfh",
-      label: "Work From Home Taken",
+      label: "Work From Home Availed",
       value: s.wfhDaysThisMonth ?? 0,
       // ponytail: team/org size, not people who took it (no per-person count from /leave/dashboard).
       hint: s.wfhDaysThisMonth ? byEmployeesHint(s.employeeCount) : undefined,
@@ -160,7 +160,7 @@ export const orgLeaveMetrics = (summary?: LeaveSummary | null): LeaveMetricCard[
     },
     {
       key: "leave",
-      label: "Leaves Taken",
+      label: "Leave Availed",
       value: s.leaveDaysThisMonth ?? 0,
       hint: s.leaveDaysThisMonth ? byEmployeesHint(s.employeeCount) : undefined,
       hintTone: "green",
@@ -189,12 +189,12 @@ export const selfLeaveMetrics = (
   return [
     {
       key: "wfh",
-      label: "Work From Home Taken",
+      label: "Work From Home Availed",
       value: s.wfhDaysThisMonth ?? 0,
     },
     {
       key: "leave",
-      label: "Leaves Taken",
+      label: "Leave Availed",
       value: s.leaveDaysThisMonth ?? 0,
     },
     {
@@ -219,7 +219,7 @@ export const teamLeaveMetrics = (
     return [
       {
         key: "wfh",
-        label: "Work From Home Taken",
+        label: "Work From Home Availed",
         value: s.wfhDaysThisMonth ?? 0,
         // ponytail: hint is team size (no per-person count from /leave/dashboard); hidden when nothing was taken.
         hint: s.wfhDaysThisMonth ? byEmployeesHint(s.employeeCount) : undefined,
@@ -227,7 +227,7 @@ export const teamLeaveMetrics = (
       },
       {
         key: "leave",
-        label: "Leaves Taken",
+        label: "Leave Availed",
         value: s.leaveDaysThisMonth ?? 0,
         hint: s.leaveDaysThisMonth ? byEmployeesHint(s.employeeCount) : undefined,
         hintTone: "green",

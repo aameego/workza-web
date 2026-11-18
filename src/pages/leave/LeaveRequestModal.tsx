@@ -15,10 +15,7 @@ import {
   useLeavePolicy,
 } from "../../hooks/useLeave";
 import SearchableEmployeeSelect from "../attendance/SearchableEmployeeSelect";
-import {
-  LEAVE_TYPE_OPTIONS,
-  validateLeaveRequestForm,
-} from "./leaveViewModel";
+import { LEAVE_TYPE_OPTIONS, validateLeaveRequestForm } from "./leaveViewModel";
 
 export type LeaveRequestModalProps = {
   open: boolean;
@@ -99,8 +96,7 @@ export default function LeaveRequestModal({
     }
     const start = new Date(`${form.startDate}T00:00:00`);
     const end = new Date(`${form.endDate}T00:00:00`);
-    const days =
-      Math.round((end.getTime() - start.getTime()) / 86_400_000) + 1;
+    const days = Math.round((end.getTime() - start.getTime()) / 86_400_000) + 1;
     if (
       days === 1 &&
       (form.dayPart === "first-half" || form.dayPart === "second-half")
@@ -112,8 +108,7 @@ export default function LeaveRequestModal({
 
   const slRequiredWhenDaysGt = useMemo(() => {
     const sl = policyQuery.data?.policy?.types?.find((t) => t.code === "SL") as
-      | { documents?: { requiredWhenDaysGt?: number } }
-      | undefined;
+      { documents?: { requiredWhenDaysGt?: number } } | undefined;
     return sl?.documents?.requiredWhenDaysGt ?? 2;
   }, [policyQuery.data]);
 
@@ -150,8 +145,7 @@ export default function LeaveRequestModal({
       return;
     }
 
-    const leaveType =
-      form.requestType === "WFH" ? "WFH" : form.leaveType;
+    const leaveType = form.requestType === "WFH" ? "WFH" : form.leaveType;
     const requestType = leaveType === "WFH" ? "WFH" : "Leave";
     const isCoCredit =
       leaveType === "CO" &&
@@ -211,31 +205,55 @@ export default function LeaveRequestModal({
             disabled={saving}
             onClick={() => void handleSubmit()}
           >
-            {saving ? "Submitting…" : forSelf ? "Submit Request" : "Create Request"}
+            {saving ? (
+              "Submitting…"
+            ) : forSelf ? (
+              <>
+                Submit<span className="max-md:hidden"> Request</span>
+              </>
+            ) : (
+              "Create Request"
+            )}
           </Button>
         </>
       }
     >
-      <div className="grid grid-cols-1 gap-x-wz-6 gap-y-wz-6 sm:grid-cols-2">
+      <div className="grid grid-cols-2 gap-x-wz-6 gap-y-wz-6">
         {!forSelf ? (
-          <Field label="Employee/ Consultant Name" required>
+          <Field
+            label="Employee/ Consultant Name"
+            required
+            className="max-md:col-span-2"
+          >
             <SearchableEmployeeSelect
               value={form.employeeId}
-              onChange={(id) =>
-                setForm((p) => ({ ...p, employeeId: id }))
-              }
+              onChange={(id) => setForm((p) => ({ ...p, employeeId: id }))}
+              // Figma 173:49911: 40px picker in the leave sheet
+              className="max-md:[&>button]:min-h-10"
             />
           </Field>
         ) : null}
 
-        <div className={forSelf ? "sm:col-span-2" : undefined}>
+        <div className={forSelf ? "col-span-2" : "max-md:col-span-2"}>
           <SegmentedToggle
+            tight
             label="Select Request Type"
             value={form.requestType === "WFH" ? "WFH" : "Leave"}
-            options={wfhEnabled ? [["Leave", "Leave"], ["WFH", "WFH"]] : [["Leave", "Leave"]]}
+            options={
+              wfhEnabled
+                ? [
+                    ["Leave", "Leave"],
+                    ["WFH", "WFH"],
+                  ]
+                : [["Leave", "Leave"]]
+            }
             onChange={(next) => {
               if (next === "WFH") {
-                setForm((p) => ({ ...p, requestType: "WFH", leaveType: "WFH" }));
+                setForm((p) => ({
+                  ...p,
+                  requestType: "WFH",
+                  leaveType: "WFH",
+                }));
                 setMedicalFile(null);
                 return;
               }
@@ -248,7 +266,7 @@ export default function LeaveRequestModal({
           />
         </div>
 
-        <Field label="Leave Type" required>
+        <Field label="Leave Type" required className="max-md:h-[66px] max-md:justify-end">
           <Select
             value={form.requestType === "WFH" ? "WFH" : form.leaveType}
             disabled={form.requestType === "WFH"}
@@ -277,7 +295,7 @@ export default function LeaveRequestModal({
           </Select>
         </Field>
 
-        <Field label="Day Type" required>
+        <Field label="Day Type" required className="max-md:h-[66px] max-md:justify-end">
           <Select
             value={form.dayPart}
             onChange={(e) =>
@@ -288,10 +306,16 @@ export default function LeaveRequestModal({
               Select
             </option>
             <option value="full">Full Day</option>
-            <option value="first-half" disabled={!isSingleDay && Boolean(form.endDate)}>
+            <option
+              value="first-half"
+              disabled={!isSingleDay && Boolean(form.endDate)}
+            >
               First Half
             </option>
-            <option value="second-half" disabled={!isSingleDay && Boolean(form.endDate)}>
+            <option
+              value="second-half"
+              disabled={!isSingleDay && Boolean(form.endDate)}
+            >
               Second Half
             </option>
           </Select>
@@ -318,7 +342,7 @@ export default function LeaveRequestModal({
         </Field>
 
         {form.leaveType === "CO" && form.requestType !== "WFH" ? (
-          <Field label="CO Purpose" className="sm:col-span-2">
+          <Field label="CO Purpose" className="col-span-2">
             <div className="flex flex-wrap gap-4 text-sm">
               <label className="inline-flex items-center gap-2">
                 <input
@@ -350,7 +374,7 @@ export default function LeaveRequestModal({
           <Field
             label={`Medical Document (required when SL > ${slRequiredWhenDaysGt} days)`}
             required
-            className="sm:col-span-2"
+            className="col-span-2"
           >
             <Input
               type="file"
@@ -371,7 +395,7 @@ export default function LeaveRequestModal({
           </Field>
         ) : null}
 
-        <Field label="Reason" required className="sm:col-span-2">
+        <Field label="Reason" required className="col-span-2">
           <TextArea
             rows={2}
             style={{ minHeight: 70 }}
@@ -381,14 +405,12 @@ export default function LeaveRequestModal({
                 ? "Which off-day did you work?"
                 : "Enter reason here"
             }
-            onChange={(e) =>
-              setForm((p) => ({ ...p, reason: e.target.value }))
-            }
+            onChange={(e) => setForm((p) => ({ ...p, reason: e.target.value }))}
           />
         </Field>
 
         {daySpan != null ? (
-          <p className="m-0 sm:col-span-2 text-xs text-wz-text-secondary">
+          <p className="m-0 col-span-2 text-xs text-wz-text-secondary">
             Selected range: {daySpan} calendar day{daySpan === 1 ? "" : "s"}
             {form.leaveType === "CO" && form.coPurpose === "credit"
               ? ""
@@ -397,7 +419,7 @@ export default function LeaveRequestModal({
         ) : null}
 
         {error ? (
-          <p className="m-0 sm:col-span-2 text-sm text-wz-error" role="alert">
+          <p className="m-0 col-span-2 text-sm text-wz-error" role="alert">
             {error}
           </p>
         ) : null}

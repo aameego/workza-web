@@ -130,6 +130,7 @@ export type NormalizedAttendanceRow = AttendanceDayEntry & {
   employeeCode: string;
   name: string;
   initials: string;
+  designation: string;
   rowKey: string;
 };
 
@@ -159,6 +160,7 @@ export const normalizeAttendanceRow = (
     employeeCode: empCode,
     name: empName,
     initials,
+    designation: row.designation || empObj?.designation || "",
     rowKey: String(row.recordId || `${empCode}-${row.date || ""}-${row.status}`),
   };
 };

@@ -236,7 +236,7 @@ export default function LeaveAdminPage({
 
   return (
     /* Figma leave-directory-admin: every section 24 apart */
-    <div className="space-y-6">
+    <div className="space-y-6 max-md:space-y-5">
       {showHeader ? (
         <LeavePageHeader
           year={year}
@@ -287,7 +287,7 @@ export default function LeaveAdminPage({
       <div
         className={
           canBalances
-            ? "grid grid-cols-1 gap-6 xl:grid-cols-2"
+            ? "grid grid-cols-1 gap-6 max-md:gap-5 xl:grid-cols-2"
             : "grid grid-cols-1 gap-6"
         }
       >

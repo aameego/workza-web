@@ -4,10 +4,12 @@ import {
   dayCellClass,
   dayLook,
   dayNumberClass,
+  mobileDayLabelClass,
 } from "../attendance/attendanceCalendarStyle";
 import LocationIcons from "../attendance/LocationIcons";
 import { formatHistoryTime, formatHours } from "../attendance/attendanceHistory";
-import { Badge, Button, cn, MonthSelect } from "../../design-system";
+import { Eye } from "lucide-react";
+import { Badge, Button, cn, Modal, MonthSelect, Pagination } from "../../design-system";
 import { useAttendanceMonth } from "../../hooks/useAttendance";
 import { ApiError } from "../../lib/apiClient";
 import { useEmployeeAttendanceMonth } from "../../hooks/useEmployeeDetailTabs";
@@ -42,6 +44,9 @@ const statusBadge = (
   if (s === "Leave" || s === "WFH") return "info";
   return "neutral";
 };
+
+/** Figma mobile table pages (173:51938); the desktop table lists the whole month. */
+const MOBILE_PAGE = 10;
 
 export default function EmployeeAttendancePanel({
   employeeId,
@@ -80,6 +85,9 @@ export default function EmployeeAttendancePanel({
     [data, year, month, profile?.dateOfJoining],
   );
   const rows = useMemo(() => flattenDayRecords(data), [data]);
+  const [details, setDetails] = useState<(typeof rows)[number] | null>(null);
+  const [mobilePage, setMobilePage] = useState(1);
+  const dayDate = (day: number) => new Date(year, month - 1, day);
   const label = monthLabel(year, month);
 
   const selectedCell = useMemo(
@@ -100,16 +108,18 @@ export default function EmployeeAttendancePanel({
     setYear(d.getFullYear());
     setMonth(d.getMonth() + 1);
     setSelectedDay(null);
+    setMobilePage(1);
   };
 
   const onDaySelect = (day: number) => {
+    setMobilePage(1);
     setSelectedDay((prev) => (prev === day ? null : day));
   };
 
   const header = isSelf ? (
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex flex-wrap items-center gap-2">{leading}</div>
-      <MonthSelect year={year} month={month} onShift={shiftMonth} />
+      <MonthSelect year={year} month={month} onShift={shiftMonth} className="max-md:h-9" />
     </div>
   ) : null;
 
@@ -148,7 +158,7 @@ export default function EmployeeAttendancePanel({
   }
 
   return (
-    <div className="flex w-full flex-col gap-wz-6">
+    <div className="flex w-full flex-col gap-wz-6 max-md:gap-5">
       {header}
       {/* Figma metrics: six 180x86 cards, 16 apart */}
       <div className="grid grid-cols-2 gap-wz-4 sm:grid-cols-3 lg:grid-cols-6">
@@ -211,6 +221,7 @@ export default function EmployeeAttendancePanel({
                     "mt-[6px] truncate pr-[11px] text-center leading-6 font-semibold",
                     look.large ? "text-sm" : "text-[10px]",
                     look.text,
+                    mobileDayLabelClass,
                   )}
                   title={cell.label}
                 >
@@ -218,7 +229,7 @@ export default function EmployeeAttendancePanel({
                 </span>
               ) : null}
               {cell.hasSessions ? (
-                <span className="absolute top-[9px] right-[11px] text-[9px] font-medium text-wz-primary">
+                <span className="absolute top-[9px] right-[11px] text-[9px] font-medium text-wz-primary max-md:hidden">
                   Sessions
                 </span>
               ) : null}
@@ -239,12 +250,74 @@ export default function EmployeeAttendancePanel({
       ) : null}
 
       {/* Figma: title on the page, table card 16 below; header 54, rows 53, 12px navy */}
-      <div className="flex flex-col gap-wz-4">
+      <div className="flex flex-col gap-wz-4 max-md:gap-5">
         <h2 className="m-0 text-lg leading-[23px] font-bold text-wz-heading">
           {isSelf ? "My Attendance" : "Attendance"} —{" "}
           {selectedDay != null ? `${selectedDay} ${label}` : label}
         </h2>
-        <div className="overflow-x-auto rounded-wz-xl border border-wz-border bg-white">
+        {/* Figma mobile (173:51938): six compact columns, the eye opens View Details (173:50749) */}
+        <div className="overflow-hidden rounded-wz-xl border border-[#dee2e6] bg-white md:hidden max-md:border-0 max-md:outline max-md:outline-1 max-md:-outline-offset-1 max-md:outline-[#dee2e6]">
+          <div className="flex items-center gap-1 border-b border-[#e9ecef] bg-[#f8f9fa] px-4 py-3 text-[10px] leading-[normal] font-semibold text-wz-heading">
+            {["Dates & Days", "Check In", "Check Out", "Hours", "Status"].map((h) => (
+              <p key={h} className="m-0 min-w-0 flex-1">
+                {h}
+              </p>
+            ))}
+            <p className="m-0 min-w-0 flex-1 text-center">Actions</p>
+          </div>
+          {filteredRows.length === 0 ? (
+            <p className="m-0 px-4 py-3.5 text-center text-[10px] text-wz-text-muted">
+              {selectedDay != null ? "No attendance records for this day." : "No attendance records for this month."}
+            </p>
+          ) : (
+            filteredRows.slice((mobilePage - 1) * MOBILE_PAGE, mobilePage * MOBILE_PAGE).map((row, idx) => {
+              const d = dayDate(row.day);
+              const open = row.sessions?.[row.sessions.length - 1]?.isOpen;
+              return (
+                <div
+                  key={`${row.day}-${row.status}-${idx}`}
+                  className="flex items-center gap-1 border-b border-[#e9ecef] px-4 py-[13.5px] text-[10px] leading-[normal] text-wz-heading"
+                >
+                  <div className="flex min-w-0 flex-1 flex-col gap-0.5 whitespace-nowrap">
+                    <span>{d.toLocaleDateString("en-GB")}</span>
+                    <span className="text-[9px] text-wz-text-muted">
+                      {d.toLocaleDateString("en-GB", { weekday: "long" })}
+                    </span>
+                  </div>
+                  <p className="m-0 min-w-0 flex-1">{formatHistoryTime(row.checkIn)}</p>
+                  <p className="m-0 min-w-0 flex-1">{open ? "-" : formatHistoryTime(row.checkOut)}</p>
+                  <p className="m-0 min-w-0 flex-1">{formatHours(row.hours)}</p>
+                  <div className="flex min-w-0 flex-1">
+                    <Badge status={statusBadge(row.status)} size="sm">
+                      {row.status || "-"}
+                    </Badge>
+                  </div>
+                  <div className="flex h-8 min-w-0 flex-1 items-center justify-center">
+                    <button
+                      type="button"
+                      aria-label={`View ${d.toLocaleDateString("en-GB")} details`}
+                      className="inline-flex cursor-pointer items-center justify-center rounded-wz-md border-0 bg-transparent px-1 py-1.5 text-wz-heading"
+                      onClick={() => setDetails(row)}
+                    >
+                      <Eye size={12} aria-hidden />
+                    </button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+          {filteredRows.length > MOBILE_PAGE ? (
+            <Pagination
+              variant="compact"
+              page={mobilePage}
+              pages={Math.ceil(filteredRows.length / MOBILE_PAGE)}
+              onPageChange={setMobilePage}
+              summary={`Showing ${(mobilePage - 1) * MOBILE_PAGE + 1}–${Math.min(mobilePage * MOBILE_PAGE, filteredRows.length)} of ${filteredRows.length} days`}
+            />
+          ) : null}
+        </div>
+
+        <div className="overflow-x-auto rounded-wz-xl border border-wz-border bg-white max-md:hidden">
           <table className="w-full min-w-[900px] border-collapse text-left text-xs leading-[normal] text-wz-heading">
             <thead>
               <tr>
@@ -339,6 +412,56 @@ export default function EmployeeAttendancePanel({
           </table>
         </div>
       </div>
+
+      {details ? (
+        <Modal open title="View Details" onClose={() => setDetails(null)}>
+          <div className="flex flex-col gap-3 pt-0.5">
+            {(
+              [
+                ["Attendance Date", dayDate(details.day).toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "2-digit" })],
+                ["Leave Type (If any)", details.leaveLabel || details.leaveType || "-"],
+                ["Check In", formatHistoryTime(details.checkIn)],
+                ["Check Out", details.sessions?.[details.sessions.length - 1]?.isOpen ? "-" : formatHistoryTime(details.checkOut)],
+                ["Hours", formatHours(details.hours)],
+                ["Sessions", String(details.sessionCount ?? details.sessions?.length ?? "-")],
+                ["Notes", details.notes || "-"],
+                [
+                  "Location In",
+                  <LocationIcons
+                    url={details.sessions?.[0]?.checkInLocation?.mapsUrl}
+                    selfieUrl={details.sessions?.[0]?.checkInSelfieUrl}
+                  />,
+                ],
+                [
+                  "Location Out",
+                  <LocationIcons
+                    url={details.sessions?.[details.sessions.length - 1]?.checkOutLocation?.mapsUrl}
+                    selfieUrl={details.sessions?.[details.sessions.length - 1]?.checkOutSelfieUrl}
+                  />,
+                ],
+                [
+                  "Status",
+                  <Badge status={statusBadge(details.status)} size="sm">
+                    {details.status || "-"}
+                  </Badge>,
+                ],
+              ] as [string, ReactNode][]
+            ).map(([k, v]) => (
+              <div key={k} className="flex items-start gap-3">
+                <span className="w-[92px] shrink-0 text-[10px] leading-[13px] font-semibold text-[#495057]">{k}</span>
+                <span
+                  className={cn(
+                    "min-w-0 flex-1 text-xs break-words text-wz-heading",
+                    k.startsWith("Location") ? "leading-[13px]" : "leading-[15px]",
+                  )}
+                >
+                  {v}
+                </span>
+              </div>
+            ))}
+          </div>
+        </Modal>
+      ) : null}
     </div>
   );
 }

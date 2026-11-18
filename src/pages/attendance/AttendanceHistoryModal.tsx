@@ -87,7 +87,7 @@ export default function AttendanceHistoryModal({ open, onClose, row }: Attendanc
         role="dialog"
         aria-modal="true"
         aria-labelledby="att-history-title"
-        className="flex h-full w-full max-w-[450px] flex-col bg-white shadow-[0_20px_50px_rgba(15,23,42,0.18)]"
+        className="flex h-full w-full max-w-[450px] flex-col bg-white shadow-[0_20px_50px_rgba(15,23,42,0.18)] max-md:max-w-[350px] max-md:overflow-hidden max-md:rounded-l-2xl"
       >
         <div className="flex items-center justify-between gap-wz-3 border-b border-wz-border px-wz-6 py-wz-4">
           <h2 id="att-history-title" className="m-0 text-xl leading-[25px] font-bold text-wz-heading">

@@ -18,14 +18,55 @@ export type PaginationProps = {
   onPageChange: (page: number) => void;
   /** Left-hand summary, e.g. "Showing 1–10 of 84 employees". */
   summary: ReactNode;
+  /** Mobile (Figma 173:51558): summary above, buttons in a scrolling row, no bar chrome. */
+  variant?: "bar" | "stacked" | "compact";
 };
 
 /** Table footer bar: 56 tall, summary left (14px semibold navy), buttons right, 8 apart. */
-export function Pagination({ page, pages, onPageChange, summary }: PaginationProps) {
+export function Pagination({ page, pages, onPageChange, summary, variant = "bar" }: PaginationProps) {
+  const stacked = variant === "stacked";
+  if (variant === "compact") {
+    /* Mobile table footer (Figma 173:51639): 56 tall, 10px summary, chevron-only buttons */
+    const btn =
+      "inline-flex h-8 cursor-pointer items-center justify-center rounded-[7px] border border-wz-border bg-white px-2 text-wz-heading disabled:cursor-not-allowed disabled:text-wz-neutral-400";
+    return (
+      <div className="flex h-14 items-center justify-between gap-3 border-t border-wz-border bg-white px-4">
+        <div className="min-w-0 flex-1 text-[10px] leading-[18px] font-semibold text-wz-heading">{summary}</div>
+        <div className="flex items-center gap-2">
+          <button type="button" className={btn} aria-label="Previous page" disabled={page <= 1} onClick={() => onPageChange(Math.max(1, page - 1))}>
+            <ChevronLeft className="size-3.5" aria-hidden />
+          </button>
+          <button type="button" className={btn} aria-label="Next page" disabled={page >= pages} onClick={() => onPageChange(Math.min(pages, page + 1))}>
+            <ChevronRight className="size-3.5" aria-hidden />
+          </button>
+        </div>
+      </div>
+    );
+  }
   return (
-    <div className="flex min-h-14 flex-wrap items-center justify-between gap-wz-3 border-t border-wz-border bg-white px-4 py-3">
-      <div className="text-sm leading-[18px] font-semibold text-wz-heading">{summary}</div>
-      <div className="flex flex-wrap items-center gap-wz-2">
+    <div
+      className={
+        stacked
+          ? "flex flex-col items-start gap-3"
+          : "flex min-h-14 flex-wrap items-center justify-between gap-wz-3 border-t border-wz-border bg-white px-4 py-3"
+      }
+    >
+      <div
+        className={
+          stacked
+            ? "text-[11px] leading-[18px] font-semibold text-wz-heading"
+            : "text-sm leading-[18px] font-semibold text-wz-heading"
+        }
+      >
+        {summary}
+      </div>
+      <div
+        className={
+          stacked
+            ? "flex max-w-full items-center gap-wz-2 overflow-x-auto [&>*]:shrink-0 [&>*]:rounded-[7px] [&>*]:px-2 [&>*]:text-xs"
+            : "flex flex-wrap items-center gap-wz-2"
+        }
+      >
         <button
           type="button"
           className={pageBtnClass()}

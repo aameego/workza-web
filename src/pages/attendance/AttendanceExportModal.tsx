@@ -82,7 +82,13 @@ export default function AttendanceExportModal({
   return (
     <Modal
       open={open}
-      title="Export Report - Attendance"
+      title={
+        <>
+          {/* Figma mobile sheet (173:50207) shortens the title */}
+          <span className="max-md:hidden">Export Report - Attendance</span>
+          <span className="md:hidden">Export Attendance</span>
+        </>
+      }
       onClose={() => {
         if (!busy) onClose();
       }}
@@ -97,14 +103,14 @@ export default function AttendanceExportModal({
         </>
       }
     >
-      <div className="-mt-2 grid grid-cols-1 gap-wz-6 sm:grid-cols-2">
-        <Field label="Date Range" required>
+      <div className="-mt-2 grid grid-cols-2 gap-wz-6">
+        <Field label="Date Range" required className="max-md:col-span-2">
           <div className="grid grid-cols-2 gap-3">
             <Input type="date" aria-label="From" value={from} max={to || undefined} onChange={(e) => setFrom(e.target.value)} />
             <Input type="date" aria-label="To" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} />
           </div>
         </Field>
-        <Field label="Employee/ Consultant Name">
+        <Field label="Employee/ Consultant Name" className="max-md:col-span-2">
           <SearchableEmployeeSelect value={employeeId} onChange={setEmployeeId} disabled={busy} />
         </Field>
         <Field label="Department">
@@ -127,7 +133,7 @@ export default function AttendanceExportModal({
           </Select>
         </Field>
         {error ? (
-          <p className="m-0 text-sm text-wz-error sm:col-span-2" role="alert">
+          <p className="m-0 text-sm text-wz-error col-span-2" role="alert">
             {error}
           </p>
         ) : null}
