@@ -20,12 +20,14 @@ export type AttendanceEditModalProps = {
   open: boolean;
   record: NormalizedAttendanceRow | null;
   onClose: () => void;
+  onSaved?: (message: string) => void;
 };
 
 export default function AttendanceEditModal({
   open,
   record,
   onClose,
+  onSaved,
 }: AttendanceEditModalProps) {
   const [status, setStatus] = useState("Present");
   const [checkIn, setCheckIn] = useState("");
@@ -83,6 +85,7 @@ export default function AttendanceEditModal({
         checkOut: stripsTimes ? null : checkOut,
         auditNote: auditNote.trim(),
       });
+      onSaved?.("Attendance updated successfully.");
       onClose();
     } catch (err) {
       setError(
