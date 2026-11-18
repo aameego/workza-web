@@ -222,7 +222,7 @@ export default function LeaveRequestsTable({
       ) : null}
 
       {/* Mobile table (Figma 173:50877 admin / 173:51639 self): five columns, eye opens View Details */}
-      <div className="overflow-hidden rounded-wz-xl border border-wz-border bg-white md:hidden max-md:border-0 max-md:outline max-md:outline-1 max-md:-outline-offset-1 max-md:outline-[#dee2e6]">
+      <div className="overflow-hidden rounded-wz-xl border border-wz-border bg-white xl:hidden max-md:border-0 max-md:outline max-md:outline-1 max-md:-outline-offset-1 max-md:outline-[#dee2e6]">
         <div className={cn("flex items-center border-b border-[#e9ecef] bg-wz-neutral-50 px-4 py-3 text-[10px] leading-[normal] font-semibold text-wz-heading", isSelf ? "justify-between" : "gap-1")}>
           {(isSelf
             ? ["Request Type", "Dates\n(Start - End)", "Approved By\n(RM/HR/Admin)", "Request\nStatus", "Actions"]
@@ -320,7 +320,7 @@ export default function LeaveRequestsTable({
       />
 
       {/* Figma leave table: 54px header, 60px rows, 12px navy; pagination inside the card */}
-      <div className="overflow-hidden rounded-wz-xl border border-wz-border bg-white max-md:hidden">
+      <div className="overflow-hidden rounded-wz-xl border border-wz-border bg-white max-xl:hidden">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[900px] border-collapse text-left text-xs leading-[normal] text-wz-heading">
             <thead>

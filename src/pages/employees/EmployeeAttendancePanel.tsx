@@ -256,7 +256,7 @@ export default function EmployeeAttendancePanel({
           {selectedDay != null ? `${selectedDay} ${label}` : label}
         </h2>
         {/* Figma mobile (173:51938): six compact columns, the eye opens View Details (173:50749) */}
-        <div className="overflow-hidden rounded-wz-xl border border-[#dee2e6] bg-white md:hidden max-md:border-0 max-md:outline max-md:outline-1 max-md:-outline-offset-1 max-md:outline-[#dee2e6]">
+        <div className="overflow-hidden rounded-wz-xl border border-[#dee2e6] bg-white xl:hidden max-md:border-0 max-md:outline max-md:outline-1 max-md:-outline-offset-1 max-md:outline-[#dee2e6]">
           <div className="flex items-center gap-1 border-b border-[#e9ecef] bg-[#f8f9fa] px-4 py-3 text-[10px] leading-[normal] font-semibold text-wz-heading">
             {["Dates & Days", "Check In", "Check Out", "Hours", "Status"].map((h) => (
               <p key={h} className="m-0 min-w-0 flex-1">
@@ -317,7 +317,7 @@ export default function EmployeeAttendancePanel({
           ) : null}
         </div>
 
-        <div className="overflow-x-auto rounded-wz-xl border border-wz-border bg-white max-md:hidden">
+        <div className="overflow-x-auto rounded-wz-xl border border-wz-border bg-white max-xl:hidden">
           <table className="w-full min-w-[900px] border-collapse text-left text-xs leading-[normal] text-wz-heading">
             <thead>
               <tr>

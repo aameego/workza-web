@@ -286,8 +286,8 @@ export default function AppLayout() {
         )}
       >
         {isMobile ? (
-          /* Figma "Mobile app header" (173:51033): 64 tall, 16 side padding, menu · title · bell · avatar */
-          <header className="sticky top-0 z-20 m-0 flex h-16 min-h-16 items-center justify-between border-0 border-b border-wz-border bg-white px-wz-4">
+          /* Figma "Mobile app header" (173:51033): 64 tall, 17 side padding, 34.67 gaps; the title flexes so wider screens keep the icons right */
+          <header className="sticky top-0 z-20 m-0 flex h-16 min-h-16 items-center gap-[34.67px] border-0 border-b border-wz-border bg-white px-[17px]">
             <button
               type="button"
               className="inline-flex size-[22px] shrink-0 cursor-pointer items-center justify-center border-0 bg-transparent p-0"
@@ -304,7 +304,7 @@ export default function AppLayout() {
                 />
               </svg>
             </button>
-            <h1 className="m-0 w-[202px] min-w-0 truncate text-lg leading-[22px] font-bold text-wz-heading">
+            <h1 className="m-0 min-w-0 flex-1 truncate text-lg leading-[22px] font-bold text-wz-heading">
               {pageTitle}
             </h1>
             <button
