@@ -8,7 +8,6 @@ import {
   coverageLabel,
   displayValue,
   formatDateDisplay,
-  formatDateIso,
   managerDisplayName,
   maskAadhaar,
   maskAccountNumber,
@@ -174,11 +173,11 @@ export default function EmployeeOverviewPanel({
             <EmployeeInfoRow>
               <EmployeeInfoField
                 label="Date of Birth"
-                value={formatDateIso(employee.dob)}
+                value={formatDateDisplay(employee.dob)}
               />
               <EmployeeInfoField
                 label="Date of Joining"
-                value={formatDateIso(employee.dateOfJoining)}
+                value={formatDateDisplay(employee.dateOfJoining)}
               />
             </EmployeeInfoRow>
             <EmployeeInfoRow>

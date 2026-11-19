@@ -22,7 +22,7 @@ export type PaginationProps = {
   variant?: "bar" | "stacked" | "compact";
 };
 
-/** Table footer bar: 56 tall, summary left (14px semibold navy), buttons right, 8 apart. */
+/** Table footer bar: 56 tall, summary left (12px semibold navy), buttons right, 8 apart. */
 export function Pagination({ page, pages, onPageChange, summary, variant = "bar" }: PaginationProps) {
   const stacked = variant === "stacked";
   if (variant === "compact") {
@@ -31,7 +31,7 @@ export function Pagination({ page, pages, onPageChange, summary, variant = "bar"
       "inline-flex h-8 cursor-pointer items-center justify-center rounded-[7px] border border-wz-border bg-white px-2 text-wz-heading disabled:cursor-not-allowed disabled:text-wz-neutral-400";
     return (
       <div className="flex h-14 items-center justify-between gap-3 border-t border-wz-border bg-white px-4">
-        <div className="min-w-0 flex-1 text-[10px] leading-[18px] font-semibold text-wz-heading">{summary}</div>
+        <div className="min-w-0 flex-1 text-[10px] leading-[18px] font-semibold text-wz-heading md:text-xs">{summary}</div>
         <div className="flex items-center gap-2">
           <button type="button" className={btn} aria-label="Previous page" disabled={page <= 1} onClick={() => onPageChange(Math.max(1, page - 1))}>
             <ChevronLeft className="size-3.5" aria-hidden />
@@ -55,7 +55,7 @@ export function Pagination({ page, pages, onPageChange, summary, variant = "bar"
         className={
           stacked
             ? "text-[11px] leading-[18px] font-semibold text-wz-heading"
-            : "text-sm leading-[18px] font-semibold text-wz-heading"
+            : "text-xs leading-[18px] font-semibold text-wz-heading"
         }
       >
         {summary}

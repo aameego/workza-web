@@ -3,6 +3,8 @@ import {
   EMPLOYEE_CODE_MAX_LENGTH,
   EMPLOYEE_CODE_PATTERN,
 } from "../employees/employeeCodeFormat";
+import { validateEmployeeField } from "../employees/employeeValidation";
+import type { EmployeeFormValues } from "../employees/employeeForm";
 import type { InternFormValues } from "./internForm";
 import {
   hasStipendData,
@@ -100,7 +102,7 @@ export const validateInternField = (
       return null;
     }
     case "departmentId":
-      return String(v ?? "").trim() ? null : "Department is required.";
+      return String(v ?? "").trim() ? null : "Department is required";
     case "mentorId":
       return null;
     case "reportingManagerId": {
@@ -158,6 +160,36 @@ export const validateInternField = (
       }
       return null;
     }
+    // Same rules as the employee form (INT-FN-01).
+    case "aadhaarNumber":
+    case "panNumber":
+    case "accountNumber":
+    case "ifscCode":
+    case "nameAsPerAadhaar":
+    case "nameAsPerPan":
+    case "fatherHusbandName":
+      return validateEmployeeField(name, { [name]: v } as unknown as EmployeeFormValues);
+    case "expectedGraduationDate": {
+      const grad = String(v ?? "").trim();
+      if (!grad) return null;
+      const g = new Date(grad);
+      if (Number.isNaN(g.getTime())) return "Enter a valid graduation date";
+      const dob = new Date(String(values.dob ?? ""));
+      if (!Number.isNaN(dob.getTime())) {
+        const minGrad = new Date(dob);
+        minGrad.setFullYear(minGrad.getFullYear() + MIN_INTERN_AGE);
+        if (g < minGrad) return "Graduation date is too close to the date of birth";
+      }
+      const start = new Date(String(values.internshipStartDate ?? ""));
+      if (!Number.isNaN(start.getTime())) {
+        const earliest = new Date(start);
+        earliest.setFullYear(earliest.getFullYear() - 1);
+        if (g < earliest) {
+          return "Graduation date cannot be more than a year before the internship starts";
+        }
+      }
+      return null;
+    }
     case "stipendAmount": {
       const draft = {
         monthlyStipend: values.stipendAmount,
@@ -203,6 +235,14 @@ export const collectInternFormErrors = (
     "internshipEndDate",
     "mentorId",
     "reportingManagerId",
+    "aadhaarNumber",
+    "panNumber",
+    "accountNumber",
+    "ifscCode",
+    "nameAsPerAadhaar",
+    "nameAsPerPan",
+    "fatherHusbandName",
+    "expectedGraduationDate",
     "stipendAmount",
     "stipendFrequency",
     "userPassword",

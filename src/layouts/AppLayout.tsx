@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
+  APP_NAV_ITEMS,
   navItemsFor,
   crumbsForPath,
   isNavPathActive,
@@ -31,7 +32,7 @@ import { api } from "../lib/apiClient";
 import { clearAuthData, updateStoredUser } from "../lib/authStorage";
 import { toVendorSlug } from "../lib/vendorPath";
 import workzaLogo from "../assets/landing/workza-logo.png";
-import { Avatar, cn, IconButton } from "../design-system";
+import { Avatar, cn, IconButton, SuccessToastHost } from "../design-system";
 
 const sidebarToggleClass =
   "inline-flex size-[25px] shrink-0 cursor-pointer items-center justify-center rounded-wz-sm border-0 bg-transparent p-0 text-white hover:bg-white/10";
@@ -78,6 +79,11 @@ export default function AppLayout() {
   }, [vendorSlug, user?.vendorName]);
 
   const currentPath = normalizeAppPath(location.pathname);
+  // Direct URLs to a module the user can't see in the sidebar get an access-denied page (INT-FN-11).
+  const navRoot = APP_NAV_ITEMS.find(
+    (item) => currentPath === item.path || currentPath.startsWith(`${item.path}/`),
+  );
+  const routeBlocked = navRoot ? !navItemsFor(user).includes(navRoot) : false;
   const pageTitle = titleForPath(location.pathname, location.search);
   const pageCrumbs = crumbsForPath(location.pathname, location.search);
   const vendorBase = `/${vendorCode}`;
@@ -441,8 +447,18 @@ export default function AppLayout() {
         )}
 
         <main className="min-w-0 flex-1 p-wz-6 max-[900px]:p-wz-4">
-          {sessionReady ? <Outlet /> : null}
+          {!sessionReady ? null : routeBlocked ? (
+            <div className="flex flex-col items-start gap-wz-3 rounded-wz-xl border border-wz-border bg-white p-wz-6">
+              <h1 className="m-0 text-lg font-bold text-wz-heading">Access denied</h1>
+              <p className="m-0 text-sm text-wz-text-secondary">
+                You do not have permission to open this page.
+              </p>
+            </div>
+          ) : (
+            <Outlet />
+          )}
         </main>
+        <SuccessToastHost />
       </div>
     </div>
   );

@@ -326,7 +326,7 @@ export default function EmployeesPage() {
             count:
               directory === "employee"
                 ? pagination.total
-                : employeeCountData?.pagination?.total,
+                : (employeeCountData?.pagination?.total ?? 0),
           },
           {
             value: "consultancy",
@@ -334,7 +334,7 @@ export default function EmployeesPage() {
             count:
               directory === "consultancy"
                 ? pagination.total
-                : consultancyCountData?.pagination?.total,
+                : (consultancyCountData?.pagination?.total ?? 0),
           },
           {
             value: "intern",

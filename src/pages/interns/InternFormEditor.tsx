@@ -14,6 +14,7 @@ import {
   TextArea,
   SearchableSelect,
   cn,
+  showSuccessToast,
 } from "../../design-system";
 import { useDepartmentNames } from "../../hooks/useDepartmentNames";
 import { useEmployees } from "../../hooks/useEmployees";
@@ -191,11 +192,13 @@ export default function InternFormEditor({
       if (isEdit) {
         if (!internId) throw new Error("Missing intern id");
         await updateMutation.mutateAsync({ id: internId, data: payload });
+        showSuccessToast("Intern updated successfully.");
         goToView(internId);
         return;
       }
 
       const created = await addMutation.mutateAsync(payload);
+      showSuccessToast("Intern added successfully.");
       const newId =
         created?.intern?._id ||
         (created as { _id?: string } | undefined)?._id;
@@ -256,19 +259,19 @@ export default function InternFormEditor({
           </h2>
           <div className="grid grid-cols-1 gap-x-wz-6 gap-y-wz-6 md:grid-cols-2 xl:grid-cols-3">
             <Field label="Intern Code (auto if blank)" htmlFor="intern-employeeCode" error={errors.employeeCode}>
-              <Input id="intern-employeeCode" value={form.employeeCode} onChange={onTextChange("employeeCode")} invalid={Boolean(errors.employeeCode)} />
+              <Input id="intern-employeeCode" placeholder="e.g., INT-0042" value={form.employeeCode} onChange={onTextChange("employeeCode")} invalid={Boolean(errors.employeeCode)} />
             </Field>
             <Field label="Full Name" htmlFor="intern-name" required error={errors.name}>
-              <Input id="intern-name" value={form.name} onChange={onTextChange("name")} required invalid={Boolean(errors.name)} />
+              <Input id="intern-name" placeholder="e.g., Priya Sharma" value={form.name} onChange={onTextChange("name")} required invalid={Boolean(errors.name)} />
             </Field>
             <Field label="Email" htmlFor="intern-email" error={errors.email} hint={form.createAppLogin ? "Required for app login (or phone)" : undefined}>
-              <Input id="intern-email" type="email" value={form.email} onChange={onTextChange("email")} invalid={Boolean(errors.email)} />
+              <Input id="intern-email" placeholder="e.g., priya.s@workza.com" type="email" value={form.email} onChange={onTextChange("email")} invalid={Boolean(errors.email)} />
             </Field>
             <Field label="Phone" htmlFor="intern-phone" error={errors.phone}>
-              <Input id="intern-phone" type="tel" inputMode="numeric" value={form.phone} onChange={onTextChange("phone")} invalid={Boolean(errors.phone)} />
+              <Input id="intern-phone" placeholder="+91 98765 43210" type="tel" inputMode="numeric" value={form.phone} onChange={onTextChange("phone")} invalid={Boolean(errors.phone)} />
             </Field>
             <Field label="Designation" htmlFor="intern-designation">
-              <Input id="intern-designation" value={form.designation} onChange={onTextChange("designation")} />
+              <Input id="intern-designation" placeholder="e.g., Software Intern" value={form.designation} onChange={onTextChange("designation")} />
             </Field>
             <Field label="Department" htmlFor="intern-departmentId" required error={errors.departmentId}>
               <SearchableSelect
@@ -282,7 +285,7 @@ export default function InternFormEditor({
               />
             </Field>
             <Field label="Work Location" htmlFor="intern-location">
-              <Input id="intern-location" value={form.location} onChange={onTextChange("location")} />
+              <Input id="intern-location" placeholder="e.g., Bengaluru office" value={form.location} onChange={onTextChange("location")} />
             </Field>
           </div>
         </Card>
@@ -299,13 +302,13 @@ export default function InternFormEditor({
               <Input id="intern-internshipEndDate" type="date" min={minEnd} value={form.internshipEndDate} onChange={onTextChange("internshipEndDate")} invalid={Boolean(errors.internshipEndDate)} required />
             </Field>
             <Field label="University / Institute" htmlFor="intern-universityOrInstitute">
-              <Input id="intern-universityOrInstitute" value={form.universityOrInstitute} onChange={onTextChange("universityOrInstitute")} />
+              <Input id="intern-universityOrInstitute" placeholder="e.g., IIT Delhi" value={form.universityOrInstitute} onChange={onTextChange("universityOrInstitute")} />
             </Field>
             <Field label="Course / Program" htmlFor="intern-courseOrProgram">
-              <Input id="intern-courseOrProgram" value={form.courseOrProgram} onChange={onTextChange("courseOrProgram")} />
+              <Input id="intern-courseOrProgram" placeholder="e.g., B.Tech Computer Science" value={form.courseOrProgram} onChange={onTextChange("courseOrProgram")} />
             </Field>
-            <Field label="Expected Graduation" htmlFor="intern-expectedGraduationDate">
-              <Input id="intern-expectedGraduationDate" type="date" value={form.expectedGraduationDate} onChange={onTextChange("expectedGraduationDate")} />
+            <Field label="Expected Graduation" htmlFor="intern-expectedGraduationDate" error={errors.expectedGraduationDate}>
+              <Input id="intern-expectedGraduationDate" type="date" value={form.expectedGraduationDate} onChange={onTextChange("expectedGraduationDate")} invalid={Boolean(errors.expectedGraduationDate)} />
             </Field>
             <Field label="Mentor" htmlFor="intern-mentorId" error={errors.mentorId}>
               <SearchableSelect
@@ -354,8 +357,8 @@ export default function InternFormEditor({
                 ))}
               </Select>
             </Field>
-            <Field label="Father / Husband Name" htmlFor="intern-fatherHusbandName">
-              <Input id="intern-fatherHusbandName" value={form.fatherHusbandName} onChange={onTextChange("fatherHusbandName")} />
+            <Field label="Father / Husband Name" htmlFor="intern-fatherHusbandName" error={errors.fatherHusbandName}>
+              <Input id="intern-fatherHusbandName" placeholder="Full Name" value={form.fatherHusbandName} onChange={onTextChange("fatherHusbandName")} invalid={Boolean(errors.fatherHusbandName)} />
             </Field>
             <Field label="Relation with Member" htmlFor="intern-relationWithMember">
               <Select id="intern-relationWithMember" value={form.relationWithMember} onChange={onTextChange("relationWithMember")}>
@@ -382,12 +385,12 @@ export default function InternFormEditor({
               </Select>
             </Field>
             <Field label="Emergency Contact" htmlFor="intern-emergencyContact" error={errors.emergencyContact}>
-              <Input id="intern-emergencyContact" type="tel" inputMode="numeric" value={form.emergencyContact} onChange={onTextChange("emergencyContact")} invalid={Boolean(errors.emergencyContact)} />
+              <Input id="intern-emergencyContact" placeholder="Contact number" type="tel" inputMode="numeric" value={form.emergencyContact} onChange={onTextChange("emergencyContact")} invalid={Boolean(errors.emergencyContact)} />
             </Field>
           </div>
           <div className="mt-wz-4">
             <Field label="Permanent Address" htmlFor="intern-permanentAddress">
-              <TextArea id="intern-permanentAddress" value={form.permanentAddress} onChange={onTextChange("permanentAddress")} rows={3} />
+              <TextArea id="intern-permanentAddress" placeholder="Permanent residential address" value={form.permanentAddress} onChange={onTextChange("permanentAddress")} rows={3} />
             </Field>
           </div>
         </Card>
@@ -397,29 +400,29 @@ export default function InternFormEditor({
             4. Identity & Bank
           </h2>
           <div className="grid grid-cols-1 gap-x-wz-6 gap-y-wz-6 md:grid-cols-2 xl:grid-cols-3">
-            <Field label="Aadhaar Number" htmlFor="intern-aadhaarNumber">
-              <Input id="intern-aadhaarNumber" inputMode="numeric" maxLength={12} value={form.aadhaarNumber} onChange={onTextChange("aadhaarNumber")} />
+            <Field label="Aadhaar Number" htmlFor="intern-aadhaarNumber" error={errors.aadhaarNumber}>
+              <Input id="intern-aadhaarNumber" placeholder="12-digit UID" inputMode="numeric" maxLength={12} value={form.aadhaarNumber} onChange={onTextChange("aadhaarNumber")} invalid={Boolean(errors.aadhaarNumber)} />
             </Field>
-            <Field label="Name as on Aadhaar" htmlFor="intern-nameAsPerAadhaar">
-              <Input id="intern-nameAsPerAadhaar" value={form.nameAsPerAadhaar} onChange={onTextChange("nameAsPerAadhaar")} />
+            <Field label="Name as on Aadhaar" htmlFor="intern-nameAsPerAadhaar" error={errors.nameAsPerAadhaar}>
+              <Input id="intern-nameAsPerAadhaar" placeholder="Full Name" value={form.nameAsPerAadhaar} onChange={onTextChange("nameAsPerAadhaar")} invalid={Boolean(errors.nameAsPerAadhaar)} />
             </Field>
-            <Field label="PAN Number" htmlFor="intern-panNumber">
-              <Input id="intern-panNumber" maxLength={10} value={form.panNumber} onChange={onTextChange("panNumber")} />
+            <Field label="PAN Number" htmlFor="intern-panNumber" error={errors.panNumber}>
+              <Input id="intern-panNumber" placeholder="e.g., ABCDE1234F" maxLength={10} value={form.panNumber} onChange={onTextChange("panNumber")} invalid={Boolean(errors.panNumber)} />
             </Field>
-            <Field label="Name as on PAN" htmlFor="intern-nameAsPerPan">
-              <Input id="intern-nameAsPerPan" value={form.nameAsPerPan} onChange={onTextChange("nameAsPerPan")} />
+            <Field label="Name as on PAN" htmlFor="intern-nameAsPerPan" error={errors.nameAsPerPan}>
+              <Input id="intern-nameAsPerPan" placeholder="Full Name" value={form.nameAsPerPan} onChange={onTextChange("nameAsPerPan")} invalid={Boolean(errors.nameAsPerPan)} />
             </Field>
             <Field label="Bank Name" htmlFor="intern-bankName">
-              <Input id="intern-bankName" value={form.bankName} onChange={onTextChange("bankName")} />
+              <Input id="intern-bankName" placeholder="e.g., State Bank of India" value={form.bankName} onChange={onTextChange("bankName")} />
             </Field>
             <Field label="Account Holder" htmlFor="intern-accountHolderName">
-              <Input id="intern-accountHolderName" value={form.accountHolderName} onChange={onTextChange("accountHolderName")} />
+              <Input id="intern-accountHolderName" placeholder="Full Name" value={form.accountHolderName} onChange={onTextChange("accountHolderName")} />
             </Field>
-            <Field label="Account Number" htmlFor="intern-accountNumber">
-              <Input id="intern-accountNumber" inputMode="numeric" value={form.accountNumber} onChange={onTextChange("accountNumber")} />
+            <Field label="Account Number" htmlFor="intern-accountNumber" error={errors.accountNumber}>
+              <Input id="intern-accountNumber" placeholder="Account number" inputMode="numeric" value={form.accountNumber} onChange={onTextChange("accountNumber")} invalid={Boolean(errors.accountNumber)} />
             </Field>
-            <Field label="IFSC Code" htmlFor="intern-ifscCode">
-              <Input id="intern-ifscCode" maxLength={11} value={form.ifscCode} onChange={onTextChange("ifscCode")} />
+            <Field label="IFSC Code" htmlFor="intern-ifscCode" error={errors.ifscCode}>
+              <Input id="intern-ifscCode" placeholder="e.g., SBIN0012345" maxLength={11} value={form.ifscCode} onChange={onTextChange("ifscCode")} invalid={Boolean(errors.ifscCode)} />
             </Field>
           </div>
         </Card>
@@ -429,7 +432,7 @@ export default function InternFormEditor({
             5. Education
           </h2>
           <Field label="Highest Qualification" htmlFor="intern-highestQualification">
-            <Input id="intern-highestQualification" value={form.highestQualification} onChange={onTextChange("highestQualification")} />
+            <Input id="intern-highestQualification" placeholder="e.g., B.Tech" value={form.highestQualification} onChange={onTextChange("highestQualification")} />
           </Field>
         </Card>
 
@@ -439,7 +442,7 @@ export default function InternFormEditor({
           </h2>
           <div className="grid grid-cols-1 gap-x-wz-6 gap-y-wz-6 md:grid-cols-2">
             <Field label="Monthly Stipend (₹)" htmlFor="intern-stipendAmount" error={errors.stipendAmount} hint="Leave blank for unpaid internships">
-              <Input id="intern-stipendAmount" type="number" min={0} value={form.stipendAmount} onChange={onTextChange("stipendAmount")} invalid={Boolean(errors.stipendAmount)} />
+              <Input id="intern-stipendAmount" placeholder="Enter amount" type="number" min={0} value={form.stipendAmount} onChange={onTextChange("stipendAmount")} invalid={Boolean(errors.stipendAmount)} />
             </Field>
             <Field label="Frequency" htmlFor="intern-stipendFrequency" error={errors.stipendFrequency}>
               <Select id="intern-stipendFrequency" value={form.stipendFrequency} onChange={onTextChange("stipendFrequency")}>

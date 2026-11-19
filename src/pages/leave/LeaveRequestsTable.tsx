@@ -8,6 +8,7 @@ import {
   Pagination,
   TabSwitcher,
 } from "../../design-system";
+import { useLeaveTypeOptions } from "../../hooks/useLeave";
 import type { LeaveRequest } from "../../services/leaveService";
 import {
   STATUS_TABS,
@@ -39,6 +40,8 @@ export type LeaveRequestsTableProps = {
   onStatusChange: (value: string) => void;
   /** Prefer dashboard/org totals for Figma tab badges. */
   statusCounts?: Record<string, number>;
+  /** The viewer's own requests get no edit / approve / reject (another approver decides them). */
+  selfEmployeeId?: string;
   canApprove?: boolean;
   canEdit?: boolean;
   canCancel?: boolean;
@@ -66,6 +69,7 @@ export default function LeaveRequestsTable({
   status,
   onStatusChange,
   statusCounts,
+  selfEmployeeId,
   canApprove,
   canEdit,
   canCancel,
@@ -84,6 +88,11 @@ export default function LeaveRequestsTable({
 }: LeaveRequestsTableProps) {
   const isSelf = variant === "self";
   const [details, setDetails] = useState<LeaveRequest | null>(null);
+  const typeOptions = useLeaveTypeOptions();
+  const isOwn = (row: LeaveRequest) =>
+    Boolean(selfEmployeeId) && employeeFromRequest(row).id === selfEmployeeId;
+  /** Only pending requests from someone else can be edited or decided. */
+  const decidable = (row: LeaveRequest) => row.status === "Pending" && !isOwn(row);
   /** Figma's self table has no Actions column; keep it only while a request can still be cancelled. */
   const showActions =
     !isSelf ||
@@ -104,16 +113,17 @@ export default function LeaveRequestsTable({
   /** Edit / approve / reject / cancel for a row — shared by the mobile table and the details sheet. */
   const rowActions = (row: LeaveRequest) => {
     const pending = row.status === "Pending";
+    const canDecide = decidable(row);
     const iconBtn =
       "inline-flex cursor-pointer items-center justify-center rounded-wz-md border-0 bg-transparent px-1 py-1.5";
     return (
       <>
-        {canEdit && onEdit ? (
+        {canEdit && onEdit && canDecide ? (
           <button type="button" className={cn(iconBtn, "text-wz-heading")} aria-label="Edit leave request" onClick={() => onEdit(row)}>
             <SquarePen size={12} />
           </button>
         ) : null}
-        {canApprove && pending ? (
+        {canApprove && canDecide ? (
           <>
             <button type="button" className={cn(iconBtn, "text-[#12b76a]")} aria-label="Approve" onClick={() => onApprove?.(row)}>
               <Check size={12} />
@@ -170,12 +180,11 @@ export default function LeaveRequestsTable({
             aria-label="Request type"
           >
             <option value="">Request Type</option>
-            <option value="CL">Casual Leave (CL)</option>
-            <option value="SL">Sick Leave (SL)</option>
-            <option value="EL">Earned Leave (EL)</option>
-            <option value="CO">Compensatory Off (CO)</option>
-            <option value="WFH">Work From Home</option>
-            <option value="LOP">Loss of Pay</option>
+            {typeOptions.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
           </FilterSelect>
           {isSelf ? (
             <FilterSelect
@@ -223,7 +232,7 @@ export default function LeaveRequestsTable({
 
       {/* Mobile table (Figma 173:50877 admin / 173:51639 self): five columns, eye opens View Details */}
       <div className="overflow-hidden rounded-wz-xl border border-wz-border bg-white xl:hidden max-md:border-0 max-md:outline max-md:outline-1 max-md:-outline-offset-1 max-md:outline-[#dee2e6]">
-        <div className={cn("flex items-center border-b border-[#e9ecef] bg-wz-neutral-50 px-4 py-3 text-[10px] leading-[normal] font-semibold text-wz-heading", isSelf ? "justify-between" : "gap-1")}>
+        <div className={cn("flex items-center border-b border-[#e9ecef] bg-wz-neutral-50 px-4 py-3 text-[10px] leading-[normal] font-semibold text-wz-heading", isSelf ? "justify-between gap-2" : "gap-1")}>
           {(isSelf
             ? ["Request Type", "Dates\n(Start - End)", "Approved By\n(RM/HR/Admin)", "Request\nStatus", "Actions"]
             : ["Employee", "Request\nType", "Dates\n(Start-End)", "Request\nStatus", "Actions"]
@@ -253,7 +262,7 @@ export default function LeaveRequestsTable({
             const decidedAt = row.decidedAt || row.approvedAt || row.rejectedAt;
             const tone = statusBadge(row.status);
             return (
-              <div key={row._id} className={cn("flex items-center border-b border-[#e9ecef] px-4 py-3.5 text-[10px] leading-[normal] text-wz-heading last:border-b-0", isSelf ? "justify-between" : "gap-1")}>
+              <div key={row._id} className={cn("flex items-center border-b border-[#e9ecef] px-4 py-3.5 text-[10px] leading-[normal] text-wz-heading last:border-b-0", isSelf ? "justify-between gap-2" : "gap-1")}>
                 {isSelf ? null : (
                   <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <span className="truncate">{emp.name}</span>
@@ -269,7 +278,7 @@ export default function LeaveRequestsTable({
                 </span>
                 {isSelf ? (
                   <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                    <span className="whitespace-nowrap">{approverLabel(row)}</span>
+                    <span className="truncate">{approverLabel(row)}</span>
                     <span className="truncate text-[9px] text-wz-text-muted">
                       {decidedAt ? formatLeaveDateTime(decidedAt) : "-"}
                     </span>
@@ -349,7 +358,7 @@ export default function LeaveRequestsTable({
                 ).map((h) => (
                   <th
                     key={h}
-                    className="h-[54px] border-b border-wz-border px-4 align-middle font-semibold whitespace-pre-line"
+                    className="h-[54px] border-b border-[#e9ecef] bg-[#f8f9fa] px-4 py-3 align-middle font-semibold whitespace-pre-line"
                   >
                     {h}
                   </th>
@@ -378,6 +387,7 @@ export default function LeaveRequestsTable({
               ) : (
                 rows.map((row) => {
                   const emp = employeeFromRequest(row);
+                  const canDecide = decidable(row);
                   const pending = row.status === "Pending";
                   const typeCode = row.isCoCredit
                     ? "CO"
@@ -471,7 +481,7 @@ export default function LeaveRequestsTable({
                       {showActions ? (
                         <td className="px-4">
                           <div className="flex items-center gap-2">
-                            {canEdit && onEdit ? (
+                            {canEdit && onEdit && canDecide ? (
                               <button
                                 type="button"
                                 className="inline-flex size-6 cursor-pointer items-center justify-center rounded-wz-md border-0 bg-transparent text-wz-heading hover:bg-wz-neutral-100"
@@ -481,7 +491,7 @@ export default function LeaveRequestsTable({
                                 <SquarePen size={12} />
                               </button>
                             ) : null}
-                            {canApprove && pending ? (
+                            {canApprove && canDecide ? (
                               <>
                                 <button
                                   type="button"

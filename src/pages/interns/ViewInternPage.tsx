@@ -7,6 +7,7 @@ import {
   Button,
   ConfirmDialog,
   TabSwitcher,
+  showSuccessToast,
 } from "../../design-system";
 import {
   useConvertInternToEmployee,
@@ -123,6 +124,7 @@ export default function ViewInternPage() {
         remark: remark || undefined,
       });
       setStatusTarget(null);
+      showSuccessToast("Intern status updated.");
     } catch (err) {
       setActionError(err instanceof ApiError ? err.message : "Status update failed");
     }
@@ -137,6 +139,7 @@ export default function ViewInternPage() {
         remark: remark || undefined,
       });
       setExtendTarget(null);
+      showSuccessToast("Internship extended.");
     } catch (err) {
       setActionError(err instanceof ApiError ? err.message : "Could not extend internship");
     }
@@ -153,6 +156,7 @@ export default function ViewInternPage() {
         employmentStatus: payload.employmentStatus,
       });
       setConvertTarget(null);
+      showSuccessToast("Intern converted to employee.");
       const employeeId = res?.employee?._id;
       if (employeeId) navigate(`${base}/employees/${employeeId}`);
     } catch (err) {
@@ -161,12 +165,15 @@ export default function ViewInternPage() {
   };
 
   const confirmArchive = async () => {
+    setActionError(null);
     try {
       await deleteMutation.mutateAsync(intern._id);
       setArchiveOpen(false);
+      showSuccessToast("Intern archived.");
       navigate(`${base}/employees?type=intern`);
-    } catch {
-      /* keep dialog */
+    } catch (err) {
+      setArchiveOpen(false);
+      setActionError(err instanceof ApiError ? err.message : "Could not archive intern");
     }
   };
 
@@ -240,7 +247,7 @@ export default function ViewInternPage() {
                 Convert
               </Button>
             ) : null}
-            {!intern.isDeleted ? (
+            {!intern.isDeleted && intern.internStatus !== "converted" ? (
               <Button
                 type="button"
                 variant="ghost"
@@ -254,6 +261,12 @@ export default function ViewInternPage() {
           </div>
         ) : null}
       </div>
+
+      {actionError && !statusTarget && !extendTarget && !convertTarget ? (
+        <p className="m-0 text-sm text-wz-error" role="alert">
+          {actionError}
+        </p>
+      ) : null}
 
       <TabSwitcher
         aria-label="Intern profile sections"

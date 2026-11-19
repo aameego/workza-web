@@ -10,6 +10,7 @@ import {
   getLeaveDashboard,
   getLeavePolicy,
   getLeaveRequests,
+  getLeaveTypes,
   rejectLeaveRequest,
   runLeaveAccrual,
   updateLeaveBalances,
@@ -20,6 +21,7 @@ import {
   type LeavePolicyType,
   type LeaveRequestsParams,
 } from "../services/leaveService";
+import { leaveTypeOptionsFrom } from "../pages/leave/leaveViewModel";
 
 export const LEAVE_DASHBOARD_KEY = "leave-dashboard" as const;
 export const LEAVE_REQUESTS_KEY = "leave-requests" as const;
@@ -32,10 +34,13 @@ const invalidateLeave = (qc: ReturnType<typeof useQueryClient>) => {
   void qc.invalidateQueries({ queryKey: [LEAVE_BALANCES_KEY] });
 };
 
-export function useLeaveDashboard(enabled = true) {
+export function useLeaveDashboard(
+  params: { year?: number; month?: number } = {},
+  enabled = true,
+) {
   return useQuery({
-    queryKey: [LEAVE_DASHBOARD_KEY],
-    queryFn: getLeaveDashboard,
+    queryKey: [LEAVE_DASHBOARD_KEY, params],
+    queryFn: () => getLeaveDashboard(params),
     enabled,
   });
 }
@@ -122,6 +127,17 @@ export function useUpdateLeaveBalances() {
       void qc.invalidateQueries({ queryKey: [LEAVE_DASHBOARD_KEY] });
     },
   });
+}
+
+/** Enabled leave types as { value, label } with full names; falls back to the standard list. */
+export function useLeaveTypeOptions(enabled = true) {
+  const query = useQuery({
+    queryKey: [LEAVE_POLICY_KEY, "types"],
+    queryFn: getLeaveTypes,
+    enabled,
+    staleTime: 5 * 60_000,
+  });
+  return leaveTypeOptionsFrom(query.data?.types);
 }
 
 export function useLeavePolicy(enabled = true) {

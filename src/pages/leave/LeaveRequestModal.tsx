@@ -13,9 +13,10 @@ import {
   useCreateLeaveRequest,
   useCreateLeaveRequestMultipart,
   useLeavePolicy,
+  useLeaveTypeOptions,
 } from "../../hooks/useLeave";
 import SearchableEmployeeSelect from "../attendance/SearchableEmployeeSelect";
-import { LEAVE_TYPE_OPTIONS, validateLeaveRequestForm } from "./leaveViewModel";
+import { validateLeaveRequestFields, type LeaveFormErrors } from "./leaveViewModel";
 
 export type LeaveRequestModalProps = {
   open: boolean;
@@ -23,6 +24,8 @@ export type LeaveRequestModalProps = {
   /** When true, hide employee select and submit for self. */
   forSelf?: boolean;
   title?: string;
+  /** Called with a success message after the request is saved. */
+  onSaved?: (message: string) => void;
 };
 
 type FormState = {
@@ -52,37 +55,42 @@ export default function LeaveRequestModal({
   onClose,
   forSelf = false,
   title,
+  onSaved,
 }: LeaveRequestModalProps) {
-  const [form, setForm] = useState<FormState>(emptyForm);
+  const [form, setFormState] = useState<FormState>(emptyForm);
   const [medicalFile, setMedicalFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<LeaveFormErrors>({});
 
-  const policyQuery = useLeavePolicy(open);
+  /** Every edit clears the errors it could have fixed (day type depends on the dates). */
+  const setForm = (next: (p: FormState) => FormState) => {
+    const updated = next(form);
+    const errs = { ...fieldErrors };
+    (Object.keys(updated) as Array<keyof FormState>).forEach((k) => {
+      if (updated[k] !== form[k]) delete errs[k as keyof LeaveFormErrors];
+    });
+    if (updated.startDate !== form.startDate || updated.endDate !== form.endDate) delete errs.dayPart;
+    if (updated.requestType !== form.requestType) delete errs.leaveType;
+    setFormState(updated);
+    setFieldErrors(errs);
+    setError(null);
+  };
+
+  // Full policy is Admin/HR only; it is still read for the SL document rule when allowed.
+  const policyQuery = useLeavePolicy(open && !forSelf);
+  const leaveTypeOptions = useLeaveTypeOptions(open);
   const createMutation = useCreateLeaveRequest();
   const createMultipart = useCreateLeaveRequestMultipart();
 
   useEffect(() => {
     if (!open) return;
-    setForm(emptyForm());
+    setFormState(emptyForm());
     setMedicalFile(null);
     setError(null);
+    setFieldErrors({});
   }, [open]);
 
-  const typeOptions = useMemo(() => {
-    const types = policyQuery.data?.policy?.types;
-    if (!Array.isArray(types) || types.length === 0) {
-      return LEAVE_TYPE_OPTIONS.map((o) => ({
-        code: o.value,
-        label: o.label,
-      }));
-    }
-    return types
-      .filter((t) => t.enabled !== false)
-      .map((t) => ({
-        code: t.code,
-        label: t.label || t.code,
-      }));
-  }, [policyQuery.data]);
+  const typeOptions = leaveTypeOptions.map((o) => ({ code: o.value, label: o.label }));
 
   const wfhEnabled = typeOptions.some((t) => t.code === "WFH");
   const isSingleDay =
@@ -121,7 +129,7 @@ export default function LeaveRequestModal({
 
   const handleSubmit = async () => {
     setError(null);
-    const validation = validateLeaveRequestForm({
+    const errors = validateLeaveRequestFields({
       leaveType: form.leaveType,
       startDate: form.startDate,
       endDate: form.endDate,
@@ -129,15 +137,10 @@ export default function LeaveRequestModal({
       reason: form.reason,
       employeeId: form.employeeId,
       requireEmployee: !forSelf,
+      requireDayPart: true,
     });
-    if (validation) {
-      setError(validation);
-      return;
-    }
-    if (!form.dayPart) {
-      setError("Please select a day type.");
-      return;
-    }
+    setFieldErrors(errors);
+    if (Object.keys(errors).length) return;
     if (needsMedical && !medicalFile) {
       setError(
         `Medical document is required for SL when days exceed ${slRequiredWhenDaysGt}.`,
@@ -174,6 +177,9 @@ export default function LeaveRequestModal({
       } else {
         await createMutation.mutateAsync(payload);
       }
+      onSaved?.(
+        `${requestType === "WFH" ? "WFH" : isCoCredit ? "CO credit" : "Leave"} request ${forSelf ? "submitted" : "created"} successfully.`,
+      );
       onClose();
     } catch (err) {
       setError(
@@ -223,6 +229,7 @@ export default function LeaveRequestModal({
           <Field
             label="Employee/ Consultant Name"
             required
+            error={fieldErrors.employeeId}
             className="max-md:col-span-2"
           >
             <SearchableEmployeeSelect
@@ -266,7 +273,7 @@ export default function LeaveRequestModal({
           />
         </div>
 
-        <Field label="Leave Type" required className="max-md:h-[66px] max-md:justify-end">
+        <Field label="Leave Type" required error={fieldErrors.leaveType} className="max-md:min-h-[66px] max-md:justify-end">
           <Select
             value={form.requestType === "WFH" ? "WFH" : form.leaveType}
             disabled={form.requestType === "WFH"}
@@ -289,13 +296,13 @@ export default function LeaveRequestModal({
               : typeOptions.filter((o) => o.code !== "WFH")
             ).map((opt) => (
               <option key={opt.code} value={opt.code}>
-                {opt.code === "WFH" ? "Work From Home (WFH)" : opt.label}
+                {opt.label}
               </option>
             ))}
           </Select>
         </Field>
 
-        <Field label="Day Type" required className="max-md:h-[66px] max-md:justify-end">
+        <Field label="Day Type" required error={fieldErrors.dayPart} className="max-md:min-h-[66px] max-md:justify-end">
           <Select
             value={form.dayPart}
             onChange={(e) =>
@@ -321,7 +328,7 @@ export default function LeaveRequestModal({
           </Select>
         </Field>
 
-        <Field label="Start Date" required>
+        <Field label="Start Date" required error={fieldErrors.startDate}>
           <Input
             type="date"
             value={form.startDate}
@@ -330,7 +337,7 @@ export default function LeaveRequestModal({
             }
           />
         </Field>
-        <Field label="End Date" required>
+        <Field label="End Date" required error={fieldErrors.endDate}>
           <Input
             type="date"
             value={form.endDate}
@@ -395,7 +402,7 @@ export default function LeaveRequestModal({
           </Field>
         ) : null}
 
-        <Field label="Reason" required className="col-span-2">
+        <Field label="Reason" required error={fieldErrors.reason} className="col-span-2">
           <TextArea
             rows={2}
             style={{ minHeight: 70 }}
