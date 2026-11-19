@@ -47,13 +47,13 @@ export default function LeaveUpcomingPanel({
   return (
     <section className="rounded-xl border border-[#dee2e6] bg-white p-4 shadow-[0px_2px_8px_0px_rgba(0,0,0,0.03)] max-md:rounded-lg max-md:shadow-none">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="m-0 text-[15px] font-semibold text-[#0a1f4a] max-md:text-sm max-md:leading-5 max-md:font-bold">
+        <h2 className="m-0 text-sm leading-5 font-bold text-[#0a1f4a]">
           {title}
         </h2>
         {showMonthFilter ? (
           <FilterSelect
             size="sm"
-            className="min-w-[108px] max-md:hidden"
+            className="min-w-[108px] max-md:hidden [&>span]:text-[10px] [&>span]:leading-none"
             icon={<CalendarDays size={12} aria-hidden className="shrink-0" />}
             value={monthValue}
             onChange={(e) => onMonthChange?.(e.target.value)}

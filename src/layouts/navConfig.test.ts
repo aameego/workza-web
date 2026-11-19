@@ -92,3 +92,13 @@ it("hides admin menus from self-service roles (ATT-FN-08)", () => {
   expect(labels({ role: "Manager", permissions: ["employees:view"] })).toContain("Employees");
   expect(labels({ role: "HR" })).toContain("Recruitment");
 });
+
+describe("intern sidebar (INT-FN-13)", () => {
+  it("shows only the modules the Intern role grants", () => {
+    const items = navItemsFor({
+      role: "Intern",
+      permissions: ["dashboard:view", "attendance:view", "leave:view", "leave:apply", "documents:view", "settings:profile"],
+    }).map((i) => i.label);
+    expect(items).toEqual(["Dashboard", "Attendance", "Leave", "Documents", "Settings"]);
+  });
+});

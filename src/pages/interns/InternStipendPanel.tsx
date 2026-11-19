@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Button, Field, Input, Select } from "../../design-system";
+import { Button, Field, Input, Select, showSuccessToast } from "../../design-system";
 import { useConfigureInternStipend } from "../../hooks/useInterns";
 import { ApiError } from "../../lib/apiClient";
 import { validateStipendDraft, hasStipendData } from "../../services/internService";
@@ -27,6 +27,9 @@ export default function InternStipendPanel({
   );
   const [error, setError] = useState<string | null>(null);
   const mutation = useConfigureInternStipend();
+  // Converted / completed internships are closed: stipend is read-only.
+  const editable =
+    canManage && !["converted", "completed"].includes(String(intern.internStatus || ""));
 
   useEffect(() => {
     setAmount(
@@ -39,7 +42,7 @@ export default function InternStipendPanel({
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!canManage || mutation.isPending) return;
+    if (!editable || mutation.isPending) return;
     const stipendErr = validateStipendDraft({
       monthlyStipend: amount,
       stipendFrequency: frequency,
@@ -57,6 +60,7 @@ export default function InternStipendPanel({
           : 0,
         stipendFrequency: frequency,
       });
+      showSuccessToast("Stipend saved.");
     } catch (err) {
       setError(
         err instanceof ApiError ? err.message : "Could not update stipend",
@@ -71,8 +75,9 @@ export default function InternStipendPanel({
         Current:{" "}
         <strong>{formatInternStipend(intern.stipendAmount, intern.stipendFrequency)}</strong>
       </p>
-      {canManage ? (
-        <form className="mt-wz-4 flex max-w-xl flex-col gap-wz-4" onSubmit={onSubmit}>
+      {editable ? (
+        // noValidate: our own messages instead of the browser silently blocking min/max.
+        <form noValidate className="mt-wz-4 flex max-w-xl flex-col gap-wz-4" onSubmit={onSubmit}>
           <div className="grid grid-cols-1 gap-wz-4 md:grid-cols-2">
             <Field label="Stipend amount (₹)" htmlFor="intern-stipend-edit">
               <Input
@@ -108,7 +113,9 @@ export default function InternStipendPanel({
         </form>
       ) : (
         <p className="m-0 mt-wz-4 text-sm text-wz-text-secondary">
-          You do not have permission to change stipend settings.
+          {canManage
+            ? "Stipend can't be changed after the internship is converted or completed."
+            : "You do not have permission to change stipend settings."}
         </p>
       )}
     </section>

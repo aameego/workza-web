@@ -54,13 +54,15 @@ export default function LeaveManagerPage({ user }: LeaveManagerPageProps) {
       />
 
       {tab === "my-data" && showSelf ? (
-        <LeaveSelfPage user={user} embedded hideHeader />
+        <LeaveSelfPage user={user} embedded hideHeader year={year} month={month} />
       ) : (
         <LeaveAdminPage
           user={user}
           embedded
           teamScope
           hideHeader
+          year={year}
+          month={month}
         />
       )}
     </div>

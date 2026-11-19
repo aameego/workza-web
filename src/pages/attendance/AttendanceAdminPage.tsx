@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Download, Plus, Upload } from "lucide-react";
-import { Button, MonthSelect } from "../../design-system";
+import { Button, MonthSelect, SuccessToast } from "../../design-system";
 import {
   useAttendanceList,
   useAttendanceMonth,
@@ -77,11 +77,6 @@ export default function AttendanceAdminPage({
 
   // Success message after Mark / Edit (ATT-FN-22).
   const [notice, setNotice] = useState<string | null>(null);
-  useEffect(() => {
-    if (!notice) return undefined;
-    const t = window.setTimeout(() => setNotice(null), 3000);
-    return () => window.clearTimeout(t);
-  }, [notice]);
 
   const canMark = canMarkAttendance(user);
   const canBulk = canManageAttendance(user);
@@ -323,14 +318,7 @@ export default function AttendanceAdminPage({
         onClose={() => setEditRow(null)}
         onSaved={setNotice}
       />
-      {notice ? (
-        <p
-          role="status"
-          className="fixed right-6 bottom-6 z-90 m-0 rounded-wz-md bg-[#ecfdf3] px-4 py-3 text-sm font-semibold text-[#027a48] shadow-lg max-md:right-4 max-md:left-4"
-        >
-          {notice}
-        </p>
-      ) : null}
+      <SuccessToast message={notice} onClear={setNotice} />
       <AttendanceHistoryModal
         open={Boolean(historyRow)}
         onClose={() => setHistoryRow(null)}

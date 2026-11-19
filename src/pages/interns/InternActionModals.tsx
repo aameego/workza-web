@@ -256,8 +256,10 @@ export function InternConvertModal({
 
   useEffect(() => {
     if (open && intern) {
+      // Default joining date: today, or the internship start if that is later (INT-FN-09).
+      const start = toDateInput(intern.internshipStartDate);
       setForm({
-        dateOfJoining: today,
+        dateOfJoining: start && start > today ? start : today,
         designation: intern.designation || "",
         departmentId:
           typeof intern.department === "object" && intern.department?._id
@@ -267,7 +269,7 @@ export function InternConvertModal({
       });
       setLocalErrors({});
     }
-  }, [open, intern?._id, intern?.designation, intern?.department, intern?.departmentId, today]);
+  }, [open, intern?._id, intern?.designation, intern?.department, intern?.departmentId, intern?.internshipStartDate, today]);
 
   if (!intern) return null;
 
@@ -308,7 +310,11 @@ export function InternConvertModal({
             Cancel
           </Button>
           <Button type="button" variant="primary" onClick={submit} disabled={loading}>
-            {loading ? "Converting…" : "Convert to Full-Time"}
+            {loading
+              ? "Converting…"
+              : form.employmentStatus === "probation"
+                ? "Convert (Probation)"
+                : "Convert to Full-Time"}
           </Button>
         </>
       }

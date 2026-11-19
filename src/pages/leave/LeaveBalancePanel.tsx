@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Avatar, Badge, Input } from "../../design-system";
 import type { LeaveBalanceRow } from "../../services/leaveService";
 import SearchableEmployeeSelect from "../attendance/SearchableEmployeeSelect";
-import { getLeaveTypeLabel } from "./leaveViewModel";
+import { balanceDraftError, getLeaveTypeLabel } from "./leaveViewModel";
 
 export type LeaveBalanceEmployeeMeta = {
   name?: string;
@@ -94,6 +94,8 @@ export default function LeaveBalancePanel({
     setDraft(toDraftRows(rows, mode));
   }, [rows, mode]);
 
+  const draftError = mode === "manage" && employeeId ? balanceDraftError(draft) : "";
+
   const heading =
     title || (mode === "manage" ? "Manage Leave Balances" : "My Leave Balance");
 
@@ -115,14 +117,14 @@ export default function LeaveBalancePanel({
   return (
     <section className="rounded-xl border border-[#dee2e6] bg-white p-4 shadow-[0px_2px_8px_0px_rgba(0,0,0,0.03)] max-md:rounded-lg max-md:shadow-none">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2 max-md:mb-3 max-md:border-b max-md:border-[rgba(222,226,230,0.5)] max-md:pb-2">
-        <h2 className="m-0 text-[15px] font-semibold text-[#0a1f4a] max-md:text-sm max-md:leading-5 max-md:font-bold">
+        <h2 className="m-0 text-sm leading-5 font-bold text-[#0a1f4a]">
           {heading}
         </h2>
         {mode === "manage" ? (
           <button
             type="button"
             className="inline-flex cursor-pointer items-center gap-1.5 border-0 bg-transparent p-0 text-[13px] font-semibold max-md:text-xs max-md:leading-4 text-[#1f5da3] disabled:cursor-not-allowed disabled:opacity-45"
-            disabled={saving || !employeeId}
+            disabled={saving || !employeeId || Boolean(draftError)}
             onClick={() => {
               setDirty(false);
               void onSave?.(buildPayload());
@@ -199,9 +201,9 @@ export default function LeaveBalancePanel({
         </div>
       ) : null}
 
-      {error ? (
+      {error || draftError ? (
         <p className="m-0 mb-3 text-sm text-wz-error" role="alert">
-          {error}
+          {draftError || error}
         </p>
       ) : null}
 
@@ -221,7 +223,7 @@ export default function LeaveBalancePanel({
               return (
                 <li
                   key={row.type}
-                  className="flex h-5 items-start justify-between gap-3 border-b border-[#f1f3f5] text-[11px] leading-[14px] font-semibold text-[#0a1f4a] last:border-b-0 max-md:h-auto max-md:border-b-0 max-md:text-xs"
+                  className="flex h-5 items-start justify-between gap-3 border-b border-[#f1f3f5] text-[10px] leading-[14px] font-semibold text-[#0a1f4a] last:border-b-0 max-md:h-auto max-md:border-b-0 max-md:text-xs"
                 >
                   <span>{getLeaveTypeLabel(row.type)}</span>
                   <span className="max-md:w-[46px] max-md:shrink-0">
@@ -310,6 +312,8 @@ export default function LeaveBalancePanel({
                     paddingBottom: 0,
                   }}
                   value={row.used}
+                  disabled={row.type === "WFH"}
+                  title={row.type === "WFH" ? "Counted from approved WFH requests" : undefined}
                   onChange={(e) => {
                     const used = e.target.value;
                     setDirty(true);

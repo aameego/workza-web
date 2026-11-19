@@ -62,7 +62,12 @@ export const navItemsFor = (
   const perms = Array.isArray(user?.permissions) ? user.permissions : [];
   return APP_NAV_ITEMS.filter((item) => {
     const needed = NAV_PERMISSIONS[item.path];
-    return !needed || needed.some((p) => perms.includes(p));
+    if (needed) return needed.some((p) => perms.includes(p));
+    // Self-service menus follow the role's module grants (e.g. Intern: attendance, leave,
+    // documents, settings only — INT-FN-13). Until permissions load, show them all.
+    if (!perms.length) return true;
+    const moduleKey = item.path.slice(1);
+    return perms.some((p) => p.startsWith(`${moduleKey}:`));
   });
 };
 

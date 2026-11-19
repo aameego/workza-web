@@ -22,7 +22,19 @@ export const LEAVE_TYPE_OPTIONS = [
   { value: "CO", label: "Compensatory Off (CO)" },
   { value: "WFH", label: "Work From Home (WFH)" },
   { value: "LOP", label: "Loss of Pay (LOP)" },
+  { value: "LWP", label: "Leave Without Pay (LWP)" },
 ] as const;
+
+/** Policy types to select options, always with the full name ("Casual Leave (CL)"). */
+export const leaveTypeOptionsFrom = (
+  types?: Array<{ code: string; label?: string }> | null,
+): Array<{ value: string; label: string }> =>
+  Array.isArray(types) && types.length
+    ? types.map((t) => ({
+        value: t.code,
+        label: LEAVE_TYPE_LABELS[String(t.code).toUpperCase()] || t.label || t.code,
+      }))
+    : LEAVE_TYPE_OPTIONS.map((o) => ({ value: o.value, label: o.label }));
 
 export const STATUS_TABS = [
   { value: "", label: "All Requests" },
@@ -145,38 +157,42 @@ const byEmployeesHint = (count?: number | null): string | undefined => {
   return `By ${count} employee${count === 1 ? "" : "s"}`;
 };
 
+/** Org and My Team cards. Hints count unique employees (dashboard `employeeCounts`), never requests or headcount. */
 export const orgLeaveMetrics = (summary?: LeaveSummary | null): LeaveMetricCard[] => {
   const s = summary || {};
-  const pending = s.pendingRequests ?? s.pendingApprovals ?? 0;
+  const people = s.employeeCounts || {};
+  const pending = s.requestCounts?.pending ?? s.pendingRequests ?? s.pendingApprovals ?? 0;
   const rejected = s.requestCounts?.rejected ?? s.rejectedRequests ?? 0;
   return [
     {
       key: "wfh",
       label: "Work From Home Availed",
       value: s.wfhDaysThisMonth ?? 0,
-      // ponytail: team/org size, not people who took it (no per-person count from /leave/dashboard).
-      hint: s.wfhDaysThisMonth ? byEmployeesHint(s.employeeCount) : undefined,
+      hint: s.wfhDaysThisMonth ? byEmployeesHint(people.wfh) : undefined,
       hintTone: "blue",
     },
     {
       key: "leave",
       label: "Leave Availed",
       value: s.leaveDaysThisMonth ?? 0,
-      hint: s.leaveDaysThisMonth ? byEmployeesHint(s.employeeCount) : undefined,
+      hint: s.leaveDaysThisMonth ? byEmployeesHint(people.leave) : undefined,
       hintTone: "green",
     },
     {
       key: "pending",
       label: "Pending Requests",
       value: pending,
-      hint: byEmployeesHint(pending),
+      hint: pending ? byEmployeesHint(people.pending) : undefined,
       hintTone: "amber",
     },
     {
       key: "rejected",
       label: "Rejected Requests",
       value: rejected,
-      hint: rejected > 0 ? `For ${rejected} employee${rejected === 1 ? "" : "s"}` : undefined,
+      hint:
+        rejected && people.rejected
+          ? `For ${people.rejected} employee${people.rejected === 1 ? "" : "s"}`
+          : undefined,
       hintTone: "red",
     },
   ];
@@ -210,48 +226,24 @@ export const selfLeaveMetrics = (
   ];
 };
 
-export const teamLeaveMetrics = (
-  summary?: LeaveSummary | null,
-): LeaveMetricCard[] => {
-  const s = summary || {};
-  const counts = s.requestCounts;
-  if (counts) {
-    return [
-      {
-        key: "wfh",
-        label: "Work From Home Availed",
-        value: s.wfhDaysThisMonth ?? 0,
-        // ponytail: hint is team size (no per-person count from /leave/dashboard); hidden when nothing was taken.
-        hint: s.wfhDaysThisMonth ? byEmployeesHint(s.employeeCount) : undefined,
-        hintTone: "blue",
-      },
-      {
-        key: "leave",
-        label: "Leave Availed",
-        value: s.leaveDaysThisMonth ?? 0,
-        hint: s.leaveDaysThisMonth ? byEmployeesHint(s.employeeCount) : undefined,
-        hintTone: "green",
-      },
-      {
-        key: "pending",
-        label: "Pending Requests",
-        value: counts.pending ?? 0,
-        hint: byEmployeesHint(counts.pending),
-        hintTone: "amber",
-      },
-      {
-        key: "rejected",
-        label: "Rejected Requests",
-        value: counts.rejected ?? 0,
-        hint:
-          (counts.rejected ?? 0) > 0
-            ? `For ${counts.rejected} employee${counts.rejected === 1 ? "" : "s"}`
-            : undefined,
-        hintTone: "red",
-      },
-    ];
-  }
-  return orgLeaveMetrics(summary);
+export const teamLeaveMetrics = orgLeaveMetrics;
+
+/** Balances API leaves WFH out of `balances`; its quota comes separately. */
+export const withWfhRow = (
+  rows: LeaveBalanceRow[],
+  wfhQuota?: LeaveSummary["wfhQuota"] | null,
+): LeaveBalanceRow[] => {
+  if (!wfhQuota || wfhQuota.total == null) return rows;
+  if (rows.some((r) => String(r.type).toUpperCase() === "WFH")) return rows;
+  return [
+    ...rows,
+    {
+      type: "WFH",
+      total: wfhQuota.total,
+      used: wfhQuota.used ?? 0,
+      remaining: wfhQuota.remaining ?? Math.max(0, wfhQuota.total - (wfhQuota.used ?? 0)),
+    },
+  ];
 };
 
 export const normalizeBalanceRows = (
@@ -345,7 +337,12 @@ export const toDateInputValue = (
   }
 };
 
-export const validateLeaveRequestForm = (input: {
+export type LeaveFormErrors = Partial<
+  Record<"employeeId" | "leaveType" | "dayPart" | "startDate" | "endDate" | "reason", string>
+>;
+
+/** Every field error at once, so the form can show them inline together. */
+export const validateLeaveRequestFields = (input: {
   leaveType: string;
   startDate: string;
   endDate: string;
@@ -353,25 +350,63 @@ export const validateLeaveRequestForm = (input: {
   reason: string;
   employeeId?: string;
   requireEmployee?: boolean;
-}): string => {
-  if (input.requireEmployee && !input.employeeId) {
-    return "Please select an employee.";
-  }
-  if (!input.leaveType) return "Please select a leave type.";
-  if (!input.startDate || !input.endDate) {
-    return "Start and end dates are required.";
-  }
-  if (input.endDate < input.startDate) {
-    return "End date must be on or after start date.";
+  requireDayPart?: boolean;
+}): LeaveFormErrors => {
+  const errors: LeaveFormErrors = {};
+  if (input.requireEmployee && !input.employeeId) errors.employeeId = "Please select an employee.";
+  if (!input.leaveType) errors.leaveType = "Please select a leave type.";
+  if (input.requireDayPart && !input.dayPart) errors.dayPart = "Please select a day type.";
+  if (!input.startDate) errors.startDate = "Start date is required.";
+  if (!input.endDate) errors.endDate = "End date is required.";
+  else if (input.startDate && input.endDate < input.startDate) {
+    errors.endDate = "End date must be on or after start date.";
   }
   if (
+    !errors.endDate &&
+    input.startDate &&
     (input.dayPart === "first-half" || input.dayPart === "second-half") &&
     input.startDate !== input.endDate
   ) {
-    return "Half-day leave is allowed only for a single day.";
+    errors.dayPart = "Half-day leave is allowed only for a single day.";
   }
   if (!input.reason.trim() || input.reason.trim().length < 3) {
-    return "Please enter a reason (at least 3 characters).";
+    errors.reason = "Please enter a reason (at least 3 characters).";
+  }
+  return errors;
+};
+
+export const validateLeaveRequestForm = (
+  input: Parameters<typeof validateLeaveRequestFields>[0],
+): string => {
+  const errors = validateLeaveRequestFields(input);
+  return (
+    errors.employeeId ||
+    errors.leaveType ||
+    (errors.startDate || errors.endDate
+      ? !input.startDate || !input.endDate
+        ? "Start and end dates are required."
+        : errors.endDate
+      : "") ||
+    errors.dayPart ||
+    errors.reason ||
+    ""
+  );
+};
+
+/** First problem in the edited balances, or "" when they can be saved. */
+export const balanceDraftError = (
+  draft: Array<{ type: string; total: string; used: string }>,
+): string => {
+  for (const d of draft) {
+    const total = Number(d.total);
+    const used = Number(d.used);
+    if (d.total.trim() === "" || !Number.isFinite(total)) return `${d.type} Total must be a number.`;
+    if (total < 0) return `${d.type} Total cannot be negative.`;
+    // WFH Used is counted from requests, not entered.
+    if (d.type === "WFH") continue;
+    if (d.used.trim() === "" || !Number.isFinite(used)) return `${d.type} Used must be a number.`;
+    if (used < 0) return `${d.type} Used cannot be negative.`;
+    if (used > total) return `${d.type} Used cannot exceed Total.`;
   }
   return "";
 };

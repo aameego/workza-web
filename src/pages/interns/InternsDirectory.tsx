@@ -8,6 +8,7 @@ import {
   cn,
   FilterSelect,
   Pagination,
+  showSuccessToast,
 } from "../../design-system";
 import { useDepartmentNames } from "../../hooks/useDepartmentNames";
 import {
@@ -177,6 +178,7 @@ export default function InternsDirectory() {
         remark: remark || undefined,
       });
       setStatusTarget(null);
+      showSuccessToast("Intern status updated.");
     } catch (err) {
       setActionError(err instanceof ApiError ? err.message : "Status update failed");
     }
@@ -192,6 +194,7 @@ export default function InternsDirectory() {
         remark: remark || undefined,
       });
       setExtendTarget(null);
+      showSuccessToast("Internship extended.");
     } catch (err) {
       setActionError(err instanceof ApiError ? err.message : "Could not extend internship");
     }
@@ -209,6 +212,7 @@ export default function InternsDirectory() {
         employmentStatus: payload.employmentStatus,
       });
       setConvertTarget(null);
+      showSuccessToast("Intern converted to employee.");
       const employeeId = res?.employee?._id;
       if (employeeId) {
         navigate(`${base}/employees/${employeeId}`);
@@ -222,6 +226,7 @@ export default function InternsDirectory() {
     setToolbarError(null);
     try {
       await deleteMutation.mutateAsync(intern._id);
+      showSuccessToast("Intern archived.");
     } catch (err) {
       setToolbarError(err instanceof ApiError ? err.message : "Archive failed");
     }
@@ -231,6 +236,7 @@ export default function InternsDirectory() {
     setToolbarError(null);
     try {
       await restoreMutation.mutateAsync(intern._id);
+      showSuccessToast("Intern restored.");
     } catch (err) {
       setToolbarError(err instanceof ApiError ? err.message : "Restore failed");
     }
@@ -329,11 +335,7 @@ export default function InternsDirectory() {
             onChange={(e) => setStatus(e.target.value)}
             aria-label="Filter by intern status"
           >
-            <option value="" hidden>
-              {INTERN_STATUS_FILTER_OPTIONS[0].label}
-            </option>
-            <option value="">All</option>
-            {INTERN_STATUS_FILTER_OPTIONS.slice(1).map((opt) => (
+            {INTERN_STATUS_FILTER_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>
@@ -404,7 +406,7 @@ export default function InternsDirectory() {
                           src={intern.photoUrl || intern.photo || undefined}
                         />
                         <div className="flex min-w-0 flex-col gap-0.5">
-                          <span className="truncate font-medium" title={intern.name}>
+                          <span className="truncate font-normal" title={intern.name}>
                             {intern.name || "—"}
                           </span>
                           <span className="text-[10px] text-wz-text-muted">
@@ -457,10 +459,10 @@ export default function InternsDirectory() {
                     <td className={tdClass} title={intern.designation || ""}>
                       {intern.designation || "—"}
                     </td>
-                    <td className={tdClass}>
+                    <td className={cn(tdClass, "whitespace-nowrap")}>
                       {formatInternDate(intern.internshipStartDate)}
                     </td>
-                    <td className={tdClass}>
+                    <td className={cn(tdClass, "whitespace-nowrap")}>
                       {formatInternDate(intern.internshipEndDate)}
                     </td>
                     <td className={tdClass}>
@@ -470,9 +472,13 @@ export default function InternsDirectory() {
                       )}
                     </td>
                     <td className={tdClass}>
-                      <Badge status={internStatusBadge(intern.internStatus)}>
-                        {internStatusLabel(intern.internStatus)}
-                      </Badge>
+                      {intern.isDeleted ? (
+                        <Badge status="error">Archived</Badge>
+                      ) : (
+                        <Badge status={internStatusBadge(intern.internStatus)}>
+                          {internStatusLabel(intern.internStatus)}
+                        </Badge>
+                      )}
                     </td>
                     <td className={tdClass}>
                       <Badge status={internAppLoginBadge(intern)}>

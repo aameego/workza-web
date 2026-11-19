@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { SuccessToast } from "../../design-system";
 import { ApiError } from "../../lib/apiClient";
 import type { SessionUser } from "../../layouts/sessionUser";
 import {
@@ -30,7 +31,7 @@ import {
   employeeFromRequest,
   filterRequests,
   orgLeaveMetrics,
-  teamLeaveMetrics,
+  withWfhRow,
 } from "./leaveViewModel";
 import { useEmployee } from "../../hooks/useEmployees";
 import { employmentActiveLabel, employmentTypeLabel } from "../employees/employeeListHelpers";
@@ -43,6 +44,9 @@ export type LeaveAdminPageProps = {
   teamScope?: boolean;
   /** Hide policy+month when parent already renders LeavePageHeader. */
   hideHeader?: boolean;
+  /** Month picked in the parent's header (manager tabs). */
+  year?: number;
+  month?: number;
 };
 
 type ConfirmState = {
@@ -70,13 +74,18 @@ export default function LeaveAdminPage({
   embedded = false,
   teamScope = false,
   hideHeader = false,
+  year: parentYear,
+  month: parentMonth,
 }: LeaveAdminPageProps) {
   const navigate = useNavigate();
   const { vendorSlug } = useParams();
   const base = `/${vendorSlug || "app"}`;
 
-  const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth() + 1);
+  const [ownYear, setYear] = useState(now.getFullYear());
+  const [ownMonth, setMonth] = useState(now.getMonth() + 1);
+  const year = parentYear ?? ownYear;
+  const month = parentMonth ?? ownMonth;
+  const [notice, setNotice] = useState<string | null>(null);
   const [upcomingMonth, setUpcomingMonth] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
@@ -105,8 +114,11 @@ export default function LeaveAdminPage({
     return () => window.clearTimeout(t);
   }, [searchInput]);
 
-  const dashboardQuery = useLeaveDashboard();
+  const dashboardQuery = useLeaveDashboard({ year, month });
+  // Cards, tabs and table all follow the month picker; My Team is reportees only.
+  const listScope = { year, month, team: teamScope || undefined };
   const requestsQuery = useLeaveRequests({
+    ...listScope,
     page,
     limit: 10,
     search: search || undefined,
@@ -131,22 +143,25 @@ export default function LeaveAdminPage({
     return data?.orgSummary || data?.summary;
   }, [dashboardQuery.data, teamScope]);
 
-  const rejectedCount = useLeaveRequests({ page: 1, limit: 1, status: "Rejected" });
-  const rejectedTotal = rejectedCount.data?.total;
-  const metrics = useMemo(() => {
-    const cards = teamScope ? teamLeaveMetrics(summary) : orgLeaveMetrics(summary);
-    if (teamScope || rejectedTotal == null) return cards;
-    // Org summary has no rejected count; use the list API's total.
-    return orgLeaveMetrics({ ...summary, rejectedRequests: rejectedTotal, requestCounts: undefined });
-  }, [summary, teamScope, rejectedTotal]);
-
-  // Tab counts come from the list API's own totals (same search/type filters), so they always agree
-  // with the table; /leave/dashboard has no org-wide per-status counts.
-  const countBase = { page: 1, limit: 1, search: search || undefined, leaveType: requestType || undefined };
+  // Pending / Rejected cards and the tab counts come from the list API's own totals, so they always
+  // agree with the table (same month, scope, search and type filters).
+  const countBase = { ...listScope, page: 1, limit: 1, search: search || undefined, leaveType: requestType || undefined };
   const allCount = useLeaveRequests(countBase);
   const pendingCount = useLeaveRequests({ ...countBase, status: "Pending" });
   const approvedCount = useLeaveRequests({ ...countBase, status: "Approved" });
   const cancelledCount = useLeaveRequests({ ...countBase, status: "Cancelled" });
+  const rejectedCount = useLeaveRequests({ ...listScope, page: 1, limit: 1, status: "Rejected" });
+  const pendingCardCount = useLeaveRequests({ ...listScope, page: 1, limit: 1, status: "Pending" });
+  const metrics = useMemo(
+    () =>
+      orgLeaveMetrics({
+        ...summary,
+        pendingRequests: pendingCardCount.data?.total ?? summary?.pendingRequests,
+        rejectedRequests: rejectedCount.data?.total ?? summary?.requestCounts?.rejected,
+        requestCounts: undefined,
+      }),
+    [summary, pendingCardCount.data?.total, rejectedCount.data?.total],
+  );
   const statusCounts = {
     "": allCount.data?.total ?? 0,
     Pending: pendingCount.data?.total ?? 0,
@@ -181,6 +196,11 @@ export default function LeaveAdminPage({
     return filtered.slice(0, 8);
   }, [dashboardQuery.data, upcomingMonth]);
 
+  const balanceRows = useMemo(
+    () => withWfhRow(balanceQuery.data?.balances || [], balanceQuery.data?.wfhQuota),
+    [balanceQuery.data],
+  );
+
   const serverRows = requestsQuery.data?.requests || [];
   const rows = useMemo(
     () =>
@@ -213,6 +233,7 @@ export default function LeaveAdminPage({
         } else {
           await rejectMutation.mutateAsync({ id: row._id });
         }
+        setNotice(`Request ${isApprove ? "approved" : "rejected"} successfully.`);
       },
     });
   };
@@ -271,6 +292,7 @@ export default function LeaveAdminPage({
           setPage(1);
         }}
         statusCounts={statusCounts}
+        selfEmployeeId={user?.employeeId ? String(user.employeeId) : undefined}
         canApprove={canApprove}
         canEdit={canEdit}
         onApprove={(row) => openDecision(row, "approve")}
@@ -302,7 +324,7 @@ export default function LeaveAdminPage({
         {canBalances ? (
           <LeaveBalancePanel
             mode="manage"
-            rows={balanceQuery.data?.balances || []}
+            rows={balanceRows}
             employeeId={balanceEmployeeId}
             employeeMeta={
               balanceQuery.data
@@ -332,6 +354,7 @@ export default function LeaveAdminPage({
                   employeeId: balanceEmployeeId,
                   payload,
                 });
+                setNotice("Leave balances saved successfully.");
               } catch (err) {
                 setBalanceError(
                   err instanceof ApiError
@@ -347,6 +370,7 @@ export default function LeaveAdminPage({
       <LeaveRequestModal
         open={createOpen}
         onClose={() => setCreateOpen(false)}
+        onSaved={setNotice}
         forSelf={false}
       />
       <LeaveEditModal
@@ -354,6 +378,7 @@ export default function LeaveAdminPage({
         record={editRow}
         onClose={() => setEditRow(null)}
       />
+      <SuccessToast message={notice} onClear={setNotice} />
       <LeaveConfirmDialog
         open={confirm.open}
         title={confirm.title}

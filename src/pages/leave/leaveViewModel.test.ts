@@ -164,8 +164,55 @@ describe("leaveViewModel", () => {
 describe("teamLeaveMetrics hints", async () => {
   const { teamLeaveMetrics } = await import("./leaveViewModel");
   it("hides the team-size hint when nothing was taken", () => {
-    const cards = teamLeaveMetrics({ employeeCount: 6, wfhDaysThisMonth: 0, leaveDaysThisMonth: 2, requestCounts: {} });
+    const cards = teamLeaveMetrics({ employeeCount: 6, employeeCounts: { leave: 6 }, wfhDaysThisMonth: 0, leaveDaysThisMonth: 2, requestCounts: {} });
     expect(cards.find((c) => c.key === "wfh")?.hint).toBeUndefined();
     expect(cards.find((c) => c.key === "leave")?.hint).toBe("By 6 employees");
+  });
+});
+
+describe("18 Nov leave bugs", async () => {
+  const { orgLeaveMetrics, withWfhRow, validateLeaveRequestFields } = await import("./leaveViewModel");
+
+  it("card hints count unique employees, not requests (LV-FN-05)", () => {
+    const cards = orgLeaveMetrics({
+      leaveDaysThisMonth: 1,
+      rejectedRequests: 19,
+      employeeCount: 47,
+      employeeCounts: { leave: 1, rejected: 4 },
+    });
+    expect(cards.find((c) => c.key === "leave")?.hint).toBe("By 1 employee");
+    expect(cards.find((c) => c.key === "rejected")?.hint).toBe("For 4 employees");
+  });
+
+  it("adds the WFH quota as a balance row (LV-UI-01)", () => {
+    const rows = withWfhRow([{ type: "CL", total: 1, used: 0, remaining: 1 }], { total: 2, used: 1, remaining: 1 });
+    expect(rows.map((r) => r.type)).toEqual(["CL", "WFH"]);
+    expect(rows[1]).toMatchObject({ total: 2, used: 1, remaining: 1 });
+    expect(withWfhRow(rows, { total: 5 })).toBe(rows);
+  });
+
+  it("returns every field error at once (LV-UI-03)", () => {
+    const errors = validateLeaveRequestFields({
+      leaveType: "",
+      startDate: "",
+      endDate: "",
+      dayPart: "",
+      reason: "",
+      requireEmployee: true,
+      requireDayPart: true,
+    });
+    expect(Object.keys(errors).sort()).toEqual(
+      ["dayPart", "employeeId", "endDate", "leaveType", "reason", "startDate"],
+    );
+  });
+});
+
+describe("balanceDraftError (LV-FN-07)", async () => {
+  const { balanceDraftError } = await import("./leaveViewModel");
+  it("rejects negatives and Used above Total, allows WFH used", () => {
+    expect(balanceDraftError([{ type: "CL", total: "-5", used: "0" }])).toBe("CL Total cannot be negative.");
+    expect(balanceDraftError([{ type: "CL", total: "1", used: "2" }])).toBe("CL Used cannot exceed Total.");
+    expect(balanceDraftError([{ type: "WFH", total: "2", used: "3" }])).toBe("");
+    expect(balanceDraftError([{ type: "SL", total: "2", used: "1" }])).toBe("");
   });
 });

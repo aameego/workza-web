@@ -153,8 +153,12 @@ export const buildInternPayload = (
     if (data.userPassword) {
       payload.userPassword = data.userPassword;
     }
-    if (Array.isArray(data.allowedModules)) {
+    // The intern form has no module picker: an empty list would grant no modules at all
+    // (INT-FN-12), so only send an explicit selection; otherwise the role defaults apply.
+    if (Array.isArray(data.allowedModules) && data.allowedModules.length) {
       payload.allowedModules = data.allowedModules;
+    } else {
+      delete payload.allowedModules;
     }
   } else {
     delete payload.createAppLogin;

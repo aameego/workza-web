@@ -237,7 +237,7 @@ export default function InternRowActions({
             <Mail size={16} /> Resend Credentials
           </DropdownMenuItem>
         ) : null}
-        {canManage && !intern.isDeleted ? (
+        {canManage && !intern.isDeleted && intern.internStatus !== "converted" ? (
           <DropdownMenuItem
             danger
             onClick={() => {

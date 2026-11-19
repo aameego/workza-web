@@ -9,12 +9,11 @@ import {
   TextArea,
 } from "../../design-system";
 import { ApiError } from "../../lib/apiClient";
-import { useDirectEditLeave } from "../../hooks/useLeave";
+import { useDirectEditLeave, useLeaveTypeOptions } from "../../hooks/useLeave";
 import { useEmployee } from "../../hooks/useEmployees";
 import { EmployeeModalCard } from "../employees/EmployeeActionModals";
 import type { LeaveRequest } from "../../services/leaveService";
 import {
-  LEAVE_TYPE_OPTIONS,
   employeeFromRequest,
   toDateInputValue,
   validateLeaveRequestForm,
@@ -32,6 +31,7 @@ export default function LeaveEditModal({
   onClose,
 }: LeaveEditModalProps) {
   const [leaveType, setLeaveType] = useState("CL");
+  const typeOptions = useLeaveTypeOptions(open);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [dayPart, setDayPart] = useState("full");
@@ -162,11 +162,11 @@ export default function LeaveEditModal({
             <option value="" disabled>
               Select
             </option>
-            {LEAVE_TYPE_OPTIONS.filter((o) =>
+            {typeOptions.filter((o) =>
               leaveType === "WFH" ? o.value === "WFH" : o.value !== "WFH",
             ).map((o) => (
               <option key={o.value} value={o.value}>
-                {o.value === "WFH" ? "Work From Home (WFH)" : o.label}
+                {o.label}
               </option>
             ))}
           </Select>
