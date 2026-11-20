@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   Button,
   Field,
@@ -81,6 +81,8 @@ export default function DepartmentFormModal({
   const createMutation = useCreateDepartment();
   const updateMutation = useUpdateDepartment();
   const saving = createMutation.isPending || updateMutation.isPending;
+  // isPending only flips after a re-render; the ref stops a fast double click (DEP-FN-05).
+  const submittingRef = useRef(false);
 
   useEffect(() => {
     if (!open) return;
@@ -116,6 +118,7 @@ export default function DepartmentFormModal({
   };
 
   const handleSubmit = async () => {
+    if (submittingRef.current) return;
     const nextErrors = validateDepartmentForm(form);
     if (formHasErrors(nextErrors)) {
       setErrors(nextErrors);
@@ -139,6 +142,7 @@ export default function DepartmentFormModal({
       allowOutsideGeofence: form.allowOutsideGeofence !== false,
     };
 
+    submittingRef.current = true;
     try {
       if (mode === "edit" && department) {
         await updateMutation.mutateAsync({ id: department._id, payload });
@@ -154,6 +158,8 @@ export default function DepartmentFormModal({
             ? err.message
             : "Could not save department",
       );
+    } finally {
+      submittingRef.current = false;
     }
   };
 

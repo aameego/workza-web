@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Button, Field, Input, Select } from "../../design-system";
+import { Button, Field, Input, Select, showSuccessToast } from "../../design-system";
 import { ApiError } from "../../lib/apiClient";
 import { readSessionUser } from "../../layouts/sessionUser";
 import {
@@ -130,6 +130,8 @@ export default function LeavePolicyPage() {
       });
       setLocal(res.policy || res);
       setStatus({ type: "ok", message: "Leave policy saved successfully." });
+      // The inline note sits above the fold on a long page; the toast is always seen (LV-FN-17).
+      showSuccessToast("Policy saved successfully.");
     } catch (err) {
       setStatus({
         type: "err",

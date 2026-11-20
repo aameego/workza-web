@@ -5,6 +5,18 @@ import type {
   LeaveSummary,
 } from "../../services/leaveService";
 
+/** Leave / WFH may be applied up to this many months ahead (server: LEAVE_MONTHS_AHEAD). */
+export const LEAVE_MONTHS_AHEAD = 6;
+
+const toDateInput = (d: Date): string =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+/** Date-picker window for new leave: 1st of last month to the end of the 6th month ahead (LV-FN-21). */
+export const leaveDateWindow = (today = new Date()): { min: string; max: string } => ({
+  min: toDateInput(new Date(today.getFullYear(), today.getMonth() - 1, 1)),
+  max: toDateInput(new Date(today.getFullYear(), today.getMonth() + LEAVE_MONTHS_AHEAD + 1, 0)),
+});
+
 export const LEAVE_TYPE_LABELS: Record<string, string> = {
   CL: "Casual Leave (CL)",
   SL: "Sick Leave (SL)",
@@ -360,6 +372,8 @@ export const validateLeaveRequestFields = (input: {
   if (!input.endDate) errors.endDate = "End date is required.";
   else if (input.startDate && input.endDate < input.startDate) {
     errors.endDate = "End date must be on or after start date.";
+  } else if (input.endDate > leaveDateWindow().max) {
+    errors.endDate = `Leave can be applied up to ${LEAVE_MONTHS_AHEAD} months ahead.`;
   }
   if (
     !errors.endDate &&

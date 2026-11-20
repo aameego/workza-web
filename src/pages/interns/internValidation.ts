@@ -81,6 +81,7 @@ export const validateInternField = (
     case "name": {
       const nameVal = String(v ?? "").trim();
       if (!nameVal) return "Full name is required";
+      if (nameVal.length > 100) return "Name must be at most 100 characters";
       if (!PATTERNS.PERSON_NAME.test(nameVal)) {
         return "Name must start with a letter and contain no numbers";
       }

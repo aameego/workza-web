@@ -6,6 +6,7 @@ import {
   formatLeaveDate,
   formatLeaveDays,
   getLeaveTypeLabel,
+  leaveDateWindow,
   orgLeaveMetrics,
   selfLeaveMetrics,
   statusTabCounts,
@@ -216,3 +217,11 @@ describe("balanceDraftError (LV-FN-07)", async () => {
     expect(balanceDraftError([{ type: "SL", total: "2", used: "1" }])).toBe("");
   });
 });
+
+describe("leaveDateWindow (LV-FN-21)", () => {
+  it("runs from the 1st of last month to the end of the 6th month ahead", () => {
+    expect(leaveDateWindow(new Date(2026, 10, 20))).toEqual({ min: "2026-10-01", max: "2027-05-31" });
+    expect(leaveDateWindow(new Date(2026, 0, 15))).toEqual({ min: "2025-12-01", max: "2026-07-31" });
+  });
+});
+

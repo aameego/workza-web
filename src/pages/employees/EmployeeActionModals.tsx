@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { Info } from "lucide-react";
-import { Badge, Button, Field, Input, Modal, TextArea } from "../../design-system";
+import { Badge, Button, Field, Input, Modal, TextArea, showSuccessToast } from "../../design-system";
 import { ApiError } from "../../lib/apiClient";
 import { convertToConsultant, extendProbation } from "../../services/employeeService";
 import type { EmployeeListItem } from "../../services/employeeTypes";
@@ -112,6 +112,7 @@ export function ExtendProbationModal({ open, employee, onClose, onDone }: Action
     setError(null);
     try {
       await extendProbation(employee._id, n, reason.trim());
+      showSuccessToast("Probation extended successfully.");
       onDone();
       setBusy(false);
       setMonths("");
@@ -206,6 +207,10 @@ export function MakeConsultantModal({ open, employee, onClose, onDone }: ActionM
 
   const submit = async () => {
     if (!(gross > 0)) return setError("Monthly Consultancy Pay must be greater than ₹0");
+    const rawTds = Number(tds);
+    if (tds !== "" && (!Number.isFinite(rawTds) || rawTds < 0 || rawTds > 100)) {
+      return setError("TDS must be between 0% and 100%");
+    }
     setBusy(true);
     setError(null);
     try {
@@ -213,6 +218,7 @@ export function MakeConsultantModal({ open, employee, onClose, onDone }: ActionM
         monthlyConsultancyPay: gross,
         tdsPercent: tds === "" ? 0 : tdsPct,
       });
+      showSuccessToast("Employee converted to consultant.");
       onDone();
       setBusy(false);
       setPay("");

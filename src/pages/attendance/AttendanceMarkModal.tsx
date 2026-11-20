@@ -193,7 +193,14 @@ export default function AttendanceMarkModal({
         {mode === "day" ? (
           <>
             <Field label="Attendance Date" required>
-              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+              <Input
+                type="date"
+                value={date}
+                // No future dates (ATT-FN-30); the server refuses them too.
+                max={`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`}
+                onChange={(e) => setDate(e.target.value)}
+                required
+              />
             </Field>
             <Field label="Attendance Status" required>
               <Select value={status} onChange={(e) => setStatus(e.target.value)}>

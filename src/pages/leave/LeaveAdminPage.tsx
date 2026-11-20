@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { SuccessToast } from "../../design-system";
+import { Field, SuccessToast, TextArea } from "../../design-system";
 import { ApiError } from "../../lib/apiClient";
 import type { SessionUser } from "../../layouts/sessionUser";
 import {
@@ -55,7 +55,9 @@ type ConfirmState = {
   message: string;
   confirmLabel: string;
   variant: "primary" | "destructive" | "success";
-  action: (() => Promise<void>) | null;
+  action: ((reason: string) => Promise<void>) | null;
+  /** Reject asks for a reason the employee sees (LV-FN-14). */
+  needsReason?: boolean;
 };
 
 const closedConfirm = (): ConfirmState => ({
@@ -95,6 +97,8 @@ export default function LeaveAdminPage({
   const [createOpen, setCreateOpen] = useState(false);
   const [editRow, setEditRow] = useState<LeaveRequest | null>(null);
   const [confirm, setConfirm] = useState<ConfirmState>(closedConfirm);
+  const [rejectReason, setRejectReason] = useState("");
+  const [reasonError, setReasonError] = useState<string | null>(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
   const [balanceEmployeeId, setBalanceEmployeeId] = useState("");
   const [balanceError, setBalanceError] = useState<string | null>(null);
@@ -221,17 +225,20 @@ export default function LeaveAdminPage({
   const openDecision = (row: LeaveRequest, action: "approve" | "reject") => {
     const emp = employeeFromRequest(row);
     const isApprove = action === "approve";
+    setRejectReason("");
+    setReasonError(null);
     setConfirm({
       open: true,
       title: `${isApprove ? "Approve" : "Reject"} Request?`,
       message: `Are you sure you want to ${isApprove ? "approve" : "reject"} request for ${emp.name || "this employee"}? This action cannot be undone.`,
       confirmLabel: isApprove ? "Approve" : "Reject",
       variant: isApprove ? "success" : "destructive",
-      action: async () => {
+      needsReason: !isApprove,
+      action: async (reason: string) => {
         if (isApprove) {
           await approveMutation.mutateAsync({ id: row._id });
         } else {
-          await rejectMutation.mutateAsync({ id: row._id });
+          await rejectMutation.mutateAsync({ id: row._id, comment: reason });
         }
         setNotice(`Request ${isApprove ? "approved" : "rejected"} successfully.`);
       },
@@ -240,10 +247,15 @@ export default function LeaveAdminPage({
 
   const runConfirm = async () => {
     if (!confirm.action) return;
+    const reason = rejectReason.trim();
+    if (confirm.needsReason && !reason) {
+      setReasonError("Reason for rejection is required.");
+      return;
+    }
     setConfirmLoading(true);
     setActionError(null);
     try {
-      await confirm.action();
+      await confirm.action(reason);
       setConfirm(closedConfirm());
     } catch (err) {
       setActionError(err instanceof ApiError ? err.message : "Action failed.");
@@ -388,7 +400,23 @@ export default function LeaveAdminPage({
         loading={confirmLoading}
         onClose={() => setConfirm(closedConfirm())}
         onConfirm={() => void runConfirm()}
-      />
+      >
+        {confirm.needsReason ? (
+          <Field label="Reason for rejection" required error={reasonError ?? undefined}>
+            <TextArea
+              value={rejectReason}
+              maxLength={500}
+              rows={3}
+              placeholder="Tell the employee why"
+              invalid={Boolean(reasonError)}
+              onChange={(e) => {
+                setRejectReason(e.target.value);
+                if (reasonError) setReasonError(null);
+              }}
+            />
+          </Field>
+        ) : null}
+      </LeaveConfirmDialog>
     </div>
   );
 }

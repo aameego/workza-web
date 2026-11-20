@@ -477,6 +477,11 @@ export default function LeaveRequestsTable({
                         <Badge status={statusBadge(row.status)}>
                           {row.status || "-"}
                         </Badge>
+                        {row.status === "Rejected" && row.approverComment ? (
+                          <p className="m-0 mt-0.5 max-w-[180px] truncate text-[10px] text-wz-text-muted" title={row.approverComment}>
+                            {row.approverComment}
+                          </p>
+                        ) : null}
                       </td>
                       {showActions ? (
                         <td className="px-4">

@@ -47,6 +47,10 @@ export default function ConsultancyPaymentModal({
 
   const submit = async () => {
     if (!(gross > 0)) return setError("Amount must be greater than ₹0");
+    const rawTds = Number(tds);
+    if (tds !== "" && (!Number.isFinite(rawTds) || rawTds < 0 || rawTds > 100)) {
+      return setError("TDS must be between 0% and 100%");
+    }
     setBusy(true);
     setError(null);
     try {

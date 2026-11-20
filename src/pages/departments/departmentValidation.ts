@@ -67,10 +67,12 @@ export const validateDepartmentForm = (
 
   if (!name) {
     errors.name = "Department Name is required.";
-  } else if (name.length > 120) {
-    errors.name = "Department Name must be at most 120 characters.";
+  } else if (name.length > 100) {
+    errors.name = "Department Name must be at most 100 characters.";
   } else if (hasUnsafeMarkup(name)) {
     errors.name = "Department Name contains invalid characters.";
+  } else if (!/[A-Za-z]/.test(name)) {
+    errors.name = "Department Name must contain letters.";
   }
 
   const description = values.description.trim();

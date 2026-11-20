@@ -16,7 +16,7 @@ export function buildEmployeeBulkTemplateRows(
 
   return [
     [
-      "Employee Bulk Upload Template — keep this row; enter employees below the headers. Only Name is required. For salary, copy a Salary Structure name into the last column and enter the annual CTC in the CTC column.",
+      "Employee Bulk Upload Template — keep this row; enter employees below the headers. Name and Department are required. For salary, copy a Salary Structure name into the last column and enter the annual CTC in the CTC column.",
     ],
     [
       "EmployeeCode",

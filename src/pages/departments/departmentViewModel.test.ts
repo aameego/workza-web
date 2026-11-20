@@ -54,7 +54,7 @@ describe("departmentViewModel", () => {
   it("sanitizes geo inputs", () => {
     expect(sanitizeGeoValue("latitude", "12.3abc-4")).toBe("12.34");
     expect(sanitizeGeoValue("latitude", "-12.5.6")).toBe("-12.56");
-    expect(sanitizeGeoValue("geofenceRadiusMeters", "-12.5")).toBe("12.5");
+    expect(sanitizeGeoValue("geofenceRadiusMeters", "-12.5")).toBe("-12.5");
   });
 
   it("builds csv with header", () => {

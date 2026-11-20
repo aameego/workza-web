@@ -53,6 +53,9 @@ export default function LeaveDetailsSheet({
     ["Dates  (Start - End)", `${formatLeaveDate(request.startDate)} - ${formatLeaveDate(request.endDate)}`],
     ["Duration  (in Days)", String(request.days ?? "-")],
     ["Request Reason", request.reason || "-"],
+    ...(request.status === "Rejected"
+      ? ([["Rejection Reason", request.approverComment || "-"]] as [string, ReactNode][])
+      : []),
     [
       "Approved By (RM/HR/Admin)",
       <>

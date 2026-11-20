@@ -39,6 +39,8 @@ export type LeaveRequest = {
   rejectedBy?: string | LeaveEmployeeRef | null;
   rejectedAt?: string | null;
   cancelReason?: string;
+  /** Approver's note; the rejection reason on Rejected requests. */
+  approverComment?: string;
   createdAt?: string;
   updatedAt?: string;
   medicalDocumentUrl?: string | null;

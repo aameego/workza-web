@@ -138,7 +138,7 @@ export function FileUploadZone({
           {upload.message ? (
             <p
               className={cn(
-                "m-0 text-xs leading-4 whitespace-pre-line",
+                "m-0 max-h-60 overflow-y-auto text-xs leading-4 whitespace-pre-line",
                 upload.status === "error" ? "text-[#b42318]" : "text-wz-text-muted",
               )}
               role={upload.status === "error" ? "alert" : "status"}
