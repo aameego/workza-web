@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Button,
   Field,
@@ -16,7 +16,11 @@ import {
   useLeaveTypeOptions,
 } from "../../hooks/useLeave";
 import SearchableEmployeeSelect from "../attendance/SearchableEmployeeSelect";
-import { validateLeaveRequestFields, type LeaveFormErrors } from "./leaveViewModel";
+import {
+  leaveDateWindow,
+  validateLeaveRequestFields,
+  type LeaveFormErrors,
+} from "./leaveViewModel";
 
 export type LeaveRequestModalProps = {
   open: boolean;
@@ -126,8 +130,12 @@ export default function LeaveRequestModal({
     daySpan > slRequiredWhenDaysGt;
 
   const saving = createMutation.isPending || createMultipart.isPending;
+  // isPending flips only after a re-render, so a fast double click sent duplicates (LV-FN-11).
+  const submittingRef = useRef(false);
+  const dateWindow = useMemo(() => leaveDateWindow(), []);
 
   const handleSubmit = async () => {
+    if (submittingRef.current) return;
     setError(null);
     const errors = validateLeaveRequestFields({
       leaveType: form.leaveType,
@@ -166,6 +174,7 @@ export default function LeaveRequestModal({
       ...(isCoCredit ? { isCoCredit: true } : {}),
     };
 
+    submittingRef.current = true;
     try {
       if (leaveType === "SL" && medicalFile) {
         const fd = new FormData();
@@ -187,6 +196,8 @@ export default function LeaveRequestModal({
           ? err.message
           : "Failed to submit leave request.",
       );
+    } finally {
+      submittingRef.current = false;
     }
   };
 
@@ -332,6 +343,8 @@ export default function LeaveRequestModal({
           <Input
             type="date"
             value={form.startDate}
+            min={dateWindow.min}
+            max={dateWindow.max}
             onChange={(e) =>
               setForm((p) => ({ ...p, startDate: e.target.value }))
             }
@@ -341,7 +354,8 @@ export default function LeaveRequestModal({
           <Input
             type="date"
             value={form.endDate}
-            min={form.startDate || undefined}
+            min={form.startDate || dateWindow.min}
+            max={dateWindow.max}
             onChange={(e) =>
               setForm((p) => ({ ...p, endDate: e.target.value }))
             }

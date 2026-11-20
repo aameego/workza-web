@@ -126,10 +126,8 @@ export const formatBulkMonthUploadResult = (result: {
     .map((e) => (typeof e === "string" ? e : e?.message || ""))
     .filter(Boolean);
   if (errors.length) {
-    lines.push(`Errors:\n${errors.slice(0, 10).join("\n")}`);
-    if (errors.length > 10) {
-      lines.push(`…and ${errors.length - 10} more`);
-    }
+    // Every row error is listed; the message box scrolls (ATT-FN-41).
+    lines.push(`Errors:\n${errors.join("\n")}`);
   }
   return lines.join("\n") || "Upload completed.";
 };

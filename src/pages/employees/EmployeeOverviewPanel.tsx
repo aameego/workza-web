@@ -107,7 +107,7 @@ export default function EmployeeOverviewPanel({
             <EmployeeInfoRow>
               <EmployeeInfoField
                 label="Emergency Contact Name"
-                value={displayValue(employee.fatherHusbandName)}
+                value={displayValue(employee.emergencyContactName)}
               />
               <EmployeeInfoField
                 label="Emergency Contact Number"

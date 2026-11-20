@@ -24,7 +24,12 @@ export default function LoginPage() {
   const [is2FA, setIs2FA] = useState(false);
   const [otpEmail, setOtpEmail] = useState("");
   const [otpSent, setOtpSent] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(() =>
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("expired") === "1"
+      ? "Session expired, please log in again."
+      : "",
+  );
   const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { ConfirmDialog } from "../../design-system";
 
 export type LeaveConfirmDialogProps = {
@@ -10,6 +11,7 @@ export type LeaveConfirmDialogProps = {
   loading?: boolean;
   onConfirm: () => void;
   onClose: () => void;
+  children?: ReactNode;
 };
 
 export default function LeaveConfirmDialog({ variant = "primary", ...rest }: LeaveConfirmDialogProps) {
