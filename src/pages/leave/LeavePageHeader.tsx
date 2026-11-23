@@ -1,5 +1,6 @@
 import { ChevronRight } from "lucide-react";
 import { MonthSelect } from "../../design-system";
+import { LEAVE_MONTHS_AHEAD } from "./leaveViewModel";
 
 export type LeavePageHeaderProps = {
   year: number;
@@ -33,7 +34,8 @@ export default function LeavePageHeader({
             <ChevronRight size={12} aria-hidden />
           </button>
         ) : null}
-        <MonthSelect year={year} month={month} onShift={onShiftMonth} className="max-md:h-9" />
+        {/* Leave can be applied up to 6 months ahead, so those months are listed too (LV-FN-20). */}
+        <MonthSelect year={year} month={month} onShift={onShiftMonth} monthsAhead={LEAVE_MONTHS_AHEAD} className="max-md:h-9" />
       </div>
     </div>
   );

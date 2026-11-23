@@ -255,6 +255,9 @@ export default function EmployeesPage() {
   const switchDirectory = (next: DirectoryTab) => {
     if (next === directory) return;
     setDirectory(next);
+    if (next === "consultancy" && status !== "active" && status !== "inactive") {
+      setStatus("");
+    }
     setSearchParams(
       next === "consultancy"
         ? { type: "consultancy" }
@@ -433,7 +436,10 @@ export default function EmployeesPage() {
             {isConsult ? "Consultant Status" : STATUS_FILTER_OPTIONS[0].label}
           </option>
           <option value="">All</option>
-          {STATUS_FILTER_OPTIONS.slice(1).map((opt) => (
+          {/* Consultants have no probation, so only Active / Inactive apply (EMP-FN-13). */}
+          {STATUS_FILTER_OPTIONS.slice(1)
+            .filter((opt) => !isConsult || opt.value === "active" || opt.value === "inactive")
+            .map((opt) => (
             <option key={opt.value} value={opt.value}>
               {opt.label}
             </option>

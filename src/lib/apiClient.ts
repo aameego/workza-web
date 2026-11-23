@@ -114,6 +114,12 @@ export async function apiRequest<T = unknown>(
 
   if (res.status === 401 && !skipAuthRedirect) {
     clearAuthToken();
+    // Expired / missing session: send the user to login instead of showing the raw
+    // "Token missing" inside whatever dialog made the call (ATT-FN-28).
+    if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+      window.location.assign("/login?expired=1");
+    }
+    throw new ApiError("Session expired, please log in again", 401, null);
   }
 
   if (responseType === "blob") {
