@@ -15,6 +15,7 @@ import AddInternPage from "./pages/interns/AddInternPage";
 import EditInternPage from "./pages/interns/EditInternPage";
 import ViewInternPage from "./pages/interns/ViewInternPage";
 import DepartmentsPage from "./pages/departments/DepartmentsPage";
+import OrganizationPage from "./pages/settings/OrganizationPage";
 
 import { getAuthToken } from "./lib/authStorage";
 import { APP_NAV_ITEMS } from "./layouts/navConfig";
@@ -77,6 +78,8 @@ function App() {
                   <LeavePage />
                 ) : item.path === "/departments" ? (
                   <DepartmentsPage />
+                ) : item.path === "/settings" ? (
+                  <OrganizationPage />
                 ) : (
                   <EmptyScreen />
                 )
