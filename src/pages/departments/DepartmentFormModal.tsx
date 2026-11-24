@@ -132,6 +132,7 @@ export default function DepartmentFormModal({
       otPolicy: form.otPolicy || null,
       departmentHead: form.departmentHead || null,
       sitePayoutRule: form.sitePayoutRule || null,
+      payrollDaysBaseline: form.payrollDaysBaseline || "FULL_MONTH",
       stateName: form.stateName || null,
       latitude: toNullableNumber(form.latitude),
       longitude: toNullableNumber(form.longitude),
@@ -240,6 +241,12 @@ export default function DepartmentFormModal({
                 ))}
               </Select>
             </Field>
+             <Field label="Payroll Days Baseline" htmlFor="dep-payroll-days">
+               <Select id="dep-payroll-days" value={form.payrollDaysBaseline || "FULL_MONTH"} onChange={(e) => setField("payrollDaysBaseline", e.target.value)}>
+                 <option value="FULL_MONTH">Full Month Payroll Days</option>
+                 <option value="EXCLUDE_SUNDAYS">Full Month Excluding Sundays</option>
+               </Select>
+             </Field>
             <Field label="State Name" htmlFor="dep-state">
               <Select
                 id="dep-state"

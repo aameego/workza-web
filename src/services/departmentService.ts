@@ -29,6 +29,7 @@ export type Department = {
   vendorId?: string;
   departmentUniqueId?: string;
   sitePayoutRule?: string | null;
+  payrollDaysBaseline?: string | null;
   stateName?: string | null;
   latitude?: number | null;
   longitude?: number | null;
@@ -59,6 +60,7 @@ export type DepartmentPayload = {
   otPolicy?: string | null;
   departmentHead?: string | null;
   sitePayoutRule?: string | null;
+  payrollDaysBaseline?: string | null;
   stateName?: string | null;
   latitude?: number | null;
   longitude?: number | null;

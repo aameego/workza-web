@@ -32,6 +32,7 @@ export type DepartmentFormValues = {
   otPolicy: string;
   departmentHead: string;
   sitePayoutRule: string;
+  payrollDaysBaseline: string;
   stateName: string;
   latitude: string;
   longitude: string;
@@ -46,6 +47,7 @@ export const emptyDepartmentForm = (): DepartmentFormValues => ({
   otPolicy: "",
   departmentHead: "",
   sitePayoutRule: "",
+  payrollDaysBaseline: "FULL_MONTH",
   stateName: "",
   latitude: "",
   longitude: "",
@@ -71,6 +73,7 @@ export const departmentToForm = (dep: Department): DepartmentFormValues => ({
   otPolicy: refId(dep.otPolicy),
   departmentHead: refId(dep.departmentHead),
   sitePayoutRule: dep.sitePayoutRule || "",
+  payrollDaysBaseline: dep.payrollDaysBaseline || "FULL_MONTH",
   stateName: dep.stateName || "",
   latitude:
     dep.latitude == null || Number.isNaN(Number(dep.latitude))
