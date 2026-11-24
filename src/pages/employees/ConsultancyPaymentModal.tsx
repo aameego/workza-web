@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button, Field, Input, Modal } from "../../design-system";
 import { ApiError } from "../../lib/apiClient";
+import { tdsRangeError } from "./employeeValidation";
 import {
   saveConsultancyPayment,
   type ConsultancyPayment,
@@ -44,13 +45,11 @@ export default function ConsultancyPaymentModal({
   const gross = Math.max(0, Number(amount) || 0);
   const pct = Math.min(100, Math.max(0, Number(tds) || 0));
   const tdsAmt = Math.round((gross * pct) / 100);
+  const tdsErr = tdsRangeError(tds);
 
   const submit = async () => {
     if (!(gross > 0)) return setError("Amount must be greater than ₹0");
-    const rawTds = Number(tds);
-    if (tds !== "" && (!Number.isFinite(rawTds) || rawTds < 0 || rawTds > 100)) {
-      return setError("TDS must be between 0% and 100%");
-    }
+    if (tdsErr) return setError(tdsErr);
     setBusy(true);
     setError(null);
     try {
@@ -83,7 +82,7 @@ export default function ConsultancyPaymentModal({
           <Button type="button" variant="secondary" disabled={busy} onClick={onClose}>
             Cancel
           </Button>
-          <Button type="button" disabled={busy} onClick={() => void submit()}>
+          <Button type="button" disabled={busy || Boolean(tdsErr)} onClick={() => void submit()}>
             {busy ? "Saving…" : "Save Payment"}
           </Button>
         </>
@@ -95,7 +94,7 @@ export default function ConsultancyPaymentModal({
           <Field label="Monthly Consultancy Pay" required htmlFor="pay-amount">
             <Input id="pay-amount" type="number" min={0} placeholder="Enter amount" value={amount} onChange={(e) => setAmount(e.target.value)} />
           </Field>
-          <Field label="TDS %" htmlFor="pay-tds">
+          <Field label="TDS %" htmlFor="pay-tds" error={tdsErr}>
             <Input id="pay-tds" type="number" min={0} max={100} placeholder="Enter here" value={tds} onChange={(e) => setTds(e.target.value)} />
           </Field>
         </div>

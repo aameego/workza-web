@@ -50,16 +50,25 @@ export function DropdownMenu({
   if (!open || !anchorEl) return null;
 
   const rect = anchorEl.getBoundingClientRect();
+  // Keep the menu inside the window (EMP-UI-37): flip above the anchor when
+  // there is more room there, and never past the left/right edge.
+  const GAP = 6;
+  const EDGE = 8;
+  const spaceBelow = window.innerHeight - rect.bottom - GAP - EDGE;
+  const spaceAbove = rect.top - GAP - EDGE;
+  const openUp = spaceBelow < 320 && spaceAbove > spaceBelow;
   const style: CSSProperties = {
     position: "fixed",
-    top: rect.bottom + 6,
     zIndex: 90,
     minWidth: 240,
-    maxHeight: "min(70vh, 480px)",
+    maxHeight: Math.max(Math.min(openUp ? spaceAbove : spaceBelow, 480), 160),
     overflowY: "auto",
+    ...(openUp
+      ? { bottom: window.innerHeight - rect.top + GAP }
+      : { top: rect.bottom + GAP }),
     ...(align === "right"
-      ? { right: window.innerWidth - rect.right }
-      : { left: rect.left }),
+      ? { right: Math.max(window.innerWidth - rect.right, EDGE) }
+      : { left: Math.min(Math.max(rect.left, EDGE), window.innerWidth - 240 - EDGE) }),
   };
 
   return createPortal(

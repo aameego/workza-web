@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { Eye, FileText } from "lucide-react";
-import { Button } from "../../design-system";
+import { Button, showSuccessToast } from "../../design-system";
 import { ApiError } from "../../lib/apiClient";
 import { getDocumentViewUrl } from "../../services/documentService";
 import {
@@ -56,6 +56,7 @@ export default function EmployeeDocumentsPanel({
         documentType: pendingSlot.documentType,
         file,
       });
+      showSuccessToast(`${pendingSlot.label} uploaded successfully.`);
       setPendingSlot(null);
     } catch (err: unknown) {
       setUploadError(
@@ -126,6 +127,11 @@ export default function EmployeeDocumentsPanel({
                         docTypeLabel(doc.documentType)}
                     </p>
                     <div className="mt-1 flex flex-wrap items-center gap-2">
+                      {doc.originalName || doc.fileName ? (
+                        <span className="text-[11px] font-semibold text-wz-text-muted uppercase">
+                          {docTypeLabel(doc.documentType)}
+                        </span>
+                      ) : null}
                       <span className="inline-flex h-[21px] items-center rounded-wz-sm border border-wz-border bg-white px-2 text-[10px] text-wz-text-muted">
                         {formatFileSize(doc.size ?? doc.fileSize)}
                       </span>

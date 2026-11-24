@@ -103,6 +103,7 @@ export default function EmployeeRowActions({
     canManageProbation: canManageProbation(user?.role),
     letterAccess,
     employee,
+    isSelf: Boolean(user?.employeeId) && String(user?.employeeId) === String(employee._id),
   });
 
   const closeMenu = () => setMenuOpen(false);

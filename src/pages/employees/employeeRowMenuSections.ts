@@ -36,6 +36,8 @@ export type EmployeeRowMenuContext = {
   canManageProbation: boolean;
   letterAccess: LetterAccess;
   employee: EmployeeListItem;
+  /** The signed-in user's own row: only General (EMP-FN-16). */
+  isSelf?: boolean;
 };
 
 export const visibleMenuSections = ({
@@ -44,7 +46,9 @@ export const visibleMenuSections = ({
   canManageProbation: probationOk,
   letterAccess,
   employee,
+  isSelf = false,
 }: EmployeeRowMenuContext): MenuSectionKey[] => {
+  if (isSelf) return ["general"];
   const letters = employeeLetterActions(letterAccess, employee, {
     canTerminate: false,
   });

@@ -65,4 +65,17 @@ describe("visibleMenuSections", () => {
       }),
     ).toEqual(["general", "letters"]);
   });
+
+  it("shows only General on the signed-in user's own row", () => {
+    expect(
+      visibleMenuSections({
+        directory: "employee",
+        canManage: true,
+        canManageProbation: true,
+        letterAccess: { ...NONE, canView: true },
+        employee: { _id: "1", hasAppLogin: true, employmentStatus: "probation" },
+        isSelf: true,
+      }),
+    ).toEqual(["general"]);
+  });
 });

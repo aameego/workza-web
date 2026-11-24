@@ -6,6 +6,7 @@ import {
   Modal,
   Select,
   TextArea,
+  showSuccessToast,
 } from "../../design-system";
 import { ApiError } from "../../lib/apiClient";
 import SearchableEmployeeSelect from "../attendance/SearchableEmployeeSelect";
@@ -146,8 +147,10 @@ export default function DepartmentFormModal({
     try {
       if (mode === "edit" && department) {
         await updateMutation.mutateAsync({ id: department._id, payload });
+        showSuccessToast("Department updated successfully.");
       } else {
         await createMutation.mutateAsync(payload);
+        showSuccessToast("Department created successfully.");
       }
       onClose();
     } catch (err) {

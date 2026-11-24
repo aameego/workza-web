@@ -92,6 +92,15 @@ export const employmentTypeLabel = (emp: EmployeeListItem): string | null => {
   return null;
 };
 
+/** "Ends DD/MM/YYYY" for an employee still on probation (EMP-FN-18). */
+export const probationEndsLabel = (emp: EmployeeListItem): string | null => {
+  if (effectiveEmploymentStatus(emp) !== "probation") return null;
+  const key = dayKeyIST(emp.probationEndDate);
+  if (!key) return null;
+  const [y, m, d] = key.split("-");
+  return `Ends ${d}/${m}/${y}`;
+};
+
 export const employmentTypeBadge = (emp: EmployeeListItem): BadgeStatus => {
   const status = String(effectiveEmploymentStatus(emp) || "").toLowerCase();
   if (status === "probation") return "info";

@@ -272,3 +272,10 @@ export const collectEmployeeFormErrors = (
 
   return { ...errors, ...familyMemberErrorMap(values.familyMembers) };
 };
+
+/** Inline TDS check shared by Make Consultant and Edit Payment (EMP-FN-14). */
+export const tdsRangeError = (value: string): string | undefined => {
+  if (value.trim() === "") return undefined;
+  const n = Number(value);
+  return Number.isFinite(n) && n >= 0 && n <= 100 ? undefined : "TDS must be between 0% and 100%";
+};
