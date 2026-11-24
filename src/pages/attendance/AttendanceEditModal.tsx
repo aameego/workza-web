@@ -20,12 +20,14 @@ export type AttendanceEditModalProps = {
   open: boolean;
   record: NormalizedAttendanceRow | null;
   onClose: () => void;
+  onSaved?: (message: string) => void;
 };
 
 export default function AttendanceEditModal({
   open,
   record,
   onClose,
+  onSaved,
 }: AttendanceEditModalProps) {
   const [status, setStatus] = useState("Present");
   const [checkIn, setCheckIn] = useState("");
@@ -83,6 +85,7 @@ export default function AttendanceEditModal({
         checkOut: stripsTimes ? null : checkOut,
         auditNote: auditNote.trim(),
       });
+      onSaved?.("Attendance updated successfully.");
       onClose();
     } catch (err) {
       setError(
@@ -125,14 +128,14 @@ export default function AttendanceEditModal({
       <form
         noValidate
         id="attendance-edit-form"
-        className="-mt-2 grid grid-cols-1 gap-x-wz-6 gap-y-wz-6 sm:grid-cols-2"
+        className="-mt-2 grid grid-cols-2 gap-x-wz-6 gap-y-wz-6"
         onSubmit={(e) => void handleSave(e)}
       >
-        <p className="m-0 text-xs leading-[15px] font-semibold text-wz-text-muted sm:col-span-2">
+        <p className="m-0 text-xs leading-[15px] font-semibold text-wz-text-muted col-span-2">
           Attendance Date: {dateLabel}
         </p>
 
-        <div className="sm:col-span-2">
+        <div className="col-span-2">
           <EmployeeModalCard
             employee={{
               _id: employeeId,
@@ -158,7 +161,7 @@ export default function AttendanceEditModal({
         <Field
           label="Modify Attendance Status"
           required
-          className="sm:col-span-2"
+          className="col-span-2"
         >
           <Select
             value={status}
@@ -199,7 +202,7 @@ export default function AttendanceEditModal({
           />
         </Field>
 
-        <Field label="Note" required className="sm:col-span-2">
+        <Field label="Note" required className="col-span-2">
           <TextArea
             rows={2}
             style={{ minHeight: 66 }}
@@ -215,7 +218,7 @@ export default function AttendanceEditModal({
         </Field>
 
         {error ? (
-          <p className="m-0 text-sm text-wz-error sm:col-span-2" role="alert">
+          <p className="m-0 text-sm text-wz-error col-span-2" role="alert">
             {error}
           </p>
         ) : null}

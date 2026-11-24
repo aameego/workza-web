@@ -27,7 +27,8 @@ export const formatDateDisplay = (value: unknown): string => {
 export const maskAadhaar = (value: unknown): string => {
   const digits = String(value || "").replace(/\D/g, "");
   if (!digits) return "—";
-  if (digits.length < 4) return digits;
+  // Never show a short (invalid) number in full either.
+  if (digits.length < 4) return "XXXX-XXXX-XXXX";
   return `XXXX-XXXX-${digits.slice(-4)}`;
 };
 

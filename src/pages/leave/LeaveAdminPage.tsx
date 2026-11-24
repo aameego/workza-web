@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { Field, SuccessToast, TextArea } from "../../design-system";
 import { ApiError } from "../../lib/apiClient";
 import type { SessionUser } from "../../layouts/sessionUser";
 import {
@@ -30,7 +31,7 @@ import {
   employeeFromRequest,
   filterRequests,
   orgLeaveMetrics,
-  teamLeaveMetrics,
+  withWfhRow,
 } from "./leaveViewModel";
 import { useEmployee } from "../../hooks/useEmployees";
 import { employmentActiveLabel, employmentTypeLabel } from "../employees/employeeListHelpers";
@@ -43,6 +44,9 @@ export type LeaveAdminPageProps = {
   teamScope?: boolean;
   /** Hide policy+month when parent already renders LeavePageHeader. */
   hideHeader?: boolean;
+  /** Month picked in the parent's header (manager tabs). */
+  year?: number;
+  month?: number;
 };
 
 type ConfirmState = {
@@ -51,7 +55,9 @@ type ConfirmState = {
   message: string;
   confirmLabel: string;
   variant: "primary" | "destructive" | "success";
-  action: (() => Promise<void>) | null;
+  action: ((reason: string) => Promise<void>) | null;
+  /** Reject asks for a reason the employee sees (LV-FN-14). */
+  needsReason?: boolean;
 };
 
 const closedConfirm = (): ConfirmState => ({
@@ -70,13 +76,18 @@ export default function LeaveAdminPage({
   embedded = false,
   teamScope = false,
   hideHeader = false,
+  year: parentYear,
+  month: parentMonth,
 }: LeaveAdminPageProps) {
   const navigate = useNavigate();
   const { vendorSlug } = useParams();
   const base = `/${vendorSlug || "app"}`;
 
-  const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth() + 1);
+  const [ownYear, setYear] = useState(now.getFullYear());
+  const [ownMonth, setMonth] = useState(now.getMonth() + 1);
+  const year = parentYear ?? ownYear;
+  const month = parentMonth ?? ownMonth;
+  const [notice, setNotice] = useState<string | null>(null);
   const [upcomingMonth, setUpcomingMonth] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
@@ -86,6 +97,8 @@ export default function LeaveAdminPage({
   const [createOpen, setCreateOpen] = useState(false);
   const [editRow, setEditRow] = useState<LeaveRequest | null>(null);
   const [confirm, setConfirm] = useState<ConfirmState>(closedConfirm);
+  const [rejectReason, setRejectReason] = useState("");
+  const [reasonError, setReasonError] = useState<string | null>(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
   const [balanceEmployeeId, setBalanceEmployeeId] = useState("");
   const [balanceError, setBalanceError] = useState<string | null>(null);
@@ -105,8 +118,11 @@ export default function LeaveAdminPage({
     return () => window.clearTimeout(t);
   }, [searchInput]);
 
-  const dashboardQuery = useLeaveDashboard();
+  const dashboardQuery = useLeaveDashboard({ year, month });
+  // Cards, tabs and table all follow the month picker; My Team is reportees only.
+  const listScope = { year, month, team: teamScope || undefined };
   const requestsQuery = useLeaveRequests({
+    ...listScope,
     page,
     limit: 10,
     search: search || undefined,
@@ -131,22 +147,25 @@ export default function LeaveAdminPage({
     return data?.orgSummary || data?.summary;
   }, [dashboardQuery.data, teamScope]);
 
-  const rejectedCount = useLeaveRequests({ page: 1, limit: 1, status: "Rejected" });
-  const rejectedTotal = rejectedCount.data?.total;
-  const metrics = useMemo(() => {
-    const cards = teamScope ? teamLeaveMetrics(summary) : orgLeaveMetrics(summary);
-    if (teamScope || rejectedTotal == null) return cards;
-    // Org summary has no rejected count; use the list API's total.
-    return orgLeaveMetrics({ ...summary, rejectedRequests: rejectedTotal, requestCounts: undefined });
-  }, [summary, teamScope, rejectedTotal]);
-
-  // Tab counts come from the list API's own totals (same search/type filters), so they always agree
-  // with the table; /leave/dashboard has no org-wide per-status counts.
-  const countBase = { page: 1, limit: 1, search: search || undefined, leaveType: requestType || undefined };
+  // Pending / Rejected cards and the tab counts come from the list API's own totals, so they always
+  // agree with the table (same month, scope, search and type filters).
+  const countBase = { ...listScope, page: 1, limit: 1, search: search || undefined, leaveType: requestType || undefined };
   const allCount = useLeaveRequests(countBase);
   const pendingCount = useLeaveRequests({ ...countBase, status: "Pending" });
   const approvedCount = useLeaveRequests({ ...countBase, status: "Approved" });
   const cancelledCount = useLeaveRequests({ ...countBase, status: "Cancelled" });
+  const rejectedCount = useLeaveRequests({ ...listScope, page: 1, limit: 1, status: "Rejected" });
+  const pendingCardCount = useLeaveRequests({ ...listScope, page: 1, limit: 1, status: "Pending" });
+  const metrics = useMemo(
+    () =>
+      orgLeaveMetrics({
+        ...summary,
+        pendingRequests: pendingCardCount.data?.total ?? summary?.pendingRequests,
+        rejectedRequests: rejectedCount.data?.total ?? summary?.requestCounts?.rejected,
+        requestCounts: undefined,
+      }),
+    [summary, pendingCardCount.data?.total, rejectedCount.data?.total],
+  );
   const statusCounts = {
     "": allCount.data?.total ?? 0,
     Pending: pendingCount.data?.total ?? 0,
@@ -181,6 +200,11 @@ export default function LeaveAdminPage({
     return filtered.slice(0, 8);
   }, [dashboardQuery.data, upcomingMonth]);
 
+  const balanceRows = useMemo(
+    () => withWfhRow(balanceQuery.data?.balances || [], balanceQuery.data?.wfhQuota),
+    [balanceQuery.data],
+  );
+
   const serverRows = requestsQuery.data?.requests || [];
   const rows = useMemo(
     () =>
@@ -201,28 +225,37 @@ export default function LeaveAdminPage({
   const openDecision = (row: LeaveRequest, action: "approve" | "reject") => {
     const emp = employeeFromRequest(row);
     const isApprove = action === "approve";
+    setRejectReason("");
+    setReasonError(null);
     setConfirm({
       open: true,
       title: `${isApprove ? "Approve" : "Reject"} Request?`,
       message: `Are you sure you want to ${isApprove ? "approve" : "reject"} request for ${emp.name || "this employee"}? This action cannot be undone.`,
       confirmLabel: isApprove ? "Approve" : "Reject",
       variant: isApprove ? "success" : "destructive",
-      action: async () => {
+      needsReason: !isApprove,
+      action: async (reason: string) => {
         if (isApprove) {
           await approveMutation.mutateAsync({ id: row._id });
         } else {
-          await rejectMutation.mutateAsync({ id: row._id });
+          await rejectMutation.mutateAsync({ id: row._id, comment: reason });
         }
+        setNotice(`Request ${isApprove ? "approved" : "rejected"} successfully.`);
       },
     });
   };
 
   const runConfirm = async () => {
     if (!confirm.action) return;
+    const reason = rejectReason.trim();
+    if (confirm.needsReason && !reason) {
+      setReasonError("Reason for rejection is required.");
+      return;
+    }
     setConfirmLoading(true);
     setActionError(null);
     try {
-      await confirm.action();
+      await confirm.action(reason);
       setConfirm(closedConfirm());
     } catch (err) {
       setActionError(err instanceof ApiError ? err.message : "Action failed.");
@@ -236,7 +269,7 @@ export default function LeaveAdminPage({
 
   return (
     /* Figma leave-directory-admin: every section 24 apart */
-    <div className="space-y-6">
+    <div className="space-y-6 max-md:space-y-5">
       {showHeader ? (
         <LeavePageHeader
           year={year}
@@ -271,6 +304,7 @@ export default function LeaveAdminPage({
           setPage(1);
         }}
         statusCounts={statusCounts}
+        selfEmployeeId={user?.employeeId ? String(user.employeeId) : undefined}
         canApprove={canApprove}
         canEdit={canEdit}
         onApprove={(row) => openDecision(row, "approve")}
@@ -287,7 +321,7 @@ export default function LeaveAdminPage({
       <div
         className={
           canBalances
-            ? "grid grid-cols-1 gap-6 xl:grid-cols-2"
+            ? "grid grid-cols-1 gap-6 max-md:gap-5 xl:grid-cols-2"
             : "grid grid-cols-1 gap-6"
         }
       >
@@ -302,7 +336,7 @@ export default function LeaveAdminPage({
         {canBalances ? (
           <LeaveBalancePanel
             mode="manage"
-            rows={balanceQuery.data?.balances || []}
+            rows={balanceRows}
             employeeId={balanceEmployeeId}
             employeeMeta={
               balanceQuery.data
@@ -332,6 +366,7 @@ export default function LeaveAdminPage({
                   employeeId: balanceEmployeeId,
                   payload,
                 });
+                setNotice("Leave balances saved successfully.");
               } catch (err) {
                 setBalanceError(
                   err instanceof ApiError
@@ -347,6 +382,7 @@ export default function LeaveAdminPage({
       <LeaveRequestModal
         open={createOpen}
         onClose={() => setCreateOpen(false)}
+        onSaved={setNotice}
         forSelf={false}
       />
       <LeaveEditModal
@@ -354,6 +390,7 @@ export default function LeaveAdminPage({
         record={editRow}
         onClose={() => setEditRow(null)}
       />
+      <SuccessToast message={notice} onClear={setNotice} />
       <LeaveConfirmDialog
         open={confirm.open}
         title={confirm.title}
@@ -363,7 +400,23 @@ export default function LeaveAdminPage({
         loading={confirmLoading}
         onClose={() => setConfirm(closedConfirm())}
         onConfirm={() => void runConfirm()}
-      />
+      >
+        {confirm.needsReason ? (
+          <Field label="Reason for rejection" required error={reasonError ?? undefined}>
+            <TextArea
+              value={rejectReason}
+              maxLength={500}
+              rows={3}
+              placeholder="Tell the employee why"
+              invalid={Boolean(reasonError)}
+              onChange={(e) => {
+                setRejectReason(e.target.value);
+                if (reasonError) setReasonError(null);
+              }}
+            />
+          </Field>
+        ) : null}
+      </LeaveConfirmDialog>
     </div>
   );
 }

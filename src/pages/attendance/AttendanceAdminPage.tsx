@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Download, Plus, Upload } from "lucide-react";
-import { Button, MonthSelect } from "../../design-system";
+import { Button, MonthSelect, SuccessToast } from "../../design-system";
 import {
   useAttendanceList,
   useAttendanceMonth,
@@ -75,6 +75,9 @@ export default function AttendanceAdminPage({
     setListPage(1);
   }, [year, month, selectedDay, search]);
 
+  // Success message after Mark / Edit (ATT-FN-22).
+  const [notice, setNotice] = useState<string | null>(null);
+
   const canMark = canMarkAttendance(user);
   const canBulk = canManageAttendance(user);
   const canEdit = canDirectEditAttendance(user);
@@ -129,16 +132,25 @@ export default function AttendanceAdminPage({
     [year, month, monthQuery.data, selectedDay],
   );
 
+  // Past working day: no record means Absent, same as the card (ATT-FN-11).
   const rows = useMemo(
-    () => (listQuery.data?.rows || []).map(normalizeAttendanceRow),
-    [listQuery.data?.rows],
+    () =>
+      (listQuery.data?.rows || []).map((r) =>
+        normalizeAttendanceRow(
+          pastWorkingDay && r.status === "Not Marked" ? { ...r, status: "Absent" } : r,
+        ),
+      ),
+    [listQuery.data?.rows, pastWorkingDay],
   );
 
   const shiftMonth = (delta: number) => {
     const d = new Date(year, month - 1 + delta, 1);
     setYear(d.getFullYear());
     setMonth(d.getMonth() + 1);
-    setSelectedDay(null);
+    // Cards and table follow the picked month: today in the current month, else the 1st (ATT-FN-16).
+    const t = new Date();
+    const isCurrent = d.getFullYear() === t.getFullYear() && d.getMonth() === t.getMonth();
+    setSelectedDay(isCurrent ? t.getDate() : 1);
   };
 
   const onExport = async (
@@ -169,49 +181,63 @@ export default function AttendanceAdminPage({
   const defaultMarkDate =
     selectedDay != null ? dateIsoForDay(year, month, selectedDay) : undefined;
 
+  const monthPicker = <MonthSelect year={year} month={month} onShift={shiftMonth} />;
+  const bulkButton = canBulk ? (
+    <Button type="button" variant="secondary" size="toolbar" onClick={() => setBulkOpen(true)}>
+      <Upload className="size-4" aria-hidden />
+      Bulk Upload
+    </Button>
+  ) : null;
+  const exportButton = canExport ? (
+    <Button type="button" variant="secondary" size="toolbar" onClick={() => setExportOpen(true)}>
+      <Download className="size-4" aria-hidden />
+      Export Report
+    </Button>
+  ) : null;
+  const markButton = canMark ? (
+    <Button type="button" variant="primary" size="toolbar" onClick={() => setMarkOpen(true)}>
+      <Plus className="size-4" aria-hidden />
+      Mark Attendance
+    </Button>
+  ) : null;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-md:space-y-5">
       {/* Figma workspace header: month + outlined Bulk/Export + solid Mark (no page copy) */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 max-md:hidden">
         <div className="flex flex-wrap items-center gap-2">{leading}</div>
         <div className="flex flex-wrap items-center gap-4">
-          <MonthSelect year={year} month={month} onShift={shiftMonth} />
+          {monthPicker}
           <div className="flex flex-wrap items-center gap-4">
-            {canBulk ? (
-              <Button
-                type="button"
-                variant="secondary"
-                size="toolbar"
-                onClick={() => setBulkOpen(true)}
-              >
-                <Upload className="size-4" aria-hidden />
-                Bulk Upload
-              </Button>
-            ) : null}
-            {canExport ? (
-              <Button
-                type="button"
-                variant="secondary"
-                size="toolbar"
-                onClick={() => setExportOpen(true)}
-              >
-                <Download className="size-4" aria-hidden />
-                Export Report
-              </Button>
-            ) : null}
-            {canMark ? (
-              <Button
-                type="button"
-                variant="primary"
-                size="toolbar"
-                onClick={() => setMarkOpen(true)}
-              >
-                <Plus className="size-4" aria-hidden />
-                Mark Attendance
-              </Button>
-            ) : null}
+            {bulkButton}
+            {exportButton}
+            {markButton}
           </div>
         </div>
+      </div>
+      {/* Figma attendance-admin · Mobile: [Bulk Upload][Month] then [Export Report][Mark Attendance] */}
+      <div className="flex flex-col gap-4 md:hidden">
+        {leading && !bulkButton ? (
+          /* Figma attendance-manager-team (173:52410): tabs and a 36px month box share one row */
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex min-w-0 items-center overflow-x-auto">{leading}</div>
+            <MonthSelect year={year} month={month} onShift={shiftMonth} className="max-md:h-9" />
+          </div>
+        ) : (
+          <>
+            {leading ? <div className="flex flex-wrap items-center gap-2">{leading}</div> : null}
+            <div className="flex flex-wrap items-start gap-4">
+              {bulkButton}
+              {monthPicker}
+            </div>
+          </>
+        )}
+        {exportButton || markButton ? (
+          <div className="flex flex-wrap items-center gap-4">
+            {exportButton}
+            {markButton}
+          </div>
+        ) : null}
       </div>
 
       {monthQuery.isError || listQuery.isError ? (
@@ -283,12 +309,16 @@ export default function AttendanceAdminPage({
         open={markOpen}
         onClose={() => setMarkOpen(false)}
         defaultDate={defaultMarkDate}
+        onSaved={setNotice}
+        selfEmployeeId={user?.employeeId ? String(user.employeeId) : undefined}
       />
       <AttendanceEditModal
         open={Boolean(editRow)}
         record={editRow}
         onClose={() => setEditRow(null)}
+        onSaved={setNotice}
       />
+      <SuccessToast message={notice} onClear={setNotice} />
       <AttendanceHistoryModal
         open={Boolean(historyRow)}
         onClose={() => setHistoryRow(null)}

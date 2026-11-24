@@ -12,10 +12,10 @@ import {
   ChevronDown,
   LogOut,
   Menu,
-  X,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
+  APP_NAV_ITEMS,
   navItemsFor,
   crumbsForPath,
   isNavPathActive,
@@ -32,7 +32,7 @@ import { api } from "../lib/apiClient";
 import { clearAuthData, updateStoredUser } from "../lib/authStorage";
 import { toVendorSlug } from "../lib/vendorPath";
 import workzaLogo from "../assets/landing/workza-logo.png";
-import { Avatar, cn, IconButton } from "../design-system";
+import { Avatar, cn, IconButton, SuccessToastHost } from "../design-system";
 
 const sidebarToggleClass =
   "inline-flex size-[25px] shrink-0 cursor-pointer items-center justify-center rounded-wz-sm border-0 bg-transparent p-0 text-white hover:bg-white/10";
@@ -79,6 +79,11 @@ export default function AppLayout() {
   }, [vendorSlug, user?.vendorName]);
 
   const currentPath = normalizeAppPath(location.pathname);
+  // Direct URLs to a module the user can't see in the sidebar get an access-denied page (INT-FN-11).
+  const navRoot = APP_NAV_ITEMS.find(
+    (item) => currentPath === item.path || currentPath.startsWith(`${item.path}/`),
+  );
+  const routeBlocked = navRoot ? !navItemsFor(user).includes(navRoot) : false;
   const pageTitle = titleForPath(location.pathname, location.search);
   const pageCrumbs = crumbsForPath(location.pathname, location.search);
   const vendorBase = `/${vendorCode}`;
@@ -143,6 +148,25 @@ export default function AppLayout() {
     navigate("/login", { replace: true });
   };
 
+  const profileMenu = (
+                <div
+                  className="absolute right-0 top-[calc(100%+8px)] z-30 min-w-[180px] rounded-wz-xl border border-wz-border bg-white p-1.5 shadow-[0_12px_30px_rgba(24,24,24,0.12)]"
+                  role="menu"
+                >
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="w-full cursor-pointer rounded-wz-md border-0 bg-transparent px-3 py-2.5 text-left text-sm font-medium text-wz-text hover:bg-wz-neutral-100"
+                    onClick={logout}
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <LogOut size={16} />
+                      Logout
+                    </span>
+                  </button>
+                </div>
+  );
+
   return (
     <div
       className={cn(
@@ -161,8 +185,8 @@ export default function AppLayout() {
         className={cn(
           "fixed bottom-0 left-0 top-0 z-40 flex h-screen h-dvh flex-col overflow-hidden border-0 bg-wz-sidebar p-0 text-white transition-[width,transform] duration-200 ease-in-out",
           collapsedDesktop ? "w-wz-sidebar-collapsed" : "w-wz-sidebar",
-          isMobile &&
-            "max-[900px]:w-[min(var(--spacing-wz-sidebar),86vw)]",
+          // Figma "Mobile App - Side Menu" (173:52776): white 270 drawer, rounded right edge.
+          isMobile && "max-[900px]:w-[270px] max-[900px]:rounded-r-wz-xl max-[900px]:bg-white",
           isMobile &&
             (mobileNavOpen
               ? "max-[900px]:translate-x-0"
@@ -174,6 +198,7 @@ export default function AppLayout() {
           <div
             className={cn(
               "box-border flex h-wz-topbar min-h-wz-topbar shrink-0 items-center justify-between gap-wz-2 border-b border-white/[0.08] px-wz-4",
+              isMobile && "border-b-0 py-3",
               collapsedDesktop && "justify-center border-b-transparent p-0",
             )}
           >
@@ -181,7 +206,8 @@ export default function AppLayout() {
               src={workzaLogo}
               alt="Workza"
               className={cn(
-                "block h-[35px] w-auto max-w-[145px] object-contain object-left brightness-0 invert",
+                "block h-[35px] w-auto max-w-[145px] object-contain object-left",
+                !isMobile && "brightness-0 invert",
                 collapsedDesktop && "h-8 max-w-8 object-center",
               )}
             />
@@ -199,11 +225,11 @@ export default function AppLayout() {
               {isMobile ? (
                 <button
                   type="button"
-                  className={sidebarToggleClass}
+                  className="inline-flex size-[25px] cursor-pointer items-center justify-center rounded-wz-sm border-0 bg-transparent p-0 text-wz-heading"
                   onClick={() => setMobileNavOpen(false)}
                   aria-label="Close menu"
                 >
-                  <X size={18} />
+                  <ArrowLeft size={20} strokeWidth={2} />
                 </button>
               ) : null}
             </div>
@@ -224,10 +250,14 @@ export default function AppLayout() {
                   type="button"
                   className={cn(
                     /* Figma Navigation/Nav Item: gap 10, 10/16/10/12 padding, 8 radius, 14 semibold #e8eefb, 18px icon */
-                    "relative flex h-10 min-h-10 w-full cursor-pointer items-center gap-[10px] rounded-wz-md border-0 bg-transparent py-0 pl-3 pr-4 text-left text-sm font-semibold leading-5 tracking-normal transition-[background,color] duration-150 ease-in-out [&_svg]:size-[18px] [&_svg]:shrink-0",
-                    active
-                      ? "bg-white text-wz-primary"
-                      : "text-wz-sidebar-text hover:bg-white/[0.08]",
+                    "relative flex h-10 min-h-10 w-full cursor-pointer items-center gap-[10px] rounded-wz-md border-0 py-0 pl-3 pr-4 text-left text-sm font-semibold leading-5 tracking-normal transition-[background,color] duration-150 ease-in-out [&_svg]:size-[18px] [&_svg]:shrink-0",
+                    isMobile
+                      ? active
+                        ? "bg-wz-primary text-white"
+                        : "bg-transparent text-wz-heading hover:bg-wz-neutral-100"
+                      : active
+                        ? "bg-white text-wz-primary"
+                        : "bg-transparent text-wz-sidebar-text hover:bg-white/[0.08]",
                     collapsedDesktop &&
                       "m-0 h-10 w-11 justify-center p-0",
                   )}
@@ -236,7 +266,10 @@ export default function AppLayout() {
                 >
                   {active && !collapsedDesktop ? (
                     <span
-                      className="h-5 w-[3px] shrink-0 rounded-[2px] bg-wz-primary"
+                      className={cn(
+                        "h-5 w-[3px] shrink-0 rounded-[2px]",
+                        isMobile ? "bg-white" : "bg-wz-primary",
+                      )}
                       aria-hidden
                     />
                   ) : null}
@@ -258,6 +291,50 @@ export default function AppLayout() {
           "max-[900px]:ml-0",
         )}
       >
+        {isMobile ? (
+          /* Figma "Mobile app header" (173:51033): 64 tall, 17 side padding, 34.67 gaps; the title flexes so wider screens keep the icons right */
+          <header className="sticky top-0 z-20 m-0 flex h-16 min-h-16 items-center gap-[34.67px] border-0 border-b border-wz-border bg-white px-[17px]">
+            <button
+              type="button"
+              className="inline-flex size-[22px] shrink-0 cursor-pointer items-center justify-center border-0 bg-transparent p-0"
+              onClick={() => setMobileNavOpen(true)}
+              aria-label="Open menu"
+            >
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden>
+                <path
+                  d="M4.58333 8.25H17.4167M7.33333 13.75H14.6667"
+                  strokeWidth="1.575"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  stroke="#1F5DA3"
+                />
+              </svg>
+            </button>
+            <h1 className="m-0 min-w-0 flex-1 truncate text-lg leading-[22px] font-bold text-wz-heading">
+              {pageTitle}
+            </h1>
+            <button
+              type="button"
+              className="inline-flex size-4 shrink-0 cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-wz-heading"
+              aria-label="Notifications"
+            >
+              <Bell size={16} strokeWidth={1.75} />
+            </button>
+            <div className="relative">
+              <button
+                type="button"
+                className="inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-wz-full border-0 bg-wz-primary p-0 text-[11px] font-semibold text-white"
+                onClick={() => setProfileOpen((v) => !v)}
+                aria-expanded={profileOpen}
+                aria-haspopup="menu"
+                aria-label="Account menu"
+              >
+                {initials}
+              </button>
+              {profileOpen ? profileMenu : null}
+            </div>
+          </header>
+        ) : (
         <header
           className={cn(
             /* Figma Navigation/Top Bar: always 60 tall, 24 side padding */
@@ -363,31 +440,25 @@ export default function AppLayout() {
                   strokeWidth={2}
                 />
               </button>
-              {profileOpen && (
-                <div
-                  className="absolute right-0 top-[calc(100%+8px)] z-30 min-w-[180px] rounded-wz-xl border border-wz-border bg-white p-1.5 shadow-[0_12px_30px_rgba(24,24,24,0.12)]"
-                  role="menu"
-                >
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className="w-full cursor-pointer rounded-wz-md border-0 bg-transparent px-3 py-2.5 text-left text-sm font-medium text-wz-text hover:bg-wz-neutral-100"
-                    onClick={logout}
-                  >
-                    <span className="inline-flex items-center gap-2">
-                      <LogOut size={16} />
-                      Logout
-                    </span>
-                  </button>
-                </div>
-              )}
+              {profileOpen ? profileMenu : null}
             </div>
           </div>
         </header>
+        )}
 
         <main className="min-w-0 flex-1 p-wz-6 max-[900px]:p-wz-4">
-          {sessionReady ? <Outlet /> : null}
+          {!sessionReady ? null : routeBlocked ? (
+            <div className="flex flex-col items-start gap-wz-3 rounded-wz-xl border border-wz-border bg-white p-wz-6">
+              <h1 className="m-0 text-lg font-bold text-wz-heading">Access denied</h1>
+              <p className="m-0 text-sm text-wz-text-secondary">
+                You do not have permission to open this page.
+              </p>
+            </div>
+          ) : (
+            <Outlet />
+          )}
         </main>
+        <SuccessToastHost />
       </div>
     </div>
   );

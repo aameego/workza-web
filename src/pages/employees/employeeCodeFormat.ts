@@ -4,19 +4,13 @@ export const EMPLOYEE_CODE_MAX_LENGTH = 20;
 export const EMPLOYEE_CODE_HINT =
   "Employee codes must be formatted as EMP-26 or EMP26 or 26.";
 
-export const maskEmployeeCode = (raw: string): string => {
-  const src = String(raw ?? "").toUpperCase();
-  let letters = "";
-  let hyphen = false;
-  let digits = "";
-  for (const ch of src) {
-    if (ch >= "A" && ch <= "Z") {
-      if (digits.length === 0 && letters.length < 10) letters += ch;
-    } else if (ch === "-") {
-      if (!hyphen && digits.length === 0 && letters.length > 0) hyphen = true;
-    } else if (ch >= "0" && ch <= "9") {
-      if (digits.length < 8) digits += ch;
-    }
-  }
-  return `${letters}${hyphen ? "-" : ""}${digits}`;
-};
+/**
+ * Only uppercases and drops characters a code can never hold; the format itself is
+ * reported by validation (EMPLOYEE_CODE_HINT) instead of silently rewriting what was
+ * typed, e.g. QA-EMP-0142 used to become QAEMP-0142 (EMP-FN-19).
+ */
+export const maskEmployeeCode = (raw: string): string =>
+  String(raw ?? "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9-]/g, "")
+    .slice(0, EMPLOYEE_CODE_MAX_LENGTH);

@@ -4,6 +4,8 @@ export type HistoryEvent = {
   key: string;
   title: string;
   kind: "change" | "marked";
+  /** "marked" only: true when the employee checked in themselves. */
+  self?: boolean;
   previous?: string;
   updated?: string;
   checkIn?: string;
@@ -72,7 +74,13 @@ export const buildHistoryEvents = (
   requests: AttendanceRegularization[],
   employeeId: string,
   date: string,
-  current: { checkIn?: string | null; checkOut?: string | null; name?: string },
+  current: {
+    checkIn?: string | null;
+    checkOut?: string | null;
+    name?: string;
+    markedByName?: string | null;
+    markedBySelf?: boolean | null;
+  },
 ): HistoryEvent[] => {
   const mine = requests
     .filter((r) => idOf(r.employeeId) === employeeId && sameDay(r.requested?.date, date))
@@ -115,7 +123,9 @@ export const buildHistoryEvents = (
       title: "Attendance Marked!",
       checkIn: formatHistoryTime(original?.checkIn),
       checkOut: formatHistoryTime(original?.checkOut),
-      by: current.name,
+      // Older records carry no marker; they were the employee's own check-ins.
+      by: current.markedBySelf === false ? current.markedByName || "-" : current.name,
+      self: current.markedBySelf !== false,
     });
   }
   return events;

@@ -6,6 +6,8 @@ export type SegmentedToggleProps<T extends string> = {
   options: readonly (readonly [T, string])[];
   onChange: (value: T) => void;
   disabled?: boolean;
+  /** Label 6px above the track (Figma leave sheets 173:49912) instead of 10 (attendance 173:50150). */
+  tight?: boolean;
 };
 
 /**
@@ -18,6 +20,7 @@ export function SegmentedToggle<T extends string>({
   options,
   onChange,
   disabled,
+  tight = false,
 }: SegmentedToggleProps<T>) {
   return (
     <div className="flex min-w-0 flex-col gap-1.5">
@@ -25,7 +28,10 @@ export function SegmentedToggle<T extends string>({
       <div
         role="radiogroup"
         aria-label={label}
-        className="mt-0.5 grid h-[38px] auto-cols-fr grid-flow-col rounded-wz-md border border-[#e5e9ef] bg-[#f1f4f8] p-0.5"
+        className={cn(
+          "grid h-[38px] auto-cols-fr grid-flow-col rounded-wz-md border border-[#e5e9ef] bg-[#f1f4f8] p-0.5 max-md:rounded-[6px] max-md:border-0",
+          tight ? "mt-0" : "mt-1",
+        )}
       >
         {options.map(([v, text]) => (
           <button
@@ -36,10 +42,10 @@ export function SegmentedToggle<T extends string>({
             disabled={disabled}
             onClick={() => onChange(v)}
             className={cn(
-              "cursor-pointer rounded-wz-sm border-0 text-[13px] font-semibold disabled:cursor-not-allowed",
+              "cursor-pointer rounded-wz-sm border-0 text-[13px] font-semibold disabled:cursor-not-allowed max-md:rounded-[4px] max-md:font-bold",
               value === v
                 ? "bg-white text-wz-primary shadow-[0_1px_2px_rgba(15,23,42,0.06)]"
-                : "bg-transparent text-wz-text-muted",
+                : "bg-transparent text-wz-text-muted max-md:text-[#7f8ea3]",
             )}
           >
             {text}

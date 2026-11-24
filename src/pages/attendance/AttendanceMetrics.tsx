@@ -21,16 +21,16 @@ export default function AttendanceMetrics({
   return (
     <div
       className={cn(
-        "grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5",
+        "grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5",
         className,
       )}
     >
       {metrics.map((m) => (
         <div
           key={m.key}
-          className="flex flex-col gap-1 rounded-xl border border-[#dee2e6] bg-white p-4 shadow-[0px_2px_8px_0px_rgba(0,0,0,0.03)]"
+          className="flex min-w-0 flex-col gap-1 overflow-hidden self-start rounded-xl border border-[#dee2e6] bg-white p-4 shadow-[0px_2px_8px_0px_rgba(0,0,0,0.03)] xl:self-stretch"
         >
-          <p className="m-0 text-[10px] leading-[14px] font-bold tracking-[0.8px] text-[#6c757d] uppercase">
+          <p className="m-0 text-[10px] leading-[14px] font-bold tracking-[0.8px] whitespace-nowrap text-[#6c757d] uppercase">
             {m.label}
           </p>
           <p className="m-0 text-[28px] leading-[34px] font-bold tracking-[-0.5px] text-[#0a1f4a]">
@@ -39,7 +39,8 @@ export default function AttendanceMetrics({
           {m.hint ? (
             <span
               className={cn(
-                "inline-flex w-fit rounded-[5px] px-[7px] py-[3px] text-[10px] leading-[13px] font-semibold whitespace-nowrap",
+                // Mobile (Figma 173:51055): the hint spans the card and wraps.
+                "inline-flex w-fit rounded-[5px] px-[7px] py-[3px] text-[10px] leading-[13px] font-semibold whitespace-nowrap max-md:w-full max-md:whitespace-normal",
                 hintToneClass[m.hintTone] || hintToneClass.blue,
               )}
             >

@@ -16,6 +16,7 @@ import {
   TextArea,
   SearchableSelect,
   cn,
+  showSuccessToast,
 } from "../../design-system";
 import { useDepartmentNames } from "../../hooks/useDepartmentNames";
 import {
@@ -85,7 +86,10 @@ export default function EmployeeFormEditor({
   const user = readSessionUser();
   const vendorId = user?.vendorId || null;
   const base = `/${vendorSlug || "app"}`;
-  const listPath = `${base}/employees`;
+  // Consultants go back to the Consultancy tab, not Employees (EMP-FN-20).
+  const listPath = initialValues.isConsultancy
+    ? `${base}/employees?type=consultancy`
+    : `${base}/employees`;
   const cancelPath = cancelTo || listPath;
 
   const [form, setForm] = useState<EmployeeFormValues>(initialValues);
@@ -276,12 +280,22 @@ export default function EmployeeFormEditor({
             return;
           }
         }
+        showSuccessToast(
+          form.isConsultancy
+            ? "Consultant updated successfully."
+            : "Employee updated successfully.",
+        );
         navigate(`${base}/employees/${employeeId}`);
       } else {
         const created = await addMutation.mutateAsync(payload);
         const newId =
           created?.employee?._id ||
           (created as { _id?: string } | undefined)?._id;
+        showSuccessToast(
+          form.isConsultancy
+            ? "Consultant added successfully."
+            : "Employee added successfully.",
+        );
         if (showSalary && newId && hasSalaryData(draftFromEditor)) {
           try {
             const draft = draftFromEditor!;

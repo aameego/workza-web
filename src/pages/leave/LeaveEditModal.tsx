@@ -9,12 +9,11 @@ import {
   TextArea,
 } from "../../design-system";
 import { ApiError } from "../../lib/apiClient";
-import { useDirectEditLeave } from "../../hooks/useLeave";
+import { useDirectEditLeave, useLeaveTypeOptions } from "../../hooks/useLeave";
 import { useEmployee } from "../../hooks/useEmployees";
 import { EmployeeModalCard } from "../employees/EmployeeActionModals";
 import type { LeaveRequest } from "../../services/leaveService";
 import {
-  LEAVE_TYPE_OPTIONS,
   employeeFromRequest,
   toDateInputValue,
   validateLeaveRequestForm,
@@ -32,6 +31,7 @@ export default function LeaveEditModal({
   onClose,
 }: LeaveEditModalProps) {
   const [leaveType, setLeaveType] = useState("CL");
+  const typeOptions = useLeaveTypeOptions(open);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [dayPart, setDayPart] = useState("full");
@@ -40,7 +40,10 @@ export default function LeaveEditModal({
   const [error, setError] = useState<string | null>(null);
   const editMutation = useDirectEditLeave();
   const recordEmpId = record ? employeeFromRequest(record).id : "";
-  const { data: employeeDetail } = useEmployee(recordEmpId || undefined, open && Boolean(recordEmpId));
+  const { data: employeeDetail } = useEmployee(
+    recordEmpId || undefined,
+    open && Boolean(recordEmpId),
+  );
 
   useEffect(() => {
     if (!open || !record) return;
@@ -125,8 +128,8 @@ export default function LeaveEditModal({
         </>
       }
     >
-      <div className="grid grid-cols-1 gap-x-wz-6 gap-y-wz-6 sm:grid-cols-2">
-        <div className="self-center">
+      <div className="grid grid-cols-2 gap-x-wz-6 gap-y-wz-6">
+        <div className="self-center max-md:col-span-2">
           <EmployeeModalCard
             employee={{
               _id: emp.id,
@@ -138,16 +141,19 @@ export default function LeaveEditModal({
             detailed={false}
           />
         </div>
-        <SegmentedToggle
-          label="Select Request Type"
-          value={leaveType === "WFH" ? "WFH" : "Leave"}
-          options={[
-            ["Leave", "Leave"],
-            ["WFH", "WFH"],
-          ]}
-          onChange={(next) => setLeaveType(next === "WFH" ? "WFH" : "")}
-        />
-        <Field label="Leave Type" required>
+        <div className="max-md:col-span-2">
+          <SegmentedToggle
+            tight
+            label="Select Request Type"
+            value={leaveType === "WFH" ? "WFH" : "Leave"}
+            options={[
+              ["Leave", "Leave"],
+              ["WFH", "WFH"],
+            ]}
+            onChange={(next) => setLeaveType(next === "WFH" ? "WFH" : "")}
+          />
+        </div>
+        <Field label="Leave Type" required className="max-md:h-[66px] max-md:justify-end">
           <Select
             value={leaveType}
             disabled={leaveType === "WFH"}
@@ -156,16 +162,16 @@ export default function LeaveEditModal({
             <option value="" disabled>
               Select
             </option>
-            {LEAVE_TYPE_OPTIONS.filter((o) =>
+            {typeOptions.filter((o) =>
               leaveType === "WFH" ? o.value === "WFH" : o.value !== "WFH",
             ).map((o) => (
               <option key={o.value} value={o.value}>
-                {o.value === "WFH" ? "Work From Home (WFH)" : o.label}
+                {o.label}
               </option>
             ))}
           </Select>
         </Field>
-        <Field label="Day Type" required>
+        <Field label="Day Type" required className="max-md:h-[66px] max-md:justify-end">
           <Select value={dayPart} onChange={(e) => setDayPart(e.target.value)}>
             <option value="full">Full Day</option>
             <option value="first-half" disabled={!isSingleDay}>
@@ -191,7 +197,7 @@ export default function LeaveEditModal({
             onChange={(e) => setEndDate(e.target.value)}
           />
         </Field>
-        <Field label="Reason" required className="sm:col-span-2">
+        <Field label="Reason" required className="col-span-2">
           <TextArea
             rows={2}
             style={{ minHeight: 70 }}
@@ -200,7 +206,7 @@ export default function LeaveEditModal({
             onChange={(e) => setReason(e.target.value)}
           />
         </Field>
-        <Field label="Audit Note" required className="sm:col-span-2">
+        <Field label="Audit Note" required className="col-span-2">
           <TextArea
             rows={2}
             style={{ minHeight: 70 }}
@@ -210,7 +216,7 @@ export default function LeaveEditModal({
           />
         </Field>
         {error ? (
-          <p className="m-0 sm:col-span-2 text-sm text-wz-error" role="alert">
+          <p className="m-0 col-span-2 text-sm text-wz-error" role="alert">
             {error}
           </p>
         ) : null}

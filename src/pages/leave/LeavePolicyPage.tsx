@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Button, Field, Input, Select } from "../../design-system";
+import { Button, Field, Input, Select, showSuccessToast } from "../../design-system";
 import { ApiError } from "../../lib/apiClient";
 import { readSessionUser } from "../../layouts/sessionUser";
 import {
@@ -130,6 +130,8 @@ export default function LeavePolicyPage() {
       });
       setLocal(res.policy || res);
       setStatus({ type: "ok", message: "Leave policy saved successfully." });
+      // The inline note sits above the fold on a long page; the toast is always seen (LV-FN-17).
+      showSuccessToast("Policy saved successfully.");
     } catch (err) {
       setStatus({
         type: "err",
@@ -380,11 +382,16 @@ export default function LeavePolicyPage() {
                         step="0.5"
                         value={String(t.accrual?.monthlyCredit ?? "")}
                         onChange={(e) =>
+                          // Monthly and yearly stay in step: yearly = monthly × 12 (BUG-72).
                           updateAccrual(t.code, {
                             monthlyCredit:
                               e.target.value === ""
                                 ? null
                                 : Number(e.target.value),
+                            yearlyCap:
+                              e.target.value === ""
+                                ? null
+                                : Math.round(Number(e.target.value) * 12 * 100) / 100,
                           })
                         }
                       />
@@ -401,6 +408,10 @@ export default function LeavePolicyPage() {
                               e.target.value === ""
                                 ? null
                                 : Number(e.target.value),
+                            monthlyCredit:
+                              e.target.value === ""
+                                ? null
+                                : Math.round((Number(e.target.value) / 12) * 100) / 100,
                           })
                         }
                       />

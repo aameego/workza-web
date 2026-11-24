@@ -22,3 +22,9 @@ it("lists the current month first", () => {
   expect(opts[1]!.value).toBe("2026-10");
   expect(opts).toHaveLength(13);
 });
+
+it("explains a re-run of an already credited month (BUG-73)", () => {
+  const msg = accrualResultMessage({ message: "Done.", credited: 0, alreadyCredited: 43 });
+  expect(msg).toContain("already credited");
+  expect(accrualResultMessage({ message: "Done.", credited: 5, alreadyCredited: 0 })).toBe("Done.");
+});

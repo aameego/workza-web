@@ -4,15 +4,21 @@ import { monthOptions } from "./monthOptions";
 describe("monthOptions", () => {
   const today = new Date(2026, 10, 12); // Nov 2026
 
-  it("spans two years back to one year ahead, newest first", () => {
+  it("spans two years back up to the current month, newest first", () => {
     const opts = monthOptions(2026, 11, today);
-    expect(opts[0].label).toBe("November 2027");
+    expect(opts[0].label).toBe("November 2026");
     expect(opts.at(-1)?.label).toBe("November 2024");
-    expect(opts).toHaveLength(37);
+    expect(opts).toHaveLength(25);
   });
 
   it("always includes an out-of-range selected month", () => {
     const opts = monthOptions(2020, 3, today);
     expect(opts.at(-1)?.label).toBe("March 2020");
+  });
+
+  it("adds future months when asked (leave planning, LV-FN-20)", () => {
+    const opts = monthOptions(2026, 11, today, 6);
+    expect(opts[0].label).toBe("May 2027");
+    expect(opts).toHaveLength(31);
   });
 });

@@ -58,15 +58,15 @@ export default function AttendanceTodayCard({ today, row, loading, onCheck }: At
   ] as const;
 
   const btn =
-    "inline-flex h-[30px] w-[100px] cursor-pointer items-center justify-center gap-1.5 rounded-wz-sm border-0 text-[11px] leading-[14px] font-semibold disabled:cursor-not-allowed";
+    "inline-flex h-[30px] w-[100px] cursor-pointer items-center justify-center gap-1.5 rounded-wz-sm border-0 text-[11px] leading-[14px] font-semibold disabled:cursor-not-allowed max-md:h-auto max-md:w-auto max-md:flex-1 max-md:rounded-[7px] max-md:py-2";
 
   return (
-    <section className="overflow-hidden rounded-wz-xl border border-wz-border bg-white">
+    <section className="overflow-hidden rounded-wz-xl border border-wz-border bg-white max-md:border-0 max-md:outline max-md:outline-1 max-md:-outline-offset-1 max-md:outline-[#e8edf5]">
       <div className="flex min-h-[91px] items-center justify-between gap-4 bg-[linear-gradient(90deg,#0f2f66_0%,#1f5da3_55%,#13889e_100%)] px-5 py-4">
         <div className="flex flex-col">
           <span className="text-[10px] leading-[13px] font-bold tracking-[0.6px] text-[#80bab9]">{dateLabel}</span>
           <h2 className="m-0 mt-1 text-base leading-[22px] font-bold text-white">Today&apos;s Check In / Out</h2>
-          <p className="m-0 mt-1 text-xs leading-4 text-white/60">
+          <p className="m-0 mt-1 text-xs leading-4 text-white/60 max-md:w-min max-md:min-w-full max-md:text-[11px]">
             Selfie and location are required for check-in and check-out.
           </p>
         </div>
@@ -108,8 +108,8 @@ export default function AttendanceTodayCard({ today, row, loading, onCheck }: At
         </div>
 
         {last ? (
-          <div className="flex min-h-[88px] items-start justify-between gap-4 rounded-wz-md bg-[#f5f8fc] px-3.5 py-2.5">
-            <div className="flex gap-6">
+          <div className="relative flex min-h-[88px] items-start justify-between gap-4 rounded-wz-md bg-[#f5f8fc] px-3.5 py-2.5">
+            <div className="flex gap-6 max-md:flex-col max-md:gap-3">
               <div className="flex flex-col gap-2">
                 <span className="text-[9px] leading-[11px] font-bold tracking-[0.5px] text-wz-text-muted uppercase">Check-in Selfie</span>
                 {selfie ? (
@@ -138,7 +138,9 @@ export default function AttendanceTodayCard({ today, row, loading, onCheck }: At
                 )}
               </div>
             </div>
-            <Pill tone="mint">{last.isOpen ? "Active" : "Closed"}</Pill>
+            <span className="max-md:absolute max-md:top-2.5 max-md:right-3.5">
+              <Pill tone="mint">{last.isOpen ? "Active" : "Closed"}</Pill>
+            </span>
           </div>
         ) : null}
       </div>

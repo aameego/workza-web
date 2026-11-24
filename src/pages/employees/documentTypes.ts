@@ -8,6 +8,13 @@ export const DOC_TYPE_LABEL: Record<string, string> = {
   BANK: "Bank Proof",
   MEDICAL_CARD: "Medical Card",
   SALARY_SLIP: "Salary Slip",
+  INTERNSHIP_OFFER_LETTER: "Internship Offer Letter",
+  INTERNSHIP_AGREEMENT: "Internship Agreement",
+  INTERNSHIP_COMPLETION_CERTIFICATE: "Internship Completion Certificate",
+  INTERNSHIP_EVALUATION_REPORT: "Internship Evaluation Report",
+  UNIVERSITY_NOC: "University / College NOC",
+  STIPEND_RECEIPT: "Stipend Receipt",
+  CONVERSION_OFFER_LETTER: "Conversion Offer Letter",
 };
 
 export const DOC_TYPE_ACCEPT: Record<string, string[]> = {

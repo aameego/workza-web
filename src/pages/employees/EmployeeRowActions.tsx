@@ -23,6 +23,7 @@ import {
   DropdownMenuSectionToggle,
   Modal,
   type ConfirmTone,
+  showSuccessToast,
 } from "../../design-system";
 import { EMPLOYEES_QUERY_KEY } from "../../hooks/useEmployees";
 import { ApiError } from "../../lib/apiClient";
@@ -119,12 +120,13 @@ export default function EmployeeRowActions({
     void queryClient.invalidateQueries({ queryKey: [EMPLOYEES_QUERY_KEY] });
   };
 
-  const runAction = async (fn: () => Promise<unknown>) => {
+  const runAction = async (fn: () => Promise<unknown>, success: string) => {
     setBusy(true);
     setActionError(null);
     try {
       await fn();
       setConfirm(null);
+      showSuccessToast(success);
       invalidateList();
     } catch (err: unknown) {
       setActionError(
@@ -195,19 +197,19 @@ export default function EmployeeRowActions({
     if (!confirm) return;
     switch (confirm.kind) {
       case "delete":
-        void runAction(() => deleteEmployee(employee._id));
+        void runAction(() => deleteEmployee(employee._id), directory === "consultancy" ? "Consultant deleted." : "Employee deleted.");
         break;
       case "toggleLogin":
-        void runAction(() => toggleAppLogin(employee._id, confirm.enable));
+        void runAction(() => toggleAppLogin(employee._id, confirm.enable), confirm.enable ? "App login enabled." : "App login disabled.");
         break;
       case "resend":
-        void runAction(() => resendCredentials(employee._id));
+        void runAction(() => resendCredentials(employee._id), "Credentials sent.");
         break;
       case "convertEmployee":
-        void runAction(() => convertToEmployee(employee._id));
+        void runAction(() => convertToEmployee(employee._id), "Consultant converted to employee.");
         break;
       case "confirmProbation":
-        void runAction(() => confirmProbation(employee._id));
+        void runAction(() => confirmProbation(employee._id), "Employee marked as full-time.");
         break;
       default:
         break;

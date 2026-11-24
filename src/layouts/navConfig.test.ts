@@ -69,6 +69,21 @@ it("consultancy screens are titled Consultancy", () => {
   expect(titleForPath("/acme/employees")).not.toBe("Consultancy");
 });
 
+it("intern screens use Interns titles and crumbs", () => {
+  expect(titleForPath("/acme/employees", "?type=intern")).toBe("Interns");
+  expect(titleForPath("/acme/employees/interns/new")).toBe("Add Intern");
+  expect(titleForPath("/acme/employees/interns/abc123")).toBe("Intern Details");
+  expect(titleForPath("/acme/employees/interns/abc123/edit")).toBe("Edit Intern");
+  expect(crumbsForPath("/acme/employees/interns/new")).toEqual([
+    { label: "Interns", path: "/employees?type=intern" },
+    { label: "Add Intern" },
+  ]);
+  expect(crumbsForPath("/acme/employees/interns/abc123")).toEqual([
+    { label: "Interns", path: "/employees?type=intern" },
+    { label: "Intern Details" },
+  ]);
+});
+
 it("hides admin menus from self-service roles (ATT-FN-08)", () => {
   const labels = (u: Parameters<typeof navItemsFor>[0]) => navItemsFor(u).map((i) => i.label);
   expect(labels({ role: "Employee", permissions: ["attendance:view"] })).not.toContain("Employees");
@@ -76,4 +91,14 @@ it("hides admin menus from self-service roles (ATT-FN-08)", () => {
   expect(labels({ role: "Employee", permissions: [] })).toContain("Attendance");
   expect(labels({ role: "Manager", permissions: ["employees:view"] })).toContain("Employees");
   expect(labels({ role: "HR" })).toContain("Recruitment");
+});
+
+describe("intern sidebar (INT-FN-13)", () => {
+  it("shows only the modules the Intern role grants", () => {
+    const items = navItemsFor({
+      role: "Intern",
+      permissions: ["dashboard:view", "attendance:view", "leave:view", "leave:apply", "documents:view", "settings:profile"],
+    }).map((i) => i.label);
+    expect(items).toEqual(["Dashboard", "Attendance", "Leave", "Documents", "Settings"]);
+  });
 });

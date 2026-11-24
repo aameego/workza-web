@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { SuccessToast } from "../../design-system";
 import { ApiError } from "../../lib/apiClient";
 import type { SessionUser } from "../../layouts/sessionUser";
 import {
@@ -20,6 +21,7 @@ import {
   filterRequests,
   normalizeBalanceRows,
   selfLeaveMetrics,
+  withWfhRow,
 } from "./leaveViewModel";
 
 export type LeaveSelfPageProps = {
@@ -27,6 +29,9 @@ export type LeaveSelfPageProps = {
   embedded?: boolean;
   /** Hide policy+month when parent already renders LeavePageHeader. */
   hideHeader?: boolean;
+  /** Month picked in the parent's header (manager tabs). */
+  year?: number;
+  month?: number;
 };
 
 const now = new Date();
@@ -34,6 +39,8 @@ const now = new Date();
 export default function LeaveSelfPage({
   user,
   hideHeader = false,
+  year: parentYear,
+  month: parentMonth,
 }: LeaveSelfPageProps) {
   // Requests and upcoming leaves come back scoped to the caller's whole team for managers; pin them to self.
   const selfId = user?.employeeId || undefined;
@@ -41,8 +48,11 @@ export default function LeaveSelfPage({
   const { vendorSlug } = useParams();
   const base = `/${vendorSlug || "app"}`;
 
-  const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth() + 1);
+  const [ownYear, setYear] = useState(now.getFullYear());
+  const [ownMonth, setMonth] = useState(now.getMonth() + 1);
+  const year = parentYear ?? ownYear;
+  const month = parentMonth ?? ownMonth;
+  const [notice, setNotice] = useState<string | null>(null);
   const [requestType, setRequestType] = useState("");
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
@@ -51,8 +61,10 @@ export default function LeaveSelfPage({
   const [cancelLoading, setCancelLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const dashboardQuery = useLeaveDashboard();
+  const dashboardQuery = useLeaveDashboard({ year, month });
   const requestsQuery = useLeaveRequests({
+    year,
+    month,
     page,
     limit: 10,
     status: status || undefined,
@@ -68,11 +80,17 @@ export default function LeaveSelfPage({
   }, [dashboardQuery.data]);
 
   // /leave/dashboard's self summary has no rejected count; use the list API's total.
-  const rejectedQuery = useLeaveRequests({ page: 1, limit: 1, status: "Rejected", employeeId: selfId });
-  const rejectedTotal = rejectedQuery.data?.total;
+  const countBase = { year, month, page: 1, limit: 1, employeeId: selfId };
+  const rejectedTotal = useLeaveRequests({ ...countBase, status: "Rejected" }).data?.total;
+  const pendingTotal = useLeaveRequests({ ...countBase, status: "Pending" }).data?.total;
   const metrics = useMemo(
-    () => selfLeaveMetrics(rejectedTotal == null ? summary : { ...summary, rejectedRequests: rejectedTotal }),
-    [summary, rejectedTotal],
+    () =>
+      selfLeaveMetrics({
+        ...summary,
+        rejectedRequests: rejectedTotal ?? summary?.rejectedRequests,
+        pendingRequests: pendingTotal ?? summary?.pendingRequests,
+      }),
+    [summary, rejectedTotal, pendingTotal],
   );
 
   const upcoming = useMemo(
@@ -87,11 +105,11 @@ export default function LeaveSelfPage({
   );
 
   const balanceRows = useMemo(() => {
-    if (balancesQuery.data?.balances?.length) {
-      return balancesQuery.data.balances;
-    }
-    return normalizeBalanceRows(dashboardQuery.data?.balances);
-  }, [balancesQuery.data, dashboardQuery.data]);
+    const rows = balancesQuery.data?.balances?.length
+      ? balancesQuery.data.balances
+      : normalizeBalanceRows(dashboardQuery.data?.balances);
+    return withWfhRow(rows, balancesQuery.data?.wfhQuota ?? summary?.wfhQuota);
+  }, [balancesQuery.data, dashboardQuery.data, summary]);
 
   const rows = useMemo(() => {
     const all =
@@ -112,6 +130,7 @@ export default function LeaveSelfPage({
     try {
       await cancelMutation.mutateAsync({ id: cancelRow._id });
       setCancelRow(null);
+      setNotice("Request cancelled successfully.");
     } catch (err) {
       setActionError(
         err instanceof ApiError ? err.message : "Unable to cancel request.",
@@ -123,7 +142,7 @@ export default function LeaveSelfPage({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 max-md:space-y-5">
       {!hideHeader ? (
         <LeavePageHeader
           year={year}
@@ -179,9 +198,11 @@ export default function LeaveSelfPage({
       <LeaveRequestModal
         open={createOpen}
         onClose={() => setCreateOpen(false)}
+        onSaved={setNotice}
         forSelf
         title="Submit Request"
       />
+      <SuccessToast message={notice} onClear={setNotice} />
       <LeaveConfirmDialog
         open={Boolean(cancelRow)}
         title="Cancel Request?"

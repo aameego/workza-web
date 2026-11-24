@@ -27,6 +27,8 @@ export default function SearchableEmployeeSelect({
   allowClear = true,
 }: SearchableEmployeeSelectProps) {
   const [open, setOpen] = useState(false);
+  // Open upward when the list (~290px) would run past the viewport bottom (BUG-71).
+  const [dropUp, setDropUp] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [employees, setEmployees] = useState<EmployeeSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -98,13 +100,18 @@ export default function SearchableEmployeeSelect({
         aria-expanded={open}
         aria-haspopup="listbox"
         className={cn(
-          "flex w-full min-h-10 cursor-pointer items-center justify-between gap-2 rounded-wz-md border bg-white px-3 py-2 text-left text-sm",
+          "flex w-full min-h-[42px] cursor-pointer items-center justify-between gap-2 rounded-wz-md border bg-white px-3 py-2 text-left text-sm",
           hasError ? "border-wz-error" : "border-wz-border",
           disabled && "cursor-not-allowed bg-wz-neutral-100 text-wz-neutral-500",
         )}
         onClick={() => {
           if (disabled) return;
           const next = !open;
+          if (next && rootRef.current) {
+            const r = rootRef.current.getBoundingClientRect();
+            const below = window.innerHeight - r.bottom;
+            setDropUp(below < 300 && r.top > below);
+          }
           setOpen(next);
           if (next) fetchEmployees(searchTerm);
         }}
@@ -144,7 +151,12 @@ export default function SearchableEmployeeSelect({
       </button>
 
       {open ? (
-        <div className="absolute z-40 mt-1 w-full overflow-hidden rounded-wz-md border border-wz-border bg-white shadow-lg">
+        <div
+          className={cn(
+            "absolute z-40 w-full overflow-hidden rounded-wz-md border border-wz-border bg-white shadow-lg",
+            dropUp ? "bottom-full mb-1" : "mt-1",
+          )}
+        >
           <input
             type="search"
             value={searchTerm}

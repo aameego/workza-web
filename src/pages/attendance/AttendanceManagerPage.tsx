@@ -19,6 +19,8 @@ export default function AttendanceManagerPage({ user }: AttendanceManagerPagePro
   const tabs = (
     <TabSwitcher
       aria-label="Attendance view"
+      // Mobile: one scrolling row so the month box stays beside it (Figma 173:52410)
+      className="max-md:flex-nowrap max-md:[&>*]:shrink-0 max-md:[&>*]:whitespace-nowrap"
       value={tab}
       onChange={setTab}
       items={[

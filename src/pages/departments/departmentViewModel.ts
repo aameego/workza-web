@@ -228,14 +228,9 @@ export const pageWindowLabel = (
   return `Showing ${start}–${end} of ${total} departments`;
 };
 
-export const sanitizeGeoValue = (name: string, value: string): string => {
+export const sanitizeGeoValue = (_name: string, value: string): string => {
   const str = String(value ?? "");
-  if (name === "geofenceRadiusMeters") {
-    let v = str.replace(/[^0-9.]/g, "");
-    const dot = v.indexOf(".");
-    if (dot !== -1) v = v.slice(0, dot + 1) + v.slice(dot + 1).replace(/\./g, "");
-    return v;
-  }
+  // Keep a leading minus on radius too, so validation reports it instead of silently saving 50 for -50 (DEP-FN-02).
   let v = str.replace(/[^0-9.-]/g, "");
   const negative = v.startsWith("-");
   v = v.replace(/-/g, "");

@@ -39,6 +39,8 @@ export type LeaveRequest = {
   rejectedBy?: string | LeaveEmployeeRef | null;
   rejectedAt?: string | null;
   cancelReason?: string;
+  /** Approver's note; the rejection reason on Rejected requests. */
+  approverComment?: string;
   createdAt?: string;
   updatedAt?: string;
   medicalDocumentUrl?: string | null;
@@ -68,6 +70,13 @@ export type LeaveSummary = {
   totalBalance?: number | null;
   avgBalance?: number | null;
   employeeCount?: number;
+  /** Unique employees behind each card for the selected month. */
+  employeeCounts?: {
+    wfh?: number;
+    leave?: number;
+    pending?: number;
+    rejected?: number;
+  };
   rejectedRequests?: number;
   submittedRequests?: number;
   requestCounts?: {
@@ -78,6 +87,9 @@ export type LeaveSummary = {
     rejected?: number;
   };
   wfhQuota?: {
+    total?: number;
+    used?: number;
+    remaining?: number;
     monthlyLimit?: number | null;
     annualLimit?: number | null;
     usedThisMonth?: number;
@@ -109,6 +121,11 @@ export type LeaveRequestsParams = {
   limit?: number;
   leaveType?: string;
   requestType?: string;
+  /** Month picker: requests overlapping this month. */
+  year?: number;
+  month?: number;
+  /** My Team: direct reportees only, never the viewer's own requests. */
+  team?: boolean;
 };
 
 export type LeaveRequestsResponse = {
@@ -172,8 +189,10 @@ export type LeavePolicy = {
   types?: LeavePolicyType[];
 };
 
-export const getLeaveDashboard = async (): Promise<LeaveDashboardResponse> =>
-  api.get<LeaveDashboardResponse>("/leave/dashboard");
+export const getLeaveDashboard = async (
+  params: { year?: number; month?: number } = {},
+): Promise<LeaveDashboardResponse> =>
+  api.get<LeaveDashboardResponse>("/leave/dashboard", { params });
 
 export const getLeaveRequests = async (
   params: LeaveRequestsParams | string = {},
@@ -233,6 +252,10 @@ export const updateLeaveBalances = async (
   payload: LeaveBalanceUpdatePayload,
 ): Promise<unknown> =>
   api.put(`/leave/balances/${employeeId}`, { json: payload });
+
+/** Enabled leave types, readable by every signed-in user. */
+export const getLeaveTypes = async (): Promise<{ types: Array<{ code: string; label?: string }> }> =>
+  api.get<{ types: Array<{ code: string; label?: string }> }>("/leave/types");
 
 export const getLeavePolicy = async (): Promise<{ policy: LeavePolicy }> =>
   api.get<{ policy: LeavePolicy }>("/leave/policy");
