@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
-import { Plus, X } from "lucide-react";
-import { Button, Card, FilterSelect, Pagination } from "../../../design-system";
+import { useMemo, useRef, useState } from "react";
+import { CalendarDays, Plus, X } from "lucide-react";
+import { Button, Card, FilterSelect, Pagination, cn } from "../../../design-system";
 import { useRoles } from "../../../hooks/useRoles";
 import { readSessionUser } from "../../../layouts/sessionUser";
 import type { RoleOption } from "../../../services/roleService";
@@ -9,6 +9,63 @@ import { RoleFormModal, RoleViewModal } from "./RoleModals";
 import { RolesDesktopTable, RolesMobileTable } from "./RolesTable";
 
 const PAGE_SIZE = 10;
+
+/** "2026-11-24" -> "24/11/26", the Figma date style. */
+const shortDate = (iso: string): string => {
+  const [y, m, d] = iso.split("-");
+  return y && m && d ? `${d}/${m}/${y.slice(2)}` : iso;
+};
+
+/**
+ * Figma Dropdown-2 with a calendar icon: shows the label until a day is picked.
+ * The native date input stays in the DOM (visually hidden) so the browser's own
+ * picker and keyboard entry keep working; the face just opens it.
+ */
+function DateFilter({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const openPicker = () => {
+    const input = inputRef.current;
+    if (!input) return;
+    try {
+      input.showPicker();
+    } catch {
+      input.focus(); // older browsers without showPicker()
+    }
+  };
+  return (
+    <div className="relative flex h-10 items-center gap-1.5 rounded-wz-md border border-wz-border bg-white px-3 text-[13px] text-wz-text-muted hover:border-wz-neutral-400 has-[input:focus-visible]:border-wz-primary">
+      <button
+        type="button"
+        className={cn(
+          "inline-flex cursor-pointer items-center gap-1.5 border-0 bg-transparent p-0 text-[13px]",
+          value ? "text-wz-heading" : "text-wz-text-muted",
+        )}
+        onClick={openPicker}
+      >
+        {value ? shortDate(value) : label}
+        <CalendarDays size={12} aria-hidden />
+      </button>
+      <input
+        ref={inputRef}
+        type="date"
+        aria-label={label}
+        className="sr-only"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+      {value ? (
+        <button
+          type="button"
+          className="inline-flex cursor-pointer border-0 bg-transparent p-0 text-wz-text-muted"
+          aria-label={`Clear ${label}`}
+          onClick={() => onChange("")}
+        >
+          <X size={12} />
+        </button>
+      ) : null}
+    </div>
+  );
+}
 
 export function RolesTab() {
   const user = readSessionUser();
@@ -45,7 +102,7 @@ export function RolesTab() {
     <div className="flex flex-col gap-wz-6 max-md:gap-4">
       {/* Figma Data/Filter Toolbar: web = filters left, Create Role right; mobile = Create Role under the filters */}
       <div className="flex flex-wrap items-center justify-between gap-wz-3 max-md:flex-col max-md:items-start max-md:gap-2.5">
-        <div className="flex flex-wrap items-center gap-wz-3 max-md:gap-1.5">
+        <div className="flex flex-wrap items-center gap-wz-4 max-md:gap-1.5">
           <FilterSelect
             aria-label="Generation"
             value={generation}
@@ -58,29 +115,14 @@ export function RolesTab() {
             <option value="system">System</option>
             <option value="custom">Custom</option>
           </FilterSelect>
-          <div className="relative flex h-10 items-center gap-1.5 rounded-wz-md border border-wz-border bg-white px-3 text-[13px] text-wz-text-muted hover:border-wz-neutral-400">
-            <span className="whitespace-nowrap">Created At</span>
-            <input
-              type="date"
-              aria-label="Created At"
-              className="min-w-0 border-0 bg-transparent p-0 text-[13px] text-wz-heading outline-none max-md:w-[110px]"
-              value={createdOn}
-              onChange={(e) => {
-                setCreatedOn(e.target.value);
-                setPage(1);
-              }}
-            />
-            {createdOn ? (
-              <button
-                type="button"
-                className="inline-flex cursor-pointer border-0 bg-transparent p-0 text-wz-text-muted"
-                aria-label="Clear created date"
-                onClick={() => setCreatedOn("")}
-              >
-                <X size={12} />
-              </button>
-            ) : null}
-          </div>
+          <DateFilter
+            label="Created At"
+            value={createdOn}
+            onChange={(next) => {
+              setCreatedOn(next);
+              setPage(1);
+            }}
+          />
         </div>
         <Button size="toolbar" onClick={() => setForm({ open: true, role: null })}>
           <Plus size={16} />
@@ -88,7 +130,7 @@ export function RolesTab() {
         </Button>
       </div>
 
-      <div className="overflow-hidden rounded-wz-lg border border-wz-border bg-white">
+      <div className="overflow-hidden rounded-wz-xl border border-wz-border bg-white">
         {query.isLoading ? (
           <div className="px-6 py-12 text-center text-sm text-wz-text-secondary">Loading roles…</div>
         ) : query.isError ? (
@@ -100,7 +142,7 @@ export function RolesTab() {
             {/* One layout per breakpoint, switched in CSS so nothing re-renders on resize. */}
             <div className="max-md:hidden">
               <RolesDesktopTable roles={pageRows} onView={setViewing} onEdit={openEdit} />
-              <Pagination page={pageSafe} pages={pages} onPageChange={setPage} summary={summary} />
+              <Pagination page={pageSafe} pages={pages} onPageChange={setPage} summary={summary} variant="simple" />
             </div>
             <div className="md:hidden">
               <RolesMobileTable roles={pageRows} onView={setViewing} onEdit={openEdit} />

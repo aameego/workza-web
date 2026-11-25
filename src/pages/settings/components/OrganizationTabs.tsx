@@ -1,5 +1,5 @@
 import { ChevronRight } from "lucide-react";
-import { cn } from "../../../design-system";
+import { TabSwitcher } from "../../../design-system";
 
 const SETTINGS_TABS = [
   "Organization",
@@ -14,6 +14,8 @@ const SETTINGS_TABS = [
 ] as const;
 
 export type SettingsTab = (typeof SETTINGS_TABS)[number];
+
+const TAB_ITEMS = SETTINGS_TABS.map((tab) => ({ value: tab, label: tab }));
 
 export interface OrganizationTabsProps {
   activeTab: SettingsTab;
@@ -47,25 +49,14 @@ export function OrganizationTabs({
         </span>
         <ChevronRight size={16} className="shrink-0 text-wz-text-muted" aria-hidden />
       </label>
-      <div className="flex gap-wz-2 border-b border-wz-neutral-200 max-md:hidden">
-        {SETTINGS_TABS.map((tab) => (
-          <button
-            key={tab}
-            type="button"
-            role="tab"
-            aria-selected={activeTab === tab}
-            onClick={() => onTabChange(tab)}
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-wz-md border px-wz-4 py-[7px] text-sm font-semibold transition-colors",
-              activeTab === tab
-                ? "border-b border-wz-primary bg-white font-semibold text-wz-primary"
-                : "border-transparent text-wz-text-muted hover:text-wz-heading hover:bg-wz-neutral-50",
-            )}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
+      {/* Figma Navigation/Module Switcher (288:154029): folder tabs, shared with other modules. */}
+      <TabSwitcher
+        aria-label="Settings sections"
+        className="max-md:hidden"
+        items={TAB_ITEMS}
+        value={activeTab}
+        onChange={onTabChange}
+      />
     </>
   );
 }

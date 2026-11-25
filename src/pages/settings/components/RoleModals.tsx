@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, CircleCheck, Eye, Lock, X } from "lucide-react";
+import { Check, ChevronDown, CircleCheck, Eye, Lock, Minus, X } from "lucide-react";
 import { Badge, Button, Field, Input, Modal, TextArea, cn, showSuccessToast } from "../../../design-system";
 import { ApiError } from "../../../lib/apiClient";
 import { useSaveRole } from "../../../hooks/useRoles";
@@ -31,16 +31,29 @@ function GroupCheckbox({
   useEffect(() => {
     if (ref.current) ref.current.indeterminate = Boolean(partial);
   }, [partial]);
+  // Figma Checkbox: 12px, 0.5px #aeb7c5 border, 2 radius; filled primary when on, grey when read-only.
   return (
-    <input
-      ref={ref}
-      type="checkbox"
-      aria-label={label}
-      className="mt-[2px] size-3 shrink-0 cursor-pointer accent-wz-primary disabled:cursor-default"
-      checked={checked}
-      disabled={disabled}
-      onChange={(e) => onChange?.(e.target.checked)}
-    />
+    <span className="relative mt-[2px] inline-flex size-3 shrink-0">
+      <input
+        ref={ref}
+        type="checkbox"
+        aria-label={label}
+        className={cn(
+          "peer m-0 size-3 cursor-pointer appearance-none rounded-[2px] border-[0.5px] border-[#aeb7c5] bg-white",
+          "checked:border-wz-primary checked:bg-wz-primary indeterminate:border-wz-primary indeterminate:bg-wz-primary",
+          "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-wz-primary",
+          "disabled:cursor-default disabled:checked:border-[#aeb7c5] disabled:checked:bg-[#aeb7c5] disabled:indeterminate:border-[#aeb7c5] disabled:indeterminate:bg-[#aeb7c5]",
+        )}
+        checked={checked}
+        disabled={disabled}
+        onChange={(e) => onChange?.(e.target.checked)}
+      />
+      {checked || partial ? (
+        <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-white" aria-hidden>
+          {checked ? <Check size={9} strokeWidth={3.5} /> : <Minus size={9} strokeWidth={3.5} />}
+        </span>
+      ) : null}
+    </span>
   );
 }
 
