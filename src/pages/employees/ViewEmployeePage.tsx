@@ -26,6 +26,7 @@ import {
   employmentActiveLabel,
   employmentTypeBadge,
   employmentTypeLabel,
+  probationEndsLabel,
 } from "./employeeListHelpers";
 import { initialsFromName } from "./employeeViewFormat";
 import EmployeeOverviewPanel from "./EmployeeOverviewPanel";
@@ -33,6 +34,7 @@ import EmployeeDocumentsPanel from "./EmployeeDocumentsPanel";
 import EmployeeSalaryPanel from "./EmployeeSalaryPanel";
 import EmployeeAttendancePanel from "./EmployeeAttendancePanel";
 import IssueLetterModal from "./IssueLetterModal";
+import ProbationHistoryModal from "./ProbationHistoryModal";
 
 
 type ViewTab = "overview" | "documents" | "salary" | "attendance";
@@ -72,6 +74,7 @@ export default function ViewEmployeePage() {
     }
   }, [employee?.isConsultancy, location.pathname, location.search, location.state, navigate]);
   const [letterOpen, setLetterOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const moreRef = useRef<HTMLButtonElement>(null);
 
   const letterAccess = getLetterAccess(user);
@@ -152,8 +155,17 @@ export default function ViewEmployeePage() {
               {typeLabel ? (
                 <Badge status={employmentTypeBadge(employee)} size="md">
                   {typeLabel}
-                  {typeLabel === "Probation" ? (
-                    <Info size={10} aria-hidden className="opacity-80" />
+                  {probationEndsLabel(employee) ? ` · ${probationEndsLabel(employee)}` : ""}
+                  {typeLabel === "Probation" && canManage ? (
+                    <button
+                      type="button"
+                      className="inline-flex cursor-pointer items-center border-0 bg-transparent p-0 text-inherit"
+                      aria-label="Probation history"
+                      title="Probation history"
+                      onClick={() => setHistoryOpen(true)}
+                    >
+                      <Info size={10} aria-hidden className="opacity-80" />
+                    </button>
                   ) : null}
                 </Badge>
               ) : null}
@@ -294,6 +306,10 @@ export default function ViewEmployeePage() {
         <EmployeeAttendancePanel employeeId={employee._id} />
       ) : null}
 
+      <ProbationHistoryModal
+        employeeId={historyOpen ? employee._id : null}
+        onClose={() => setHistoryOpen(false)}
+      />
       <IssueLetterModal
         open={letterOpen}
         onClose={() => setLetterOpen(false)}

@@ -58,12 +58,15 @@ export type EmployeeDocument = {
   documentType?: string;
   category?: string;
   size?: number;
-  fileSize?: number;
+  /** Server stores it already formatted, e.g. "1.4 MB". */
+  fileSize?: number | string;
   createdAt?: string;
   uploadedAt?: string;
 };
 
-export const formatFileSize = (bytes?: number | null): string => {
+export const formatFileSize = (bytes?: number | string | null): string => {
+  // Already formatted by the server (EMP-UI-36).
+  if (typeof bytes === "string" && bytes.trim() && Number.isNaN(Number(bytes))) return bytes.trim();
   const n = Number(bytes || 0);
   if (!n || n < 0) return "—";
   if (n < 1024) return `${n} B`;

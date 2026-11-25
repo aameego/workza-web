@@ -93,6 +93,14 @@ export default function InternOverviewPanel({ intern }: InternOverviewPanelProps
             <EmployeeInfoField label="Blood Group" value={displayValue(intern.bloodGroup)} />
           </EmployeeInfoRow>
           <EmployeeInfoRow>
+            <EmployeeInfoField label="Father / Husband Name" value={displayValue(intern.fatherHusbandName)} />
+            <EmployeeInfoField label="Relation" value={displayValue(intern.relationWithMember)} />
+            <EmployeeInfoField label="Nationality" value={displayValue(intern.nationality)} />
+          </EmployeeInfoRow>
+          <EmployeeInfoRow>
+            <EmployeeInfoField label="Marital Status" value={displayValue(intern.maritalStatus)} />
+          </EmployeeInfoRow>
+          <EmployeeInfoRow>
             <EmployeeInfoField label="Aadhaar" value={maskAadhaar(intern.aadhaarNumber)} />
             <EmployeeInfoField label="PAN" value={displayValue(intern.panNumber)} />
             <EmployeeInfoField

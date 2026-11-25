@@ -86,6 +86,10 @@ export default function DepartmentViewModal({
 
         <Section title="Attendance Geofence">
           <div className="grid grid-cols-1 gap-wz-4 sm:grid-cols-3">
+            <DetailRow
+              label="Can mark attendance outside the geofence"
+              value={department.allowOutsideGeofence === false ? "No" : "Yes"}
+            />
             <DetailRow label="Latitude" value={dash(department.latitude)} />
             <DetailRow label="Longitude" value={dash(department.longitude)} />
             <DetailRow

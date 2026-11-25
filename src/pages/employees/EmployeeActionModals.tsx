@@ -11,6 +11,7 @@ import {
   employmentTypeLabel,
 } from "./employeeListHelpers";
 import { initialsFromName } from "./employeeViewFormat";
+import { tdsRangeError } from "./employeeValidation";
 
 /** Figma Left-Profile: 45px avatar, 20px name + md badges, 13px code • designation. */
 export function EmployeeModalCard({
@@ -196,6 +197,7 @@ export function MakeConsultantModal({ open, employee, onClose, onDone }: ActionM
   const gross = Math.max(0, Number(pay) || 0);
   const tdsPct = Math.min(100, Math.max(0, Number(tds) || 0));
   const tdsAmt = Math.round(gross * tdsPct) / 100;
+  const tdsErr = tdsRangeError(tds);
 
   const close = () => {
     if (busy) return;
@@ -207,10 +209,7 @@ export function MakeConsultantModal({ open, employee, onClose, onDone }: ActionM
 
   const submit = async () => {
     if (!(gross > 0)) return setError("Monthly Consultancy Pay must be greater than ₹0");
-    const rawTds = Number(tds);
-    if (tds !== "" && (!Number.isFinite(rawTds) || rawTds < 0 || rawTds > 100)) {
-      return setError("TDS must be between 0% and 100%");
-    }
+    if (tdsErr) return setError(tdsErr);
     setBusy(true);
     setError(null);
     try {
@@ -242,7 +241,7 @@ export function MakeConsultantModal({ open, employee, onClose, onDone }: ActionM
           </Button>
           <Button
             type="button"
-            disabled={busy}
+            disabled={busy || Boolean(tdsErr)}
             style={{ flex: "0 0 200px" }}
             onClick={() => void submit()}
           >
@@ -267,7 +266,7 @@ export function MakeConsultantModal({ open, employee, onClose, onDone }: ActionM
             onChange={(e) => setPay(e.target.value)}
           />
         </Field>
-        <Field label="TDS %" htmlFor="consult-tds">
+        <Field label="TDS %" htmlFor="consult-tds" error={tdsErr}>
           <Input
             id="consult-tds"
             type="number"

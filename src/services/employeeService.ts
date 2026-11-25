@@ -173,3 +173,20 @@ export const extendProbation = async (
   api.patch(`/probation/employees/${employeeId}/extend`, {
     json: { extraMonths, remark },
   });
+
+export type ProbationHistory = {
+  probationStartDate: string | null;
+  probationEndDate: string | null;
+  probationExtendedMonths: number;
+  confirmationDate: string | null;
+  history: {
+    action: string;
+    date: string;
+    months: number;
+    remark: string;
+    by: { id: string | null; name: string } | null;
+  }[];
+};
+
+export const getProbationHistory = async (employeeId: string): Promise<ProbationHistory> =>
+  api.get<ProbationHistory>(`/probation/employees/${employeeId}/history`);

@@ -6,6 +6,7 @@ import {
   ConfirmDialog,
   Pagination,
   TabSwitcher,
+  showSuccessToast,
 } from "../../design-system";
 import {
   useDeleteDepartment,
@@ -160,6 +161,7 @@ export default function DepartmentsPage() {
     if (!deleteTarget) return;
     try {
       await deleteMutation.mutateAsync(deleteTarget._id);
+      showSuccessToast("Department deleted successfully.");
       setDeleteTarget(null);
       setFormOpen(false);
       setSelected(null);
@@ -196,17 +198,17 @@ export default function DepartmentsPage() {
           {
             value: "departments",
             label: "Departments",
-            count: departments.length,
+            count: filtered.length,
           },
           {
             value: "designations",
             label: "Designations",
-            count: orgDesignations.length,
+            count: filteredDesignations.length,
           },
           {
             value: "location",
             label: "Location",
-            count: departmentsWithGeofence(departments).length,
+            count: locationRows.length,
           },
         ]}
       />
@@ -481,7 +483,11 @@ export default function DepartmentsPage() {
       <ConfirmDialog
         open={Boolean(deleteTarget)}
         title="Delete department"
-        message={`Are you sure you want to delete “${deleteTarget?.name || "this department"}”? This cannot be undone.`}
+        message={
+          deleteTarget?.employeeCount
+            ? `“${deleteTarget.name}” has ${deleteTarget.employeeCount} employee(s). Move them to another department before deleting it.`
+            : `Are you sure you want to delete “${deleteTarget?.name || "this department"}”? This cannot be undone.`
+        }
         tone="destructive"
         confirmLabel={deleteMutation.isPending ? "Deleting…" : "Delete"}
         loading={deleteMutation.isPending}

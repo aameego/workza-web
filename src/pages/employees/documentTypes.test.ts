@@ -27,5 +27,7 @@ describe("pendingDocumentSlots", () => {
   it("formats file sizes", () => {
     expect(formatFileSize(1024)).toBe("1.0 KB");
     expect(formatFileSize(3.1 * 1024 * 1024)).toBe("3.1 MB");
+    expect(formatFileSize("1.4 MB")).toBe("1.4 MB");
+    expect(formatFileSize(undefined)).toBe("—");
   });
 });

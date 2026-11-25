@@ -53,6 +53,7 @@ import {
   employmentActiveLabel,
   employmentTypeBadge,
   employmentTypeLabel,
+  probationEndsLabel,
   pageWindowLabel,
 } from "./employeeListHelpers";
 
@@ -738,11 +739,19 @@ export default function EmployeesPage() {
                                 {employmentActiveLabel(emp)}
                               </Badge>
                               {typeLabel ? (
-                                <Badge status={employmentTypeBadge(emp)}>
+                                <Badge
+                                  status={employmentTypeBadge(emp)}
+                                  title={probationEndsLabel(emp) || undefined}
+                                >
                                   {typeLabel}
                                 </Badge>
                               ) : null}
                             </div>
+                            {probationEndsLabel(emp) ? (
+                              <span className="mt-0.5 block text-[10px] text-wz-text-muted">
+                                {probationEndsLabel(emp)}
+                              </span>
+                            ) : null}
                           </td>
                         </>
                       )}
