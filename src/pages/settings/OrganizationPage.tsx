@@ -23,6 +23,9 @@ import {
 import { LetterSignatory, type LetterSignatoryData } from "./components/LetterSignatory";
 import { ConfigurationTab } from "./components/ConfigurationTab";
 import { ProbationTab } from "./components/ProbationTab";
+import { OvertimeTab } from "./components/OvertimeTab";
+import { HolidaysTab } from "./components/HolidaysTab";
+import { ShiftsWeekOffTab } from "./components/ShiftsWeekOffTab";
 import { SignatureUpload } from "./components/SignatureUpload";
 import { StampUpload } from "./components/StampUpload";
 import {
@@ -224,6 +227,12 @@ export default function OrganizationPage() {
         <ConfigurationTab />
       ) : activeTab === "Probation" ? (
         <ProbationTab />
+      ) : activeTab === "Overtime" ? (
+        <OvertimeTab />
+      ) : activeTab === "Holidays" ? (
+        <HolidaysTab />
+      ) : activeTab === "Shifts & Week Off" ? (
+        <ShiftsWeekOffTab />
       ) : activeTab !== "Organization" ? (
         <Card className="w-full">
           <h2 className="m-0 text-base font-semibold text-wz-heading">{activeTab}</h2>
