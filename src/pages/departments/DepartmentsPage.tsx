@@ -483,11 +483,8 @@ export default function DepartmentsPage() {
       <ConfirmDialog
         open={Boolean(deleteTarget)}
         title="Delete department"
-        message={
-          deleteTarget?.employeeCount
-            ? `“${deleteTarget.name}” has ${deleteTarget.employeeCount} employee(s). Move them to another department before deleting it.`
-            : `Are you sure you want to delete “${deleteTarget?.name || "this department"}”? This cannot be undone.`
-        }
+        // A department with employees is refused by the API (409), whose message names the count.
+        message={`Are you sure you want to delete “${deleteTarget?.name || "this department"}”? This cannot be undone.`}
         tone="destructive"
         confirmLabel={deleteMutation.isPending ? "Deleting…" : "Delete"}
         loading={deleteMutation.isPending}
