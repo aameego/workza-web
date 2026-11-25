@@ -26,6 +26,7 @@ import { ProbationTab } from "./components/ProbationTab";
 import { OvertimeTab } from "./components/OvertimeTab";
 import { HolidaysTab } from "./components/HolidaysTab";
 import { ShiftsWeekOffTab } from "./components/ShiftsWeekOffTab";
+import { RolesTab } from "./components/RolesTab";
 import { SignatureUpload } from "./components/SignatureUpload";
 import { StampUpload } from "./components/StampUpload";
 import {
@@ -233,6 +234,8 @@ export default function OrganizationPage() {
         <HolidaysTab />
       ) : activeTab === "Shifts & Week Off" ? (
         <ShiftsWeekOffTab />
+      ) : activeTab === "Roles & Access" ? (
+        <RolesTab />
       ) : activeTab !== "Organization" ? (
         <Card className="w-full">
           <h2 className="m-0 text-base font-semibold text-wz-heading">{activeTab}</h2>
