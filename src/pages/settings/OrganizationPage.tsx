@@ -26,6 +26,8 @@ import { ProbationTab } from "./components/ProbationTab";
 import { OvertimeTab } from "./components/OvertimeTab";
 import { HolidaysTab } from "./components/HolidaysTab";
 import { ShiftsWeekOffTab } from "./components/ShiftsWeekOffTab";
+import { LeavePolicyTab } from "./components/LeavePolicyTab";
+import { SalaryTab } from "./components/SalaryTab";
 import { RolesTab } from "./components/RolesTab";
 import { SignatureUpload } from "./components/SignatureUpload";
 import { StampUpload } from "./components/StampUpload";
@@ -234,6 +236,10 @@ export default function OrganizationPage() {
         <HolidaysTab />
       ) : activeTab === "Shifts & Week Off" ? (
         <ShiftsWeekOffTab />
+      ) : activeTab === "Salary" ? (
+        <SalaryTab />
+      ) : activeTab === "Leave Policy" ? (
+        <LeavePolicyTab />
       ) : activeTab === "Roles & Access" ? (
         <RolesTab />
       ) : activeTab !== "Organization" ? (

@@ -158,7 +158,9 @@ export type LeaveBalancesResponse = {
 export type LeavePolicyType = {
   code: string;
   label?: string;
+  name?: string;
   enabled?: boolean;
+  paid?: boolean;
   hasBalance?: boolean;
   monthlyLimit?: number | null;
   annualLimit?: number | null;
@@ -172,9 +174,19 @@ export type LeavePolicyType = {
   yearEnd?: {
     lapseUnused?: boolean;
     carryForwardMax?: number | null;
+    lapseExcessCarry?: boolean;
   };
   monthEnd?: {
     lapseUnused?: boolean;
+  };
+  /** SL only — ask for a medical document above this many days (blank = never). */
+  documents?: {
+    requiredWhenDaysGt?: number | null;
+  };
+  encashment?: {
+    enabled?: boolean;
+    on?: string | null;
+    base?: string | null;
   };
 };
 
@@ -260,10 +272,16 @@ export const getLeaveTypes = async (): Promise<{ types: Array<{ code: string; la
 export const getLeavePolicy = async (): Promise<{ policy: LeavePolicy }> =>
   api.get<{ policy: LeavePolicy }>("/leave/policy");
 
+/** PUT /leave/policy response — `sync` reports how many balances were updated. */
+export type LeavePolicySaveResponse = {
+  policy: LeavePolicy;
+  sync?: { employeeCount?: number };
+};
+
 export const updateLeavePolicy = async (
   payload: Partial<LeavePolicy> & { types?: LeavePolicyType[] },
-): Promise<{ policy: LeavePolicy }> =>
-  api.put<{ policy: LeavePolicy }>("/leave/policy", { json: payload });
+): Promise<LeavePolicySaveResponse> =>
+  api.put<LeavePolicySaveResponse>("/leave/policy", { json: payload });
 
 export const applyLeavePolicyTemplate = async (
   templateKey: string,
