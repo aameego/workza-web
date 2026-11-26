@@ -18,13 +18,36 @@ export type PaginationProps = {
   onPageChange: (page: number) => void;
   /** Left-hand summary, e.g. "Showing 1–10 of 84 employees". */
   summary: ReactNode;
-  /** Mobile (Figma 173:51558): summary above, buttons in a scrolling row, no bar chrome. */
-  variant?: "bar" | "stacked" | "compact";
+  /**
+   * bar: numbered pages. stacked: mobile (Figma 173:51558), summary above.
+   * compact: mobile chevrons only (173:51639). simple: Previous / Next only (288:154039).
+   */
+  variant?: "bar" | "stacked" | "compact" | "simple";
 };
 
 /** Table footer bar: 56 tall, summary left (12px semibold navy), buttons right, 8 apart. */
 export function Pagination({ page, pages, onPageChange, summary, variant = "bar" }: PaginationProps) {
   const stacked = variant === "stacked";
+  if (variant === "simple") {
+    /* Figma table footer: 56 tall, 12px summary, 32-tall Previous / Next, 7 radius, no page numbers */
+    const btn =
+      "inline-flex h-8 cursor-pointer items-center justify-center gap-1 rounded-[7px] border border-wz-border bg-white px-2 text-xs leading-[18px] font-semibold text-wz-heading disabled:cursor-not-allowed disabled:text-wz-text-muted/50";
+    return (
+      <div className="flex h-14 items-center justify-between gap-3 border-t border-wz-border bg-white px-4">
+        <div className="min-w-0 text-xs leading-[18px] font-semibold text-wz-heading">{summary}</div>
+        <div className="flex items-center gap-2">
+          <button type="button" className={btn} disabled={page <= 1} onClick={() => onPageChange(Math.max(1, page - 1))}>
+            <ChevronLeft className="size-3.5" aria-hidden />
+            Previous
+          </button>
+          <button type="button" className={btn} disabled={page >= pages} onClick={() => onPageChange(Math.min(pages, page + 1))}>
+            Next
+            <ChevronRight className="size-3.5" aria-hidden />
+          </button>
+        </div>
+      </div>
+    );
+  }
   if (variant === "compact") {
     /* Mobile table footer (Figma 173:51639): 56 tall, 10px summary, chevron-only buttons */
     const btn =
